@@ -6,9 +6,9 @@ from AISettings import AISettings
 # creates the screen and its widgets
 display = CTk()
 display.geometry("800x600")
-canvas = Canvas(display)
-settings_right = PlanetSettings(display)
-settings_bottom = AISettings(display)
+canvas = Canvas(display, bg="black", highlightthickness=1)
+settings_right = PlanetSettings(display, border_width=2)
+settings_bottom = AISettings(display, border_width=2)
 
 # configures grid for dynamic resizing
 display.rowconfigure(0, weight=1)

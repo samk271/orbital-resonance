@@ -24,36 +24,37 @@ class AISettings(CTkFrame):
         self.textbox = CTkTextbox(self, height=94)
         self.textbox.grid(row=0, column=2, rowspan=3, pady=20, padx=10)
 
-        # creates generate button
+        # creates generate button todo add function
         generate_button = CTkButton(self, text="Generate")
-        generate_button.grid(row=0, column=3, sticky="n", pady=(20, 0))
+        generate_button.grid(row=0, column=4, sticky="n", pady=(20, 0))
 
-        # creates play sound button
+        # creates play sound button todo add function
         self.play_button = CTkButton(self, text="Play Sound", state="disabled", fg_color="gray25")
-        self.play_button.grid(row=1, column=3, pady=5)
+        self.play_button.grid(row=1, column=4, pady=5)
 
-        # creates add button
+        # creates add button todo add function
         self.add_button = CTkButton(self, text="Add to Solar System", state="disabled", fg_color="gray25")
-        self.add_button.grid(row=2, column=3, sticky="s", pady=(0, 20))
+        self.add_button.grid(row=2, column=4, sticky="s", pady=(0, 20))
 
         # creates the planet output label
         planet_label = CTkLabel(self, text="Generated\nPlanet/Sound:", font=("Arial", 20))
-        planet_label.grid(row=0, column=5, rowspan=3, sticky="ne", pady=20, padx=(10, 10))
+        planet_label.grid(row=0, column=6, rowspan=3, sticky="ne", pady=20, padx=(10, 10))
 
         # creates generated planet display
         self.planet_canvas = CTkCanvas(self, width=60, height=60, bg="gray17", highlightthickness=0)
-        self.planet_canvas.grid(row=0, column=6, rowspan=3)
+        self.planet_canvas.grid(row=0, column=7, rowspan=3)
 
         # creates the generated sound display
         self.sound_canvas = CTkCanvas(self, width=60, height=60, bg="gray17", highlightthickness=0)
-        self.sound_canvas.grid(row=0, column=7, rowspan=3, padx=(10, 20))
+        self.sound_canvas.grid(row=0, column=8, rowspan=3, padx=(10, 20))
 
         # sets column weights for dynamic resizing
         self.columnconfigure(0, weight=1)
-        self.columnconfigure(4, weight=10)
-        self.columnconfigure(8, weight=1)
+        self.columnconfigure(3, weight=10)
+        self.columnconfigure(5, weight=10)
+        self.columnconfigure(9, weight=1)
 
-        # creates an example planet and sound to display
+        # creates an example planet and sound to display todo remove when functionality has been added
         self.planet_canvas.create_oval(0, 0, 60, 60, fill="red")
         for i in range(60):
             from random import randint
