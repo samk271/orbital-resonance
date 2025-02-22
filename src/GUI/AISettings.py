@@ -14,6 +14,7 @@ class AISettings(CTkFrame):
         :param kwargs: the key word arguments to be passed to the super class
         """
 
+        # initializes superclass and binds user actions
         super().__init__(*args, **kwargs)
 
         # creates the input label
@@ -53,6 +54,11 @@ class AISettings(CTkFrame):
         self.columnconfigure(3, weight=10)
         self.columnconfigure(5, weight=10)
         self.columnconfigure(9, weight=1)
+
+        # handles menu focus
+        self.bind("<Button-1>", lambda event: self.focus_set())
+        for child in self.winfo_children():
+            child.bind("<Button-1>", lambda event: self.focus_set())
 
         # creates an example planet and sound to display todo remove when functionality has been added
         self.planet_canvas.create_oval(0, 0, 60, 60, fill="red")

@@ -3,7 +3,10 @@ from customtkinter import CTkCanvas
 
 class Canvas(CTkCanvas):
     """
-    The canvas that will be used to display the solar system in the prototype
+    The canvas that will be used to display the solar system in the prototype  # todo add close/open menu buttons
+    todo stars move with planets? or non moving background? or moves slightly to add depth?
+    todo set focus to planets
+    todo generate stars
     """
 
     # properties for how navigation buttons should look/behave
@@ -34,15 +37,15 @@ class Canvas(CTkCanvas):
 
         # binds user actions to functions
         self.bind("<Configure>", lambda event: self.resize(event.width, event.height))
-        self.bind("<Button-1>", lambda event: self.focus_set())  # todo do this for all settings windows
-        self.master.bind("<w>", lambda event: self.update_state("position", (0, -self.POS_AMT), event=event))
-        self.master.bind("<a>", lambda event: self.update_state("position", (-self.POS_AMT, 0), event=event))
-        self.master.bind("<s>", lambda event: self.update_state("position", (0, self.POS_AMT), event=event))
-        self.master.bind("<d>", lambda event: self.update_state("position", (self.POS_AMT, 0), event=event))
-        self.master.bind("<Up>", lambda event: self.update_state("position", (0, -self.POS_AMT), event=event))
-        self.master.bind("<Left>", lambda event: self.update_state("position", (-self.POS_AMT, 0), event=event))
-        self.master.bind("<Down>", lambda event: self.update_state("position", (0, self.POS_AMT), event=event))
-        self.master.bind("<Right>", lambda event: self.update_state("position", (self.POS_AMT, 0), event=event))
+        self.bind("<Button-1>", lambda event: self.focus_set())  # todo do this for planet settings
+        self.master.bind("<w>", lambda event: self.update_state("position", (0, self.POS_AMT), event=event))
+        self.master.bind("<a>", lambda event: self.update_state("position", (self.POS_AMT, 0), event=event))
+        self.master.bind("<s>", lambda event: self.update_state("position", (0, -self.POS_AMT), event=event))
+        self.master.bind("<d>", lambda event: self.update_state("position", (-self.POS_AMT, 0), event=event))
+        self.master.bind("<Up>", lambda event: self.update_state("position", (0, self.POS_AMT), event=event))
+        self.master.bind("<Left>", lambda event: self.update_state("position", (self.POS_AMT, 0), event=event))
+        self.master.bind("<Down>", lambda event: self.update_state("position", (0, -self.POS_AMT), event=event))
+        self.master.bind("<Right>", lambda event: self.update_state("position", (-self.POS_AMT, 0), event=event))
         self.master.bind("<MouseWheel>", lambda event: self.update_state("zoom", event.delta, event=event))
         self.master.bind("<KeyPress-+>", lambda event: self.update_state("zoom", self.ZOOM_AMT, event=event))
         self.master.bind("<KeyPress-->", lambda event: self.update_state("zoom", -self.ZOOM_AMT, event=event))
@@ -78,8 +81,13 @@ class Canvas(CTkCanvas):
         :return: the converted coordinates representing a position on the canvas in the format (x, y)
         """
 
-        x = coordinates[0] + self.position[0]
-        y = coordinates[1] + self.position[1]
+        # gets the center of the canvas
+        center_x = self.winfo_width() / 2
+        center_y = self.winfo_height() / 2
+
+        # shift the coordinates relative to the center, applies zoom, and shift back
+        x = (coordinates[0] - self.position[0]) * self.zoom + center_x
+        y = (coordinates[1] - self.position[1]) * self.zoom + center_y
 
         return x, y
 
@@ -107,13 +115,13 @@ class Canvas(CTkCanvas):
 
         # sets event handlers to navigation buttons
         for tag in up:
-            self.tag_bind(tag, "<Button-1>", lambda event: self.update_state("position", (0, -self.POS_AMT), up))
+            self.tag_bind(tag, "<Button-1>", lambda event: self.update_state("position", (0, self.POS_AMT), up))
         for tag in down:
-            self.tag_bind(tag, "<Button-1>", lambda event: self.update_state("position", (0, self.POS_AMT), down))
+            self.tag_bind(tag, "<Button-1>", lambda event: self.update_state("position", (0, -self.POS_AMT), down))
         for tag in left:
-            self.tag_bind(tag, "<Button-1>", lambda event: self.update_state("position", (-self.POS_AMT, 0), left))
+            self.tag_bind(tag, "<Button-1>", lambda event: self.update_state("position", (self.POS_AMT, 0), left))
         for tag in right:
-            self.tag_bind(tag, "<Button-1>", lambda event: self.update_state("position", (self.POS_AMT, 0), right))
+            self.tag_bind(tag, "<Button-1>", lambda event: self.update_state("position", (-self.POS_AMT, 0), right))
         for tag in zoom_in:
             self.tag_bind(tag, "<Button-1>", lambda event: self.update_state("zoom", self.ZOOM_AMT, zoom_in))
         for tag in zoom_out:
@@ -140,20 +148,20 @@ class Canvas(CTkCanvas):
 
                 # changes button color
                 if i < 7:
-                    self.itemconfig(tag, **self.NAV_BUTTON_CLICKED)
-                    self.after(self.NAV_BUTTON_CLICKED_TIME, lambda element_tag=tag: self.itemconfig(
-                        element_tag, **self.NAV_BUTTON_FILL))
+                    self.itemconfig(tag, **Canvas.NAV_BUTTON_CLICKED)
+                    self.after(Canvas.NAV_BUTTON_CLICKED_TIME, lambda element_tag=tag: self.itemconfig(
+                        element_tag, **Canvas.NAV_BUTTON_FILL))
 
                 # shifts button position
-                self.move(tag, self.NAV_BUTTON_CLICKED_OFFSET, self.NAV_BUTTON_CLICKED_OFFSET)
-                self.after(self.NAV_BUTTON_CLICKED_TIME, lambda element_tag=tag: self.move(
-                    element_tag, -self.NAV_BUTTON_CLICKED_OFFSET, -self.NAV_BUTTON_CLICKED_OFFSET))
+                self.move(tag, Canvas.NAV_BUTTON_CLICKED_OFFSET, Canvas.NAV_BUTTON_CLICKED_OFFSET)
+                self.after(Canvas.NAV_BUTTON_CLICKED_TIME, lambda element_tag=tag: self.move(
+                    element_tag, -Canvas.NAV_BUTTON_CLICKED_OFFSET, -Canvas.NAV_BUTTON_CLICKED_OFFSET))
 
         # handles updating state
         if value == "position":
             self.position = (self.position[0] + amount[0], self.position[1] + amount[1])
         elif value == "zoom":
-            self.zoom += (amount / abs(amount)) * self.ZOOM_AMT
+            self.zoom *= 1 + ((amount / abs(amount)) * self.ZOOM_AMT)
 
     def create_nav_button(self, x1, y1, x2, y2, text):
         """
@@ -169,22 +177,22 @@ class Canvas(CTkCanvas):
         """
 
         # gets variables for creating button
-        radius = self.NAV_BUTTON_RADIUS
-        kwargs = {"extent": 90, "style": "arc", "outline": self.NAV_BUTTON_BORDER["fill"], **self.NAV_BUTTON_BORDER}
+        radius = Canvas.NAV_BUTTON_RADIUS
+        kwargs = {"extent": 90, "style": "arc", "outline": Canvas.NAV_BUTTON_BORDER["fill"], **Canvas.NAV_BUTTON_BORDER}
         center_x = (x1 + x2) / 2
         center_y = (y1 + y2) / 2
         return [
 
             # draws the corners
-            self.create_oval(x1, y1, x1 + radius * 2, y1 + radius * 2, **self.NAV_BUTTON_FILL),
-            self.create_oval(x2 - radius * 2, y1, x2, y1 + radius * 2, **self.NAV_BUTTON_FILL),
-            self.create_oval(x1, y2 - radius * 2, x1 + radius * 2, y2, **self.NAV_BUTTON_FILL),
-            self.create_oval(x2 - radius * 2, y2 - radius * 2, x2, y2, **self.NAV_BUTTON_FILL),
+            self.create_oval(x1, y1, x1 + radius * 2, y1 + radius * 2, **Canvas.NAV_BUTTON_FILL),
+            self.create_oval(x2 - radius * 2, y1, x2, y1 + radius * 2, **Canvas.NAV_BUTTON_FILL),
+            self.create_oval(x1, y2 - radius * 2, x1 + radius * 2, y2, **Canvas.NAV_BUTTON_FILL),
+            self.create_oval(x2 - radius * 2, y2 - radius * 2, x2, y2, **Canvas.NAV_BUTTON_FILL),
 
             # draws the remainder of the rectangle
-            self.create_rectangle(x1 + radius, y1, x2 - radius, y2, **self.NAV_BUTTON_FILL),
-            self.create_rectangle(x1, y1 + radius, x1 + radius * 2, y2 - radius, **self.NAV_BUTTON_FILL),
-            self.create_rectangle(x2 - radius * 2, y1 + radius, x2, y2 - radius, **self.NAV_BUTTON_FILL),
+            self.create_rectangle(x1 + radius, y1, x2 - radius, y2, **Canvas.NAV_BUTTON_FILL),
+            self.create_rectangle(x1, y1 + radius, x1 + radius * 2, y2 - radius, **Canvas.NAV_BUTTON_FILL),
+            self.create_rectangle(x2 - radius * 2, y1 + radius, x2, y2 - radius, **Canvas.NAV_BUTTON_FILL),
 
             # draws rounded borders
             self.create_arc(x1, y1, x1 + radius * 2, y1 + radius * 2, start=90, **kwargs),
@@ -193,11 +201,11 @@ class Canvas(CTkCanvas):
             self.create_arc(x2 - radius * 2, y2 - radius * 2, x2, y2, start=270, **kwargs),
 
             # draws straight borders
-            self.create_line(x1 + radius, y1, x2 - radius, y1, **self.NAV_BUTTON_BORDER),
-            self.create_line(x1 + radius, y2, x2 - radius, y2, **self.NAV_BUTTON_BORDER),
-            self.create_line(x1, y1 + radius, x1, y2 - radius, **self.NAV_BUTTON_BORDER),
-            self.create_line(x2, y1 + radius, x2, y2 - radius, **self.NAV_BUTTON_BORDER),
+            self.create_line(x1 + radius, y1, x2 - radius, y1, **Canvas.NAV_BUTTON_BORDER),
+            self.create_line(x1 + radius, y2, x2 - radius, y2, **Canvas.NAV_BUTTON_BORDER),
+            self.create_line(x1, y1 + radius, x1, y2 - radius, **Canvas.NAV_BUTTON_BORDER),
+            self.create_line(x2, y1 + radius, x2, y2 - radius, **Canvas.NAV_BUTTON_BORDER),
 
             # draws text
-            self.create_text(center_x, center_y, text=text, font=("Arial", 20), fill="black")
+            self.create_text(center_x, center_y - 3, text=text, font=("Arial", 20), fill="black")
         ]
