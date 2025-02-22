@@ -19,3 +19,5 @@ canvas.grid(row=0, column=0, sticky="nsew")
 settings_right.grid(row=0, column=1, sticky="nsew")
 settings_bottom.grid(row=1, column=0, columnspan=2, sticky="nsew")
 display.mainloop()
+
+# test to check 
