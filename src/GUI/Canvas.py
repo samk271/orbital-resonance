@@ -54,8 +54,10 @@ class Canvas(CTkCanvas):
         self.master.bind("<Down>", lambda event: self.update_state("position", (0, self.POS_AMT), event=event))
         self.master.bind("<Right>", lambda event: self.update_state("position", (self.POS_AMT, 0), event=event))
         self.master.bind("<MouseWheel>", lambda event: self.update_state("zoom", event.delta, event=event))
-        self.master.bind("<KeyPress-+>", lambda event: self.update_state("zoom", self.ZOOM_AMT, event=event))
-        self.master.bind("<KeyPress-->", lambda event: self.update_state("zoom", -self.ZOOM_AMT, event=event))
+        self.master.bind("<KeyPress-+>", lambda event: self.update_state(
+            "zoom", self.ZOOM_AMT, event=event) if event.char == "+" else None)
+        self.master.bind("<KeyPress-->", lambda event: self.update_state(
+            "zoom", -self.ZOOM_AMT, event=event) if event.char == "-" else None)
 
     def draw_planets(self, planets):
         """
