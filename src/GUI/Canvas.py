@@ -1,4 +1,5 @@
 from customtkinter import CTkCanvas
+import customtkinter
 from random import uniform
 from math import floor, ceil
 
@@ -9,6 +10,8 @@ class Canvas(CTkCanvas):
     todo give stars different zoom level than planets
     todo set focus to planets
     todo its more efficient to move elements rather than delete and redraw them, more efficient to create tag groups
+    todo optimize chunk loading/unloading
+    todo implement click and drag
     """
 
     # properties for how navigation buttons should look/behave
@@ -26,6 +29,7 @@ class Canvas(CTkCanvas):
     # properties for how stars should generate
     CHUNK_SIZE = 50
     STARS_PER_CHUNK = 3
+    STAR_SIZE = 2
 
     def __init__(self, *args, **kwargs):
         """
@@ -41,6 +45,7 @@ class Canvas(CTkCanvas):
         self.position = (0, 0)
         self.stars = {}
         self.sprites = {"planets": [], "stars": [], "navigation": []}
+        self.drag_event = {"x": 0, "y": 0}
 
         # binds user actions to functions
         self.bind("<Configure>", lambda event: self.resize(event.width, event.height))
@@ -54,10 +59,13 @@ class Canvas(CTkCanvas):
         self.master.bind("<Down>", lambda event: self.update_state("position", (0, self.POS_AMT), event=event))
         self.master.bind("<Right>", lambda event: self.update_state("position", (self.POS_AMT, 0), event=event))
         self.master.bind("<MouseWheel>", lambda event: self.update_state("zoom", event.delta, event=event))
-        self.master.bind("<KeyPress-+>", lambda event: self.update_state(
-            "zoom", self.ZOOM_AMT, event=event) if event.char == "+" else None)
-        self.master.bind("<KeyPress-->", lambda event: self.update_state(
-            "zoom", -self.ZOOM_AMT, event=event) if event.char == "-" else None)
+        self.master.bind("<Control-plus>", lambda event: self.update_state("zoom", self.ZOOM_AMT, event=event))
+        self.master.bind("<Control-minus>", lambda event: self.update_state("zoom", -self.ZOOM_AMT, event=event))
+        self.master.bind("<Control-equal>", lambda event: self.update_state("zoom", self.ZOOM_AMT, event=event))
+        self.master.bind("<Control-underscore>", lambda event: self.update_state("zoom", -self.ZOOM_AMT, event=event))
+        self.bind("<ButtonPress-1>", lambda event: self.drag_event.update({"x": event.x, "y": event.y}))
+        self.bind("<B1-Motion>", lambda event: self.update_state("position", None, event=event))
+        self.bind("<ButtonRelease-1>", lambda event: self.drag_event.update({"x": 0, "y": 0}))
 
     def draw_planets(self, planets):
         """
@@ -104,7 +112,8 @@ class Canvas(CTkCanvas):
         for chunk in self.stars.values():
             for star in chunk:
                 pos = self.convert_coordinates(star)
-                self.sprites["stars"].append(self.create_oval(*pos, pos[0] + 1, pos[1] + 1, fill="white"))
+                self.sprites["stars"].append(self.create_oval(*pos, pos[0] + Canvas.STAR_SIZE,
+                                                              pos[1] + Canvas.STAR_SIZE, fill="white"))
 
         # ensures navigation buttons are not blocked
         for tag in self.sprites["navigation"]:
@@ -123,6 +132,38 @@ class Canvas(CTkCanvas):
         y = (coordinates[1] - self.position[1]) * self.zoom
         return x, y
 
+    def zoom_event(self, amount, event=None):
+        """
+        updates the position and zoom level so that the screen zooms in where the user performed the zoom action
+
+        :param amount: how much the screen should zoom
+        :param event: the mouse event that triggered the zoom, if a navigation button was clicked this will be None and
+            the zoom will be applied to the center of the screen
+        """
+
+        # gets the center of the screen
+        mouse_x = self.winfo_width() / 2
+        mouse_y = self.winfo_height() / 2
+
+        # handles when event is given
+        if event and event.type == "38":
+            mouse_x = event.x
+            mouse_y = event.y
+
+        # converts mouse position to space coordinates
+        x = (mouse_x / self.zoom) + self.position[0]
+        y = (mouse_y / self.zoom) + self.position[1]
+
+        # applies zoom and converts back to canvas coordinates
+        self.zoom *= amount
+        x, y = self.convert_coordinates((x, y))
+
+        # adjusts the position so zoom is applied to mouse position
+        self.position = (
+            self.position[0] + (x - mouse_x) / self.zoom,
+            self.position[1] + (y - mouse_y) / self.zoom
+        )
+
     def update_state(self, value, amount, button=None, event=None):
         """
         handles when the position or zoom state needs to be updated: when the user clicks navigation buttons or
@@ -137,6 +178,11 @@ class Canvas(CTkCanvas):
         # check if the event happened within the canvas bounds
         if event and event.widget != self:
             return
+
+        # handles click and drag events
+        if event.type == "6":
+            amount = (self.drag_event["x"] - event.x, self.drag_event["y"] - event.y)
+            self.drag_event.update({"x": event.x, "y": event.y})
 
         # check if event happened because of navigation button
         if button:
@@ -161,38 +207,6 @@ class Canvas(CTkCanvas):
         elif value == "zoom":
             self.zoom_event(1 + self.ZOOM_AMT if amount > 0 else 1 - self.ZOOM_AMT, event)
         self.draw_stars()
-
-    def zoom_event(self, amount, event=None):
-        """
-        updates the position and zoom level so that the screen zooms in where the user performed the zoom action
-
-        :param amount: how much the screen should zoom
-        :param event: the mouse event that triggered the zoom, if a navigation button was clicked this will be None and
-            the zoom will be applied to the center of the screen
-        """
-
-        # gets the center of the screen
-        mouse_x = self.winfo_width() / 2
-        mouse_y = self.winfo_height() / 2
-
-        # handles when event is given
-        if event:
-            mouse_x = event.x
-            mouse_y = event.y
-
-        # converts mouse position to space coordinates
-        x = (mouse_x / self.zoom) + self.position[0]
-        y = (mouse_y / self.zoom) + self.position[1]
-
-        # applies zoom and converts back to canvas coordinates
-        self.zoom *= amount
-        x, y = self.convert_coordinates((x, y))
-
-        # adjusts the position so zoom is applied to mouse position
-        self.position = (
-            self.position[0] + (x - mouse_x) / self.zoom,
-            self.position[1] + (y - mouse_y) / self.zoom
-        )
 
     def resize(self, width, height):
         """
