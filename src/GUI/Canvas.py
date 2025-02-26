@@ -1,5 +1,4 @@
 from customtkinter import CTkCanvas
-import customtkinter
 from random import uniform
 from math import floor, ceil
 
@@ -11,7 +10,6 @@ class Canvas(CTkCanvas):
     todo set focus to planets
     todo its more efficient to move elements rather than delete and redraw them, more efficient to create tag groups
     todo optimize chunk loading/unloading
-    todo implement click and drag
     """
 
     # properties for how navigation buttons should look/behave
@@ -65,7 +63,6 @@ class Canvas(CTkCanvas):
         self.master.bind("<Control-underscore>", lambda event: self.update_state("zoom", -self.ZOOM_AMT, event=event))
         self.bind("<ButtonPress-1>", lambda event: self.drag_event.update({"x": event.x, "y": event.y}))
         self.bind("<B1-Motion>", lambda event: self.update_state("position", None, event=event))
-        self.bind("<ButtonRelease-1>", lambda event: self.drag_event.update({"x": 0, "y": 0}))
 
     def draw_planets(self, planets):
         """
@@ -180,7 +177,7 @@ class Canvas(CTkCanvas):
             return
 
         # handles click and drag events
-        if event.type == "6":
+        if event and event.type == "6":
             amount = (self.drag_event["x"] - event.x, self.drag_event["y"] - event.y)
             self.drag_event.update({"x": event.x, "y": event.y})
 
@@ -203,7 +200,7 @@ class Canvas(CTkCanvas):
 
         # handles updating state
         if value == "position":
-            self.position = (self.position[0] + amount[0], self.position[1] + amount[1])
+            self.position = (self.position[0] + (amount[0] / self.zoom), self.position[1] + (amount[1] / self.zoom))
         elif value == "zoom":
             self.zoom_event(1 + self.ZOOM_AMT if amount > 0 else 1 - self.ZOOM_AMT, event)
         self.draw_stars()
