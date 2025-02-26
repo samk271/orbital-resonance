@@ -42,8 +42,27 @@ class Canvas(CTkCanvas):
         self.zoom = 1
         self.position = (0, 0)
         self.stars = {}
-        self.sprites = {"planets": [], "stars": [], "navigation": []}
+        self.sprites = {"planets": [], "stars": []}
         self.drag_event = {"x": 0, "y": 0}
+        self.width = self.winfo_width()
+        self.height = self.winfo_height()
+
+        # creates navigation buttons
+        self.create_nav_button(self.width - 80, self.height - 120, self.width - 43, self.height - 83, "↑")
+        self.create_nav_button(self.width - 80, self.height - 40, self.width - 43, self.height - 3, "↓")
+        self.create_nav_button(self.width - 120, self.height - 80, self.width - 83, self.height - 43, "←")
+        self.create_nav_button(self.width - 40, self.height - 80, self.width - 3, self.height - 43, "→")
+        self.create_nav_button(self.width - 40, self.height - 120, self.width - 3, self.height - 83, "⊕")
+        self.create_nav_button(self.width - 40, self.height - 40, self.width - 3, self.height - 3, "⊖")
+        self.create_nav_button(self.width - 80, self.height - 80, self.width - 43, self.height - 43, "")
+
+        # sets event handlers to navigation buttons
+        self.tag_bind("↑", "<Button-1>", lambda event: self.update_state("position", (0, -self.POS_AMT), "↑"))
+        self.tag_bind("↓", "<Button-1>", lambda event: self.update_state("position", (0, self.POS_AMT), "↓"))
+        self.tag_bind("←", "<Button-1>", lambda event: self.update_state("position", (-self.POS_AMT, 0), "←"))
+        self.tag_bind("→", "<Button-1>", lambda event: self.update_state("position", (self.POS_AMT, 0), "→"))
+        self.tag_bind("⊕", "<Button-1>", lambda event: self.update_state("zoom", self.ZOOM_AMT, "⊕"))
+        self.tag_bind("⊖", "<Button-1>", lambda event: self.update_state("zoom", -self.ZOOM_AMT, "⊖"))
 
         # binds user actions to functions
         self.bind("<Configure>", lambda event: self.resize(event.width, event.height))
@@ -80,9 +99,9 @@ class Canvas(CTkCanvas):
         # gets the sizing of the canvas in space coordinates
         start_x = floor(self.position[0] / Canvas.CHUNK_SIZE) * Canvas.CHUNK_SIZE
         start_y = floor(self.position[1] / Canvas.CHUNK_SIZE) * Canvas.CHUNK_SIZE
-        end_x = ceil(((self.winfo_width() * (1 / self.zoom)) + self.position[0]) /
+        end_x = ceil(((self.width * (1 / self.zoom)) + self.position[0]) /
                      Canvas.CHUNK_SIZE) * Canvas.CHUNK_SIZE
-        end_y = ceil(((self.winfo_height() * (1 / self.zoom)) + self.position[1]) /
+        end_y = ceil(((self.height * (1 / self.zoom)) + self.position[1]) /
                      Canvas.CHUNK_SIZE) * Canvas.CHUNK_SIZE
 
         # iterates over every chunk that is visible
@@ -113,8 +132,7 @@ class Canvas(CTkCanvas):
                                                               pos[1] + Canvas.STAR_SIZE, fill="white"))
 
         # ensures navigation buttons are not blocked
-        for tag in self.sprites["navigation"]:
-            self.tag_raise(tag)
+        self.tag_raise("navigation")
 
     def convert_coordinates(self, coordinates):
         """
@@ -139,8 +157,8 @@ class Canvas(CTkCanvas):
         """
 
         # gets the center of the screen
-        mouse_x = self.winfo_width() / 2
-        mouse_y = self.winfo_height() / 2
+        mouse_x = self.width / 2
+        mouse_y = self.height / 2
 
         # handles when event is given
         if event and event.type == "38":
@@ -181,22 +199,19 @@ class Canvas(CTkCanvas):
             amount = (self.drag_event["x"] - event.x, self.drag_event["y"] - event.y)
             self.drag_event.update({"x": event.x, "y": event.y})
 
-        # check if event happened because of navigation button
+        # changes button color
         if button:
-            for i, tag in enumerate(button):
+            self.itemconfig("center" + button, **Canvas.NAV_BUTTON_CLICKED)
+            self.after(Canvas.NAV_BUTTON_CLICKED_TIME, lambda: self.itemconfig(
+                "center" + button, **Canvas.NAV_BUTTON_FILL
+            ))
 
-                # changes button color
-                if i < 7:
-                    self.itemconfig(tag, **Canvas.NAV_BUTTON_CLICKED)
-                    self.after(Canvas.NAV_BUTTON_CLICKED_TIME, lambda element_tag=tag: self.itemconfig(
-                        element_tag, **Canvas.NAV_BUTTON_FILL
-                    ))
-
-                # shifts button position
-                self.move(tag, Canvas.NAV_BUTTON_CLICKED_OFFSET, Canvas.NAV_BUTTON_CLICKED_OFFSET)
-                self.after(Canvas.NAV_BUTTON_CLICKED_TIME, lambda element_tag=tag: self.move(
-                    element_tag, -Canvas.NAV_BUTTON_CLICKED_OFFSET, -Canvas.NAV_BUTTON_CLICKED_OFFSET
-                ))
+            # shifts button position
+            self.move(button, Canvas.NAV_BUTTON_CLICKED_OFFSET, Canvas.NAV_BUTTON_CLICKED_OFFSET)
+            self.after(Canvas.NAV_BUTTON_CLICKED_TIME, lambda: self.move(
+                button, -Canvas.NAV_BUTTON_CLICKED_OFFSET, -Canvas.NAV_BUTTON_CLICKED_OFFSET
+            ))
+            self.update()
 
         # handles updating state
         if value == "position":
@@ -208,7 +223,7 @@ class Canvas(CTkCanvas):
     def resize(self, width, height):
         """
         handles when the user resizes the canvas object
-            --> navigation buttons will need to be redrawn
+            --> navigation buttons will need to be moved
             --> stars will need to be deleted/added
             --> planets will need to be deleted/added
 
@@ -216,31 +231,13 @@ class Canvas(CTkCanvas):
         :param height: the new height of the canvas
         """
 
-        # creates navigation buttons and redraws stars
-        self.delete(*self.sprites["navigation"])
-        up = self.create_nav_button(width - 80, height - 120, width - 43, height - 83, "↑")
-        down = self.create_nav_button(width - 80, height - 40, width - 43, height - 3, "↓")
-        left = self.create_nav_button(width - 120, height - 80, width - 83, height - 43, "←")
-        right = self.create_nav_button(width - 40, height - 80, width - 3, height - 43, "→")
-        center = self.create_nav_button(width - 80, height - 80, width - 43, height - 43, "")
-        zoom_in = self.create_nav_button(width - 40, height - 120, width - 3, height - 83, "⊕")
-        zoom_out = self.create_nav_button(width - 40, height - 40, width - 3, height - 3, "⊖")
-        self.sprites["navigation"] = up + down + left + right + center + zoom_in + zoom_out
-        self.draw_stars()
+        # shifts the navigation buttons
+        self.move("navigation", width - self.width, height - self.height)
+        self.width = width
+        self.height = height
 
-        # sets event handlers to navigation buttons
-        for tag in up:
-            self.tag_bind(tag, "<Button-1>", lambda event: self.update_state("position", (0, -self.POS_AMT), up))
-        for tag in down:
-            self.tag_bind(tag, "<Button-1>", lambda event: self.update_state("position", (0, self.POS_AMT), down))
-        for tag in left:
-            self.tag_bind(tag, "<Button-1>", lambda event: self.update_state("position", (-self.POS_AMT, 0), left))
-        for tag in right:
-            self.tag_bind(tag, "<Button-1>", lambda event: self.update_state("position", (self.POS_AMT, 0), right))
-        for tag in zoom_in:
-            self.tag_bind(tag, "<Button-1>", lambda event: self.update_state("zoom", self.ZOOM_AMT, zoom_in))
-        for tag in zoom_out:
-            self.tag_bind(tag, "<Button-1>", lambda event: self.update_state("zoom", -self.ZOOM_AMT, zoom_out))
+        # redraws stars
+        self.draw_stars()
 
     def create_nav_button(self, x1, y1, x2, y2, text):
         """
@@ -260,31 +257,33 @@ class Canvas(CTkCanvas):
         kwargs = {"extent": 90, "style": "arc", "outline": Canvas.NAV_BUTTON_BORDER["fill"], **Canvas.NAV_BUTTON_BORDER}
         center_x = (x1 + x2) / 2
         center_y = (y1 + y2) / 2
+        center = (text, "navigation", "center" + text) if text != "" else "navigation"
+        edge = (text, "navigation") if text != "" else "navigation"
         return [
 
             # draws the corners
-            self.create_oval(x1, y1, x1 + radius * 2, y1 + radius * 2, **Canvas.NAV_BUTTON_FILL),
-            self.create_oval(x2 - radius * 2, y1, x2, y1 + radius * 2, **Canvas.NAV_BUTTON_FILL),
-            self.create_oval(x1, y2 - radius * 2, x1 + radius * 2, y2, **Canvas.NAV_BUTTON_FILL),
-            self.create_oval(x2 - radius * 2, y2 - radius * 2, x2, y2, **Canvas.NAV_BUTTON_FILL),
+            self.create_oval(x1, y1, x1 + radius * 2, y1 + radius * 2, **Canvas.NAV_BUTTON_FILL, tags=center),
+            self.create_oval(x2 - radius * 2, y1, x2, y1 + radius * 2, **Canvas.NAV_BUTTON_FILL, tags=center),
+            self.create_oval(x1, y2 - radius * 2, x1 + radius * 2, y2, **Canvas.NAV_BUTTON_FILL, tags=center),
+            self.create_oval(x2 - radius * 2, y2 - radius * 2, x2, y2, **Canvas.NAV_BUTTON_FILL, tags=center),
 
             # draws the remainder of the rectangle
-            self.create_rectangle(x1 + radius, y1, x2 - radius, y2, **Canvas.NAV_BUTTON_FILL),
-            self.create_rectangle(x1, y1 + radius, x1 + radius * 2, y2 - radius, **Canvas.NAV_BUTTON_FILL),
-            self.create_rectangle(x2 - radius * 2, y1 + radius, x2, y2 - radius, **Canvas.NAV_BUTTON_FILL),
+            self.create_rectangle(x1 + radius, y1, x2 - radius, y2, **Canvas.NAV_BUTTON_FILL, tags=center),
+            self.create_rectangle(x1, y1 + radius, x1 + radius * 2, y2 - radius, **Canvas.NAV_BUTTON_FILL, tags=center),
+            self.create_rectangle(x2 - radius * 2, y1 + radius, x2, y2 - radius, **Canvas.NAV_BUTTON_FILL, tags=center),
 
             # draws rounded borders
-            self.create_arc(x1, y1, x1 + radius * 2, y1 + radius * 2, start=90, **kwargs),
-            self.create_arc(x2 - radius * 2, y1, x2, y1 + radius * 2, start=0, **kwargs),
-            self.create_arc(x1, y2 - radius * 2, x1 + radius * 2, y2, start=180, **kwargs),
-            self.create_arc(x2 - radius * 2, y2 - radius * 2, x2, y2, start=270, **kwargs),
+            self.create_arc(x1, y1, x1 + radius * 2, y1 + radius * 2, start=90, **kwargs, tags=edge),
+            self.create_arc(x2 - radius * 2, y1, x2, y1 + radius * 2, start=0, **kwargs, tags=edge),
+            self.create_arc(x1, y2 - radius * 2, x1 + radius * 2, y2, start=180, **kwargs, tags=edge),
+            self.create_arc(x2 - radius * 2, y2 - radius * 2, x2, y2, start=270, **kwargs, tags=edge),
 
             # draws straight borders
-            self.create_line(x1 + radius, y1, x2 - radius, y1, **Canvas.NAV_BUTTON_BORDER),
-            self.create_line(x1 + radius, y2, x2 - radius, y2, **Canvas.NAV_BUTTON_BORDER),
-            self.create_line(x1, y1 + radius, x1, y2 - radius, **Canvas.NAV_BUTTON_BORDER),
-            self.create_line(x2, y1 + radius, x2, y2 - radius, **Canvas.NAV_BUTTON_BORDER),
+            self.create_line(x1 + radius, y1, x2 - radius, y1, **Canvas.NAV_BUTTON_BORDER, tags=edge),
+            self.create_line(x1 + radius, y2, x2 - radius, y2, **Canvas.NAV_BUTTON_BORDER, tags=edge),
+            self.create_line(x1, y1 + radius, x1, y2 - radius, **Canvas.NAV_BUTTON_BORDER, tags=edge),
+            self.create_line(x2, y1 + radius, x2, y2 - radius, **Canvas.NAV_BUTTON_BORDER, tags=edge),
 
             # draws text
-            self.create_text(center_x, center_y - 3, text=text, font=("Arial", 20), fill="black")
+            self.create_text(center_x, center_y - 3, text=text, font=("Arial", 20), fill="black", tags=edge)
         ]
