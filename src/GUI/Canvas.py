@@ -19,7 +19,6 @@ class Canvas(CTkCanvas):
     todo give stars different zoom level than planets
     todo set focus to planets
     todo add planet manager class
-    todo zoom floating point rounding error
     """
 
     # properties for how navigation buttons should look/behave
@@ -31,13 +30,12 @@ class Canvas(CTkCanvas):
     NAV_BUTTON_CLICKED_TIME = 100
 
     # properties for how much class fields should update when state is updated
-    ZOOM_AMT = .1
+    ZOOM_AMT = 1.1
     POS_AMT = 10
 
     # properties for how stars should generate
     CHUNK_SIZE = 50
     STARS_PER_CHUNK = 3
-    STAR_SIZE = 0
 
     def __init__(self, *args, **kwargs):
         """
@@ -76,8 +74,8 @@ class Canvas(CTkCanvas):
         self.tag_bind("↓", "<Button-1>", lambda e: self.position_event(array([0, Canvas.POS_AMT])), add="+")
         self.tag_bind("←", "<Button-1>", lambda e: self.position_event(array([-Canvas.POS_AMT, 0])), add="+")
         self.tag_bind("→", "<Button-1>", lambda e: self.position_event(array([Canvas.POS_AMT, 0])), add="+")
-        self.tag_bind("⊕", "<Button-1>", lambda e: self.zoom_event(self.ZOOM_AMT), add="+")
-        self.tag_bind("⊖", "<Button-1>", lambda e: self.zoom_event(-self.ZOOM_AMT), add="+")
+        self.tag_bind("⊕", "<Button-1>", lambda e: self.zoom_event(1), add="+")
+        self.tag_bind("⊖", "<Button-1>", lambda e: self.zoom_event(-1), add="+")
 
         # user movement actions
         self.master.bind("<w>", lambda e: self.position_event(array([0, -Canvas.POS_AMT]), event=e))
@@ -90,11 +88,11 @@ class Canvas(CTkCanvas):
         self.master.bind("<Right>", lambda e: self.position_event(array([Canvas.POS_AMT, 0]), event=e))
 
         # user zoom actions
-        self.master.bind("<MouseWheel>", lambda e: self.zoom_event(self.ZOOM_AMT if e.delta > 0 else -self.ZOOM_AMT, e))
-        self.master.bind("<Control-plus>", lambda e: self.zoom_event(self.ZOOM_AMT, e))
-        self.master.bind("<Control-minus>", lambda e: self.zoom_event(-self.ZOOM_AMT, e))
-        self.master.bind("<Control-equal>", lambda e: self.zoom_event(self.ZOOM_AMT, e))
-        self.master.bind("<Control-underscore>", lambda e: self.zoom_event(-self.ZOOM_AMT, e))
+        self.master.bind("<MouseWheel>", lambda e: self.zoom_event(e.delta, e))
+        self.master.bind("<Control-plus>", lambda e: self.zoom_event(1, e))
+        self.master.bind("<Control-minus>", lambda e: self.zoom_event(-1, e))
+        self.master.bind("<Control-equal>", lambda e: self.zoom_event(1, e))
+        self.master.bind("<Control-underscore>", lambda e: self.zoom_event(-1, e))
 
         # focus, resize and click and drag actions
         self.bind("<Button-1>", lambda e: self.focus_set())  # todo do this for planet settings
@@ -166,11 +164,13 @@ class Canvas(CTkCanvas):
             for chunk_x in range(int(chunks[0, 0]), int(chunks[1, 0]),  Canvas.CHUNK_SIZE):
                 for chunk_y in range(int(chunks[0, 1]), int(chunks[1, 1]),  Canvas.CHUNK_SIZE):
                     for star in range(Canvas.STARS_PER_CHUNK):
+
+                        # generates stars in the chunk
                         x = uniform(chunk_x, chunk_x + Canvas.CHUNK_SIZE)
                         y = uniform(chunk_y, chunk_y + Canvas.CHUNK_SIZE)
                         x, y = self.space_to_canvas(array([x, y]))
-                        tags = ("stars", f"({chunk_x}, {chunk_y})")
-                        self.create_oval(x, y, x + Canvas.STAR_SIZE, y + Canvas.STAR_SIZE, fill="white", tags=tags)
+                        kwargs = {"tags": ("stars", f"({chunk_x}, {chunk_y})"), "outline": "white"}
+                        self.create_rectangle(x, y, x, y, **kwargs)
 
         # unloads chunks that are not visible
         for chunks in Canvas.chunk_difference(self.star_render_range, space):
@@ -221,12 +221,12 @@ class Canvas(CTkCanvas):
             return
 
         # gets the position of zoom event
-        amount += 1
         mouse = self.canvas_dimensions / 2
         if event and event.type == "38":
             mouse = array([event.x, event.y])
 
         # updates zoom and position
+        amount = Canvas.ZOOM_AMT if amount > 0 else 1 / Canvas.ZOOM_AMT
         position = (mouse / self.zoom) + self.space_position
         self.zoom *= amount
         position = self.space_to_canvas(position)
