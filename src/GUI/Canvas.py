@@ -1,13 +1,13 @@
 from customtkinter import CTkCanvas
 from random import uniform
-from math import floor, ceil
-from numpy import array
+from numpy import array, floor, ceil, sort
 
 
 class Canvas(CTkCanvas):
     """
     The canvas that will be used to display the solar system in the prototype with 3 sections of functions
         --> view model controller functions: handles displaying changes in the model to the view
+        --> conversion function: converting space to canvas coordinates and vice versa
         --> event handler functions: handles user events such as clicking buttons and keyboard/mouse events
         --> navigation button function: functions for creating/updating the navigation buttons
 
@@ -18,8 +18,8 @@ class Canvas(CTkCanvas):
     todo add close/open menu buttons
     todo give stars different zoom level than planets
     todo set focus to planets
-    todo its more efficient to move elements rather than delete and redraw them, more efficient to create tag groups
-    todo optimize chunk loading/unloading
+    todo add planet manager class
+    todo zoom floating point rounding error
     """
 
     # properties for how navigation buttons should look/behave
@@ -37,7 +37,7 @@ class Canvas(CTkCanvas):
     # properties for how stars should generate
     CHUNK_SIZE = 50
     STARS_PER_CHUNK = 3
-    STAR_SIZE = 2
+    STAR_SIZE = 0
 
     def __init__(self, *args, **kwargs):
         """
@@ -55,14 +55,14 @@ class Canvas(CTkCanvas):
 
         # initializes superclass and fields
         super().__init__(*args, **kwargs)
-        self.position = array([0.0, 0.0])
+        self.space_position = array([0.0, 0.0])
         self.zoom = 1
         self.drag_event = array([0.0, 0.0])
-        self.dimensions = array([self.winfo_width(), self.winfo_height()])
-        self.stars = {}
+        self.canvas_dimensions = array([self.winfo_width(), self.winfo_height()])
+        self.star_render_range = array([[0, 0], [0, 0]])
 
         # creates navigation buttons
-        width, height = self.dimensions
+        width, height = self.canvas_dimensions
         self.create_nav_button(width - 80, height - 120, width - 43, height - 83, "↑")
         self.create_nav_button(width - 80, height - 40, width - 43, height - 3, "↓")
         self.create_nav_button(width - 120, height - 80, width - 83, height - 43, "←")
@@ -72,22 +72,22 @@ class Canvas(CTkCanvas):
         self.create_nav_button(width - 80, height - 80, width - 43, height - 43, "")
 
         # sets event handlers to navigation buttons
-        self.tag_bind("↑", "<Button-1>", lambda e: self.position_event(array([0, -self.POS_AMT])), add="+")
-        self.tag_bind("↓", "<Button-1>", lambda e: self.position_event(array([0, self.POS_AMT])), add="+")
-        self.tag_bind("←", "<Button-1>", lambda e: self.position_event(array([-self.POS_AMT, 0])), add="+")
-        self.tag_bind("→", "<Button-1>", lambda e: self.position_event(array([self.POS_AMT, 0])), add="+")
+        self.tag_bind("↑", "<Button-1>", lambda e: self.position_event(array([0, -Canvas.POS_AMT])), add="+")
+        self.tag_bind("↓", "<Button-1>", lambda e: self.position_event(array([0, Canvas.POS_AMT])), add="+")
+        self.tag_bind("←", "<Button-1>", lambda e: self.position_event(array([-Canvas.POS_AMT, 0])), add="+")
+        self.tag_bind("→", "<Button-1>", lambda e: self.position_event(array([Canvas.POS_AMT, 0])), add="+")
         self.tag_bind("⊕", "<Button-1>", lambda e: self.zoom_event(self.ZOOM_AMT), add="+")
         self.tag_bind("⊖", "<Button-1>", lambda e: self.zoom_event(-self.ZOOM_AMT), add="+")
 
         # user movement actions
-        self.master.bind("<w>", lambda e: self.position_event(array([0, -self.POS_AMT]), event=e))
-        self.master.bind("<a>", lambda e: self.position_event(array([-self.POS_AMT, 0]), event=e))
-        self.master.bind("<s>", lambda e: self.position_event(array([0, self.POS_AMT]), event=e))
-        self.master.bind("<d>", lambda e: self.position_event(array([self.POS_AMT, 0]), event=e))
-        self.master.bind("<Up>", lambda e: self.position_event(array([0, -self.POS_AMT]), event=e))
-        self.master.bind("<Left>", lambda e: self.position_event(array([-self.POS_AMT, 0]), event=e))
-        self.master.bind("<Down>", lambda e: self.position_event(array([0, self.POS_AMT]), event=e))
-        self.master.bind("<Right>", lambda e: self.position_event(array([self.POS_AMT, 0]), event=e))
+        self.master.bind("<w>", lambda e: self.position_event(array([0, -Canvas.POS_AMT]), event=e))
+        self.master.bind("<a>", lambda e: self.position_event(array([-Canvas.POS_AMT, 0]), event=e))
+        self.master.bind("<s>", lambda e: self.position_event(array([0, Canvas.POS_AMT]), event=e))
+        self.master.bind("<d>", lambda e: self.position_event(array([Canvas.POS_AMT, 0]), event=e))
+        self.master.bind("<Up>", lambda e: self.position_event(array([0, -Canvas.POS_AMT]), event=e))
+        self.master.bind("<Left>", lambda e: self.position_event(array([-Canvas.POS_AMT, 0]), event=e))
+        self.master.bind("<Down>", lambda e: self.position_event(array([0, Canvas.POS_AMT]), event=e))
+        self.master.bind("<Right>", lambda e: self.position_event(array([Canvas.POS_AMT, 0]), event=e))
 
         # user zoom actions
         self.master.bind("<MouseWheel>", lambda e: self.zoom_event(self.ZOOM_AMT if e.delta > 0 else -self.ZOOM_AMT, e))
@@ -104,10 +104,51 @@ class Canvas(CTkCanvas):
 
     # ============================================== VIEW MODEL CONTROLLER =============================================
 
-    def draw_planets(self):
+    def update_planets(self):
         """
         applies changes to the planet manger to the view
         """
+
+    @staticmethod
+    def chunk_difference(chunks1: array, chunks2: array):
+        """
+        takes 2 sets of chunks and finds the chunks that are in chunk 1 but not in chunk 2
+
+        :param chunks1: a numpy array representing the corners of chunks 1 in the form [[xmin, ymin], [xmax, ymax]]
+        :param chunks2: a numpy array representing the corners of chunks 2 in the form [[xmin, ymin], [xmax, ymax]]
+        :return: a generator function for the range of chunks that are in chunk 1 but not chunk 2
+        """
+
+        # gets the min and max x and y values of the 2 chunks
+        chunks1 = sort(chunks1, axis=0)
+        chunks2 = sort(chunks2, axis=0)
+        x_min1, y_min1 = chunks1[0]
+        x_max1, y_max1 = chunks1[1]
+        x_min2, y_min2 = chunks2[0]
+        x_max2, y_max2 = chunks2[1]
+
+        # finds the region of overlap
+        x_min_overlap = max(x_min1, x_min2)
+        x_max_overlap = min(x_max1, x_max2)
+        y_min_overlap = max(y_min1, y_min2)
+        y_max_overlap = min(y_max1, y_max2)
+
+        # handles no overlap
+        if x_min_overlap >= x_max_overlap or y_min_overlap >= y_max_overlap:
+            return [chunks1]
+
+        # gets all of the regions that are in chunk 1 but not chunk 2
+        difference = []
+        if x_min1 < x_min_overlap:
+            difference.append(array([[x_min1, y_min1], [x_min_overlap, y_max1]]))
+        if x_max_overlap < x_max1:
+            difference.append(array([[x_max_overlap, y_min1], [x_max1, y_max1]]))
+        if y_max_overlap < y_max1:
+            difference.append(array([[x_min_overlap, y_max_overlap], [x_max_overlap, y_max1]]))
+        if y_min1 < y_min_overlap:
+            difference.append(array([[x_min_overlap, y_min1], [x_max_overlap, y_min_overlap]]))
+
+        return difference
 
     def draw_stars(self):
         """
@@ -116,42 +157,34 @@ class Canvas(CTkCanvas):
         """
 
         # gets the sizing of the canvas in space coordinates
-        start_x = floor(self.position[0] / Canvas.CHUNK_SIZE) * Canvas.CHUNK_SIZE
-        start_y = floor(self.position[1] / Canvas.CHUNK_SIZE) * Canvas.CHUNK_SIZE
-        end_x = ceil(((self.dimensions[0] * (1 / self.zoom)) + self.position[0]) /
-                     Canvas.CHUNK_SIZE) * Canvas.CHUNK_SIZE
-        end_y = ceil(((self.dimensions[1] * (1 / self.zoom)) + self.position[1]) /
-                     Canvas.CHUNK_SIZE) * Canvas.CHUNK_SIZE
+        space_start = floor(self.space_position / Canvas.CHUNK_SIZE) * Canvas.CHUNK_SIZE
+        space_end = ceil(self.canvas_to_space(self.canvas_dimensions) / Canvas.CHUNK_SIZE) * Canvas.CHUNK_SIZE
+        space = array([space_start, space_end])
 
-        # iterates over every chunk that is visible
-        visible_chunks = set()
-        for x in range(start_x, end_x, Canvas.CHUNK_SIZE):
-            for y in range(start_y, end_y, Canvas.CHUNK_SIZE):
-                visible_chunks.add((x, y))
-
-                # generates new stars
-                if (x, y) not in self.stars:
-                    self.stars[(x, y)] = [(uniform(x, x + Canvas.CHUNK_SIZE), uniform(y, y + Canvas.CHUNK_SIZE))
-                                          for _ in range(Canvas.STARS_PER_CHUNK)]
+        # loads the chunks that need to be loaded
+        for chunks in Canvas.chunk_difference(space, self.star_render_range):
+            for chunk_x in range(int(chunks[0, 0]), int(chunks[1, 0]),  Canvas.CHUNK_SIZE):
+                for chunk_y in range(int(chunks[0, 1]), int(chunks[1, 1]),  Canvas.CHUNK_SIZE):
+                    for star in range(Canvas.STARS_PER_CHUNK):
+                        x = uniform(chunk_x, chunk_x + Canvas.CHUNK_SIZE)
+                        y = uniform(chunk_y, chunk_y + Canvas.CHUNK_SIZE)
+                        x, y = self.space_to_canvas(array([x, y]))
+                        tags = ("stars", f"({chunk_x}, {chunk_y})")
+                        self.create_oval(x, y, x + Canvas.STAR_SIZE, y + Canvas.STAR_SIZE, fill="white", tags=tags)
 
         # unloads chunks that are not visible
-        loaded_chunks = set(self.stars.keys())
-        for chunk in loaded_chunks - visible_chunks:
-            self.stars.pop(chunk)
+        for chunks in Canvas.chunk_difference(self.star_render_range, space):
+            for chunk_x in range(int(chunks[0, 0]), int(chunks[1, 0]),  Canvas.CHUNK_SIZE):
+                for chunk_y in range(int(chunks[0, 1]), int(chunks[1, 1]),  Canvas.CHUNK_SIZE):
+                    self.delete(f"({chunk_x}, {chunk_y})")
 
-        # deletes previous stars
-        self.delete("stars")
-
-        # draws new stars
-        for chunk in self.stars.values():
-            for star in chunk:
-                pos = self.convert_coordinates(star)
-                self.create_oval(*pos, pos[0] + Canvas.STAR_SIZE, pos[1] + Canvas.STAR_SIZE, fill="white", tags="stars")
-
-        # ensures navigation buttons are not blocked
+        # updates render range and ensure navigation buttons are on top
+        self.star_render_range = space
         self.tag_raise("navigation")
 
-    def convert_coordinates(self, coordinates):
+    # =================================================== CONVERSIONS ==================================================
+
+    def space_to_canvas(self, coordinates: array):
         """
         converts coordinates representing a position in space to coordinates representing a position on the canvas
 
@@ -160,11 +193,22 @@ class Canvas(CTkCanvas):
         :return: a numpy array representing the converted coordinates in the canvas in the format [x, y]
         """
 
-        return (coordinates - self.position) * self.zoom
+        return (coordinates - self.space_position) * self.zoom
+
+    def canvas_to_space(self, coordinates: array):
+        """
+        converts coordinates representing a position on the canvas to coordinates representing a position in space
+
+        :param coordinates: a numpy array representing the position in the canvas in the format [x, y]
+
+        :return: a numpy array representing the converted coordinates in space in the format [x, y]
+        """
+
+        return (coordinates / self.zoom) + self.space_position
 
     # ================================================= EVENT HANDLERS =================================================
 
-    def zoom_event(self, amount, event=None):
+    def zoom_event(self, amount: float, event=None):
         """
         updates the position and zoom level so that the screen zooms in where the user performed the zoom action
 
@@ -177,19 +221,21 @@ class Canvas(CTkCanvas):
             return
 
         # gets the position of zoom event
-        mouse = self.dimensions / 2
+        amount += 1
+        mouse = self.canvas_dimensions / 2
         if event and event.type == "38":
             mouse = array([event.x, event.y])
 
         # updates zoom and position
-        position = (mouse / self.zoom) + self.position
-        self.zoom *= 1 + amount
-        position = self.convert_coordinates(position)
-        self.position += (position - mouse) / self.zoom
+        position = (mouse / self.zoom) + self.space_position
+        self.zoom *= amount
+        position = self.space_to_canvas(position)
+        self.space_position += (position - mouse) / self.zoom
 
         # handles star/planet rendering
+        self.scale("stars", mouse[0], mouse[1], amount, amount)
+        self.scale("planets", mouse[0], mouse[1], amount, amount)
         self.draw_stars()
-        self.draw_planets()
 
     def position_event(self, amount: array, event=None):
         """
@@ -209,28 +255,24 @@ class Canvas(CTkCanvas):
         if event and event.type == "6":
             self.drag_event = array([event.x, event.y])
 
-        # handles updating position and star/planet rendering
-        self.position += (amount / self.zoom)
+        # handles updating position and star rendering
+        self.space_position += (amount / self.zoom)
+        self.move("stars", *-amount)
+        self.move("planets", *-amount)
         self.draw_stars()
-        self.draw_planets()
 
     def resize_event(self, size: array):
         """
         handles when the user resizes the canvas object
             --> navigation buttons will need to be moved
             --> stars will need to be rendered/un-rendered
-            --> planets will need to be rendered/un-rendered
 
         :param size: the new size of the canvas as a numpy array in the form [width, height]
         """
 
-        # shifts the navigation buttons
-        self.move("navigation", *(size - self.dimensions))
-        self.dimensions = size
-
-        # redraws stars
+        self.move("navigation", *(size - self.canvas_dimensions))
+        self.canvas_dimensions = size
         self.draw_stars()
-        self.draw_planets()
 
     # =============================================== NAVIGATION BUTTONS ===============================================
 
