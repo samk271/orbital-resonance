@@ -16,7 +16,3 @@ class PlanetSettings(CTkFrame):
 
         super().__init__(*args, **kwargs)
 
-        # creates the label
-        self.label_text = StringVar(value="Sun Settings")
-        self.label = CTkLabel(self, textvariable=self.label_text, font=("Arial", 20))
-        self.label.pack()
