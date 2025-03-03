@@ -19,6 +19,7 @@ class Canvas(CTkCanvas):
     todo give stars different zoom level than planets
     todo set focus to planets
     todo add planet manager class
+    todo resize events that grow the screen to the left/top should shift position on canvas
     """
 
     # properties for how navigation buttons should look/behave
