@@ -38,6 +38,7 @@ class PlanetManager:
         :param planet: the planet that has been created that should be added to the planets list
         """
 
+        self.planets.append(planet)
         self.added_buffer.append(planet)
 
     def remove_planet(self, planet: Planet):
@@ -62,7 +63,6 @@ class PlanetManager:
         """
 
         buffer = self.added_buffer.copy()
-        self.planets.extend(self.added_buffer)
         self.added_buffer.clear()
         return buffer
 
@@ -85,4 +85,5 @@ class PlanetManager:
         """
 
         for planet in self.planets:
-            raise NotImplementedError("physics engine not hooked up yet")
+            pass
+            # raise NotImplementedError("physics engine not hooked up yet")

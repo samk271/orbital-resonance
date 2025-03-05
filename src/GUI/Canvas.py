@@ -22,6 +22,7 @@ class Canvas(CTkCanvas):
     todo set focus to planets
     todo resize events that grow the screen to the left/top should shift position on canvas
     todo draw planet orbit paths?
+    todo add home button in center of nav buttons to focus the sun
     """
 
     # properties for how navigation buttons should look/behave
@@ -33,7 +34,7 @@ class Canvas(CTkCanvas):
     NAV_BUTTON_CLICKED_TIME = 100
 
     # properties for how much class fields should update when state is updated and frames per second
-    ZOOM_AMT = 1.1
+    ZOOM_AMT = array([[1.1], [1.005]])  # planet amt, star amt
     POS_AMT = 10
     FPS = 60
 
@@ -64,8 +65,8 @@ class Canvas(CTkCanvas):
 
         # initializes superclass and fields
         super().__init__(*args, **kwargs)
-        self.space_position = array([0.0, 0.0])
-        self.zoom = 1
+        self.space_position = array([[0.0, 0.0], [0.0, 0.0]])  # planet pos, star pos
+        self.zoom = array([[1.0], [1.0]])  # planet amt, star amt
         self.drag_event = array([0.0, 0.0])
         self.canvas_dimensions = array([self.winfo_width(), self.winfo_height()])
         self.star_render_range = array([[0, 0], [0, 0]])
@@ -126,16 +127,15 @@ class Canvas(CTkCanvas):
         for planet in self.planet_manager.get_removed_buffer():
             self.delete(planet.tag)
 
-        # updates position of all planets
-        for planet in self.planet_manager.get_planets():
-            x, y = round(self.space_to_canvas(planet.position))
-            self.moveto(planet.tag, x, y)
-
         # adds newly added planets to the display
         for planet in self.planet_manager.get_added_buffer():
             kwargs = {"tags": "planets", "fill": planet.color}
-            planet.tag = self.create_oval(0, 0, planet.radius * self.zoom, planet.radius * self.zoom, **kwargs)
-            self.moveto(planet.tag, *self.space_to_canvas(planet.position))
+            planet.tag = self.create_oval(0, 0, *([planet.radius * self.zoom[0, 0]] * 2), **kwargs)
+
+        # updates position of all planets
+        for planet in self.planet_manager.get_planets():
+            x, y = round(self.space_to_canvas(planet.position))[0]
+            self.moveto(planet.tag, x, y)
 
         # ensures proper leveling of canvas items and queues next frame/physics update
         self.tag_raise("planets")
@@ -191,8 +191,8 @@ class Canvas(CTkCanvas):
         """
 
         # gets the sizing of the canvas in space coordinates
-        space_start = floor(self.space_position / Canvas.CHUNK_SIZE) * Canvas.CHUNK_SIZE
-        space_end = ceil(self.canvas_to_space(self.canvas_dimensions) / Canvas.CHUNK_SIZE) * Canvas.CHUNK_SIZE
+        space_start = floor(self.space_position[1] / Canvas.CHUNK_SIZE) * Canvas.CHUNK_SIZE
+        space_end = ceil(self.canvas_to_space(self.canvas_dimensions)[1] / Canvas.CHUNK_SIZE) * Canvas.CHUNK_SIZE
         space = array([space_start, space_end])
 
         # loads the chunks that need to be loaded
@@ -204,7 +204,7 @@ class Canvas(CTkCanvas):
                         # generates stars in the chunk
                         x = uniform(chunk_x, chunk_x + Canvas.CHUNK_SIZE)
                         y = uniform(chunk_y, chunk_y + Canvas.CHUNK_SIZE)
-                        x, y = self.space_to_canvas(array([x, y]))
+                        x, y = self.space_to_canvas(array([x, y]))[1]
                         kwargs = {"tags": ("stars", f"({chunk_x}, {chunk_y})"), "outline": "white"}
                         self.create_rectangle(x, y, x, y, **kwargs)
 
@@ -225,8 +225,11 @@ class Canvas(CTkCanvas):
         converts coordinates representing a position in space to coordinates representing a position on the canvas
 
         :param coordinates: a numpy array representing the position in space in the format [x, y]
+            ** note: format [[xp, yp], [xs, ys]] is used in zoom events to update the position of both planet and star
+                coordinate systems at the same time **
 
-        :return: a numpy array representing the converted coordinates in the canvas in the format [x, y]
+        :return: a numpy array representing the converted coordinates in the canvas in the format [[xp, yp], [xs, ys]]
+            where the first array uses planet zoom level and the second array uses star zoom level
         """
 
         return (coordinates - self.space_position) * self.zoom
@@ -237,7 +240,8 @@ class Canvas(CTkCanvas):
 
         :param coordinates: a numpy array representing the position in the canvas in the format [x, y]
 
-        :return: a numpy array representing the converted coordinates in space in the format [x, y]
+        :return: a numpy array representing the converted coordinates in space in the format [[xp, yp], [xs, ys]]
+            where the first array uses planet zoom level and the second array uses star zoom level
         """
 
         return (coordinates / self.zoom) + self.space_position
@@ -269,8 +273,8 @@ class Canvas(CTkCanvas):
         self.space_position += (position - mouse) / self.zoom
 
         # handles star/planet rendering
-        self.scale("stars", mouse[0], mouse[1], amount, amount)
-        self.scale("planets", mouse[0], mouse[1], amount, amount)
+        self.scale("stars", mouse[0], mouse[1], amount[1, 0], amount[1, 0])
+        self.scale("planets", mouse[0], mouse[1], amount[0, 0], amount[0, 0])
         self.draw_stars()
 
     def position_event(self, amount: array, event=None):

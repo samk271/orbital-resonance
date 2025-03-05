@@ -1,7 +1,7 @@
 from customtkinter import CTk
 from GUI import *
 
-# creates the screen and its widgets
+# creates the screen and its widgets todo add way to load planetManger from previous save
 display = CTk()
 display.geometry("800x600")
 canvas = Canvas(display, bg="black", highlightthickness=1)
