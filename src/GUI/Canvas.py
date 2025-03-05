@@ -1,12 +1,14 @@
 from customtkinter import CTkCanvas
 from random import uniform
-from numpy import array, floor, ceil, sort
+from numpy import array, floor, ceil, sort, round
+from Physics import PlanetManager, Planet
 
 
 class Canvas(CTkCanvas):
     """
     The canvas that will be used to display the solar system in the prototype with 3 sections of functions
-        --> view model controller functions: handles displaying changes in the model to the view
+        --> planet functions: functions for drawing/updating the planets
+        --> star function: functions for rendering stars in the background
         --> conversion function: converting space to canvas coordinates and vice versa
         --> event handler functions: handles user events such as clicking buttons and keyboard/mouse events
         --> navigation button function: functions for creating/updating the navigation buttons
@@ -18,8 +20,8 @@ class Canvas(CTkCanvas):
     todo add close/open menu buttons
     todo give stars different zoom level than planets
     todo set focus to planets
-    todo add planet manager class
     todo resize events that grow the screen to the left/top should shift position on canvas
+    todo draw planet orbit paths?
     """
 
     # properties for how navigation buttons should look/behave
@@ -30,9 +32,10 @@ class Canvas(CTkCanvas):
     NAV_BUTTON_CLICKED_OFFSET = 1
     NAV_BUTTON_CLICKED_TIME = 100
 
-    # properties for how much class fields should update when state is updated
+    # properties for how much class fields should update when state is updated and frames per second
     ZOOM_AMT = 1.1
     POS_AMT = 10
+    FPS = 60
 
     # properties for how stars should generate
     CHUNK_SIZE = 50
@@ -52,6 +55,13 @@ class Canvas(CTkCanvas):
         :param kwargs: the key word arguments to be passed to the super class
         """
 
+        # gets the planet manager from the kwargs
+        if "planet_manger" in kwargs:
+            self.planet_manager = kwargs["planet_manager"]
+            kwargs.pop("planet_manager")
+        else:
+            self.planet_manager = PlanetManager()
+
         # initializes superclass and fields
         super().__init__(*args, **kwargs)
         self.space_position = array([0.0, 0.0])
@@ -59,6 +69,7 @@ class Canvas(CTkCanvas):
         self.drag_event = array([0.0, 0.0])
         self.canvas_dimensions = array([self.winfo_width(), self.winfo_height()])
         self.star_render_range = array([[0, 0], [0, 0]])
+        self.after(int(1000 / Canvas.FPS), self.update_planets)
 
         # creates navigation buttons
         width, height = self.canvas_dimensions
@@ -106,7 +117,31 @@ class Canvas(CTkCanvas):
     def update_planets(self):
         """
         applies changes to the planet manger to the view
+            --> clears the planet manager deleted buffer and removes planets from the view
+            --> clears the planet manager added buffer and adds planets to the view
+            --> updates the positioning of the remaining planets
         """
+
+        # deletes planets in delete buffer
+        for planet in self.planet_manager.get_removed_buffer():
+            self.delete(planet.tag)
+
+        # updates position of all planets
+        for planet in self.planet_manager.get_planets():
+            x, y = round(self.space_to_canvas(planet.position))
+            self.moveto(planet.tag, x, y)
+
+        # adds newly added planets to the display
+        for planet in self.planet_manager.get_added_buffer():
+            kwargs = {"tags": "planets", "fill": planet.color}
+            planet.tag = self.create_oval(0, 0, planet.radius * self.zoom, planet.radius * self.zoom, **kwargs)
+            self.moveto(planet.tag, *self.space_to_canvas(planet.position))
+
+        # ensures proper leveling of canvas items and queues next frame/physics update
+        self.tag_raise("planets")
+        self.tag_raise("navigation")
+        self.after(int(1000 / Canvas.FPS), self.update_planets)
+        self.planet_manager.update_planet_physics(int(1000 / Canvas.FPS))
 
     @staticmethod
     def chunk_difference(chunks1: array, chunks2: array):
@@ -346,4 +381,4 @@ class Canvas(CTkCanvas):
         # shifts button position
         self.move(tag, Canvas.NAV_BUTTON_CLICKED_OFFSET, Canvas.NAV_BUTTON_CLICKED_OFFSET)
         self.after(Canvas.NAV_BUTTON_CLICKED_TIME, lambda: self.move(tag, *([-Canvas.NAV_BUTTON_CLICKED_OFFSET] * 2)))
-        self.update()
+        self.update_idletasks()

@@ -1,7 +1,5 @@
 from customtkinter import CTk
-from Canvas import Canvas
-from PlanetSettings import PlanetSettings
-from AISettings import AISettings
+from GUI import *
 
 # creates the screen and its widgets
 display = CTk()
