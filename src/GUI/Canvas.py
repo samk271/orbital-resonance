@@ -1,6 +1,6 @@
 from customtkinter import CTkCanvas
 from random import uniform
-from numpy import array, floor, ceil, sort, round
+from numpy import array, floor, ceil, sort, round, vstack
 from Physics import PlanetManager, Planet
 
 
@@ -18,11 +18,8 @@ class Canvas(CTkCanvas):
         --> state properties
         --> star generation properties
     todo add close/open menu buttons
-    todo give stars different zoom level than planets
     todo set focus to planets
-    todo resize events that grow the screen to the left/top should shift position on canvas
     todo draw planet orbit paths?
-    todo add home button in center of nav buttons to focus the sun
     """
 
     # properties for how navigation buttons should look/behave
@@ -36,6 +33,7 @@ class Canvas(CTkCanvas):
     # properties for how much class fields should update when state is updated and frames per second
     ZOOM_AMT = array([[1.1], [1.005]])  # planet amt, star amt
     POS_AMT = 10
+    STAR_POS_FACTOR = .095
     FPS = 60
 
     # properties for how stars should generate
@@ -80,7 +78,7 @@ class Canvas(CTkCanvas):
         self.create_nav_button(width - 40, height - 80, width - 3, height - 43, "→")
         self.create_nav_button(width - 40, height - 120, width - 3, height - 83, "⊕")
         self.create_nav_button(width - 40, height - 40, width - 3, height - 3, "⊖")
-        self.create_nav_button(width - 80, height - 80, width - 43, height - 43, "")
+        self.create_nav_button(width - 80, height - 80, width - 43, height - 43, "🏠")  # todo set home function to focus sun
 
         # sets event handlers to navigation buttons
         self.tag_bind("↑", "<Button-1>", lambda e: self.position_event(array([0, -Canvas.POS_AMT])), add="+")
@@ -130,7 +128,7 @@ class Canvas(CTkCanvas):
         # adds newly added planets to the display
         for planet in self.planet_manager.get_added_buffer():
             kwargs = {"tags": "planets", "fill": planet.color}
-            planet.tag = self.create_oval(0, 0, *([planet.radius * self.zoom[0, 0]] * 2), **kwargs)
+            planet.tag = self.create_oval(0, 0, *([-planet.radius * self.zoom[0, 0]] * 2), **kwargs)
 
         # updates position of all planets
         for planet in self.planet_manager.get_planets():
@@ -273,8 +271,8 @@ class Canvas(CTkCanvas):
         self.space_position += (position - mouse) / self.zoom
 
         # handles star/planet rendering
-        self.scale("stars", mouse[0], mouse[1], amount[1, 0], amount[1, 0])
         self.scale("planets", mouse[0], mouse[1], amount[0, 0], amount[0, 0])
+        self.scale("stars", mouse[0], mouse[1], amount[1, 0], amount[1, 0])
         self.draw_stars()
 
     def position_event(self, amount: array, event=None):
@@ -296,9 +294,10 @@ class Canvas(CTkCanvas):
             self.drag_event = array([event.x, event.y])
 
         # handles updating position and star rendering
+        amount = vstack((amount, amount * Canvas.STAR_POS_FACTOR))
         self.space_position += (amount / self.zoom)
-        self.move("stars", *-amount)
-        self.move("planets", *-amount)
+        self.move("planets", *-amount[0])
+        self.move("stars", *-amount[1])
         self.draw_stars()
 
     def resize_event(self, size: array):
@@ -337,8 +336,8 @@ class Canvas(CTkCanvas):
         kwargs = {"extent": 90, "style": "arc", "outline": Canvas.NAV_BUTTON_BORDER["fill"], **Canvas.NAV_BUTTON_BORDER}
         center_x = (x1 + x2) / 2
         center_y = (y1 + y2) / 2
-        center_tag = (text, "navigation", f"center{text}") if text != "" else "navigation"
-        edge_tag = (text, "navigation") if text != "" else "navigation"
+        center_tag = (text, "navigation", f"center{text}")
+        edge_tag = (text, "navigation")
 
         # draws the rounded corners
         self.create_oval(x1, y1, x1 + radius * 2, y1 + radius * 2, **Canvas.NAV_BUTTON_FILL, tags=center_tag),
@@ -365,8 +364,7 @@ class Canvas(CTkCanvas):
 
         # draws text and sets click event handler
         self.create_text(center_x, center_y - 3, text=text, font=("Arial", 20), fill="black", tags=edge_tag)
-        if text != "":
-            self.tag_bind(text, "<Button-1>", lambda e: self.handle_nav_button(text))
+        self.tag_bind(text, "<Button-1>", lambda e: self.handle_nav_button(text))
 
     def handle_nav_button(self, tag: str):
         """
