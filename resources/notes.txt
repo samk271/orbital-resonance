@@ -1,0 +1,5 @@
+planet settings to modify:
+size - doesnt affect physics
+color
+shape
+distance from sun

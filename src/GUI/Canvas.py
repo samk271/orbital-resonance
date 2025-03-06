@@ -1,7 +1,7 @@
 from customtkinter import CTkCanvas
 from random import uniform
 from numpy import array, floor, ceil, sort, round, vstack
-from Physics import PlanetManager, Planet
+from Physics import PlanetManager
 
 
 class Canvas(CTkCanvas):
@@ -20,6 +20,7 @@ class Canvas(CTkCanvas):
     todo add close/open menu buttons
     todo set focus to planets
     todo draw planet orbit paths?
+    todo planet position currently based on bbox, use center instead?
     """
 
     # properties for how navigation buttons should look/behave
