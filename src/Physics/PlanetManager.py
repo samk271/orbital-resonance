@@ -85,5 +85,18 @@ class PlanetManager:
         """
 
         for planet in self.planets:
-            pass
             # raise NotImplementedError("physics engine not hooked up yet")
+
+            # todo this is just for showing planet while testing, remove this later
+            rel_x = planet.position[0] - 200
+            rel_y = planet.position[1] - 200
+
+            # Apply rotation matrix
+            import math
+            speed = .05
+            new_x = rel_x * math.cos(speed) - rel_y * math.sin(speed)
+            new_y = rel_x * math.sin(speed) + rel_y * math.cos(speed)
+
+            # Update absolute position
+            from numpy import array
+            planet.position = array([200 + new_x, 200 + new_y])

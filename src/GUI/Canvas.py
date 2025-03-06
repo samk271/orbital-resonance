@@ -21,6 +21,7 @@ class Canvas(CTkCanvas):
     todo set focus to planets
     todo draw planet orbit paths?
     todo planet position currently based on bbox, use center instead?
+    todo update planets on position/zoom events
     """
 
     # properties for how navigation buttons should look/behave
@@ -111,6 +112,10 @@ class Canvas(CTkCanvas):
         self.bind("<Configure>", lambda e: self.resize_event(array([e.width, e.height])))
         self.bind("<Button-1>", lambda e: self.__setattr__("drag_event", array([e.x, e.y])), add="+")
         self.bind("<B1-Motion>", lambda e: self.position_event(self.drag_event - array([e.x, e.y]), event=e))
+
+        # todo this is just for showing planet while testing, remove this later
+        from Physics import Planet
+        self.planet_manager.add_planet(Planet([100, 100], 100, "green"))
 
     # ============================================== VIEW MODEL CONTROLLER =============================================
 
