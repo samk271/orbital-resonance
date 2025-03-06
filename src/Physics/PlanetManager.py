@@ -81,7 +81,7 @@ class PlanetManager:
         """
         runs the physics engine on each of the planets within the application todo david add physics engine to this function
 
-        :param dt: the change in time since the last physics update
+        :param dt: the change in time since the last physics update in seconds
         """
 
         for planet in self.planets:
@@ -93,7 +93,7 @@ class PlanetManager:
 
             # Apply rotation matrix
             import math
-            speed = .05
+            speed = dt
             new_x = rel_x * math.cos(speed) - rel_y * math.sin(speed)
             new_y = rel_x * math.sin(speed) + rel_y * math.cos(speed)
 

@@ -2,6 +2,7 @@ from customtkinter import CTkCanvas
 from random import uniform
 from numpy import array, floor, ceil, sort, round, vstack
 from Physics import PlanetManager
+from time import perf_counter
 
 
 class Canvas(CTkCanvas):
@@ -20,8 +21,10 @@ class Canvas(CTkCanvas):
     todo add close/open menu buttons
     todo set focus to planets
     todo draw planet orbit paths?
-    todo planet position currently based on bbox, use center instead?
-    todo update planets on position/zoom events
+    todo add sun attribute to planet manager
+    todo tag raise slows down the more items there are on screen, find a way to use it less
+    todo star rendering appears to be bottleneck, find a way to optimize further
+         instead of deleting and regenerating move chunks out of view to fill empty space in view?
     """
 
     # properties for how navigation buttons should look/behave
@@ -70,7 +73,8 @@ class Canvas(CTkCanvas):
         self.drag_event = array([0.0, 0.0])
         self.canvas_dimensions = array([self.winfo_width(), self.winfo_height()])
         self.star_render_range = array([[0, 0], [0, 0]])
-        self.after(int(1000 / Canvas.FPS), self.update_planets)
+        self.after_update_planets = self.after(int(1000 / Canvas.FPS), self.update_planets)
+        self.dt = perf_counter()
 
         # creates navigation buttons
         width, height = self.canvas_dimensions
@@ -116,6 +120,8 @@ class Canvas(CTkCanvas):
         # todo this is just for showing planet while testing, remove this later
         from Physics import Planet
         self.planet_manager.add_planet(Planet([100, 100], 100, "green"))
+        self.planet_manager.add_planet(Planet([200, 200], 100, "yellow"))
+        self.planet_manager.add_planet(Planet([400, 400], 100, "blue"))
 
     # ============================================== VIEW MODEL CONTROLLER =============================================
 
@@ -126,6 +132,12 @@ class Canvas(CTkCanvas):
             --> clears the planet manager added buffer and adds planets to the view
             --> updates the positioning of the remaining planets
         """
+
+        # cancels the queued update event and calculates the physics
+        self.after_cancel(self.after_update_planets)
+        dt = perf_counter()
+        self.planet_manager.update_planet_physics(dt - self.dt)
+        self.dt = dt
 
         # deletes planets in delete buffer
         for planet in self.planet_manager.get_removed_buffer():
@@ -138,14 +150,14 @@ class Canvas(CTkCanvas):
 
         # updates position of all planets
         for planet in self.planet_manager.get_planets():
-            x, y = round(self.space_to_canvas(planet.position))[0]
-            self.moveto(planet.tag, x, y)
+            bbox = self.bbox(planet.tag)
+            pos = round(self.space_to_canvas(planet.position)[0] - (array([bbox[2] - bbox[0], bbox[3] - bbox[1]]) / 2))
+            self.moveto(planet.tag, pos[0], pos[1])
 
         # ensures proper leveling of canvas items and queues next frame/physics update
         self.tag_raise("planets")
         self.tag_raise("navigation")
-        self.after(int(1000 / Canvas.FPS), self.update_planets)
-        self.planet_manager.update_planet_physics(int(1000 / Canvas.FPS))
+        self.after_update_planets = self.after(int(1000 / Canvas.FPS), self.update_planets)
 
     @staticmethod
     def chunk_difference(chunks1: array, chunks2: array):
@@ -280,6 +292,7 @@ class Canvas(CTkCanvas):
         self.scale("planets", mouse[0], mouse[1], amount[0, 0], amount[0, 0])
         self.scale("stars", mouse[0], mouse[1], amount[1, 0], amount[1, 0])
         self.draw_stars()
+        self.update_planets()
 
     def position_event(self, amount: array, event=None):
         """
@@ -305,6 +318,7 @@ class Canvas(CTkCanvas):
         self.move("planets", *-amount[0])
         self.move("stars", *-amount[1])
         self.draw_stars()
+        self.update_planets()
 
     def resize_event(self, size: array):
         """
@@ -318,6 +332,7 @@ class Canvas(CTkCanvas):
         self.move("navigation", *(size - self.canvas_dimensions))
         self.canvas_dimensions = size
         self.draw_stars()
+        self.update_planets()
 
     # =============================================== NAVIGATION BUTTONS ===============================================
 

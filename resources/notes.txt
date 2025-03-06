@@ -3,3 +3,4 @@ size - doesnt affect physics
 color
 shape
 distance from sun
+planet name
