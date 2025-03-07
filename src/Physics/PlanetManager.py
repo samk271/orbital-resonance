@@ -85,7 +85,6 @@ class PlanetManager:
         """
 
         for planet in self.planets:
-            # raise NotImplementedError("physics engine not hooked up yet")
 
             # todo this is just for showing planet while testing, remove this later
             rel_x = planet.position[0] - 200

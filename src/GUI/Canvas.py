@@ -20,11 +20,9 @@ class Canvas(CTkCanvas):
         --> star generation properties
     todo add close/open menu buttons
     todo set focus to planets
+        when done make home set focus to sun? or keep way it is (return to initial zoom/position)
     todo draw planet orbit paths?
-    todo add sun attribute to planet manager
-    todo tag raise slows down the more items there are on screen, find a way to use it less
-    todo star rendering appears to be bottleneck, find a way to optimize further
-         instead of deleting and regenerating move chunks out of view to fill empty space in view?
+    todo add sun attribute to planet manager? or use 1st element of list?
     """
 
     # properties for how navigation buttons should look/behave
@@ -84,15 +82,17 @@ class Canvas(CTkCanvas):
         self.create_nav_button(width - 40, height - 80, width - 3, height - 43, "→")
         self.create_nav_button(width - 40, height - 120, width - 3, height - 83, "⊕")
         self.create_nav_button(width - 40, height - 40, width - 3, height - 3, "⊖")
-        self.create_nav_button(width - 80, height - 80, width - 43, height - 43, "🏠")  # todo set home function to focus sun
+        self.create_nav_button(width - 80, height - 80, width - 43, height - 43, "🏠")
 
         # sets event handlers to navigation buttons
         self.tag_bind("↑", "<Button-1>", lambda e: self.position_event(array([0, -Canvas.POS_AMT])), add="+")
         self.tag_bind("↓", "<Button-1>", lambda e: self.position_event(array([0, Canvas.POS_AMT])), add="+")
         self.tag_bind("←", "<Button-1>", lambda e: self.position_event(array([-Canvas.POS_AMT, 0])), add="+")
         self.tag_bind("→", "<Button-1>", lambda e: self.position_event(array([Canvas.POS_AMT, 0])), add="+")
-        self.tag_bind("⊕", "<Button-1>", lambda e: self.zoom_event(1), add="+")
-        self.tag_bind("⊖", "<Button-1>", lambda e: self.zoom_event(-1), add="+")
+        self.tag_bind("⊕", "<Button-1>", lambda e: self.zoom_event(Canvas.ZOOM_AMT), add="+")
+        self.tag_bind("⊖", "<Button-1>", lambda e: self.zoom_event(1 / Canvas.ZOOM_AMT), add="+")
+        self.tag_bind("🏠", "<Button-1>", lambda e: self.zoom_event(1 / self.zoom), add="+")
+        self.tag_bind("🏠", "<Button-1>", lambda e: self.position_event(-self.space_position[0]), add="+")
 
         # user movement actions
         self.master.bind("<w>", lambda e: self.position_event(array([0, -Canvas.POS_AMT]), event=e))
@@ -105,11 +105,12 @@ class Canvas(CTkCanvas):
         self.master.bind("<Right>", lambda e: self.position_event(array([Canvas.POS_AMT, 0]), event=e))
 
         # user zoom actions
-        self.master.bind("<MouseWheel>", lambda e: self.zoom_event(e.delta, e))
-        self.master.bind("<Control-plus>", lambda e: self.zoom_event(1, e))
-        self.master.bind("<Control-minus>", lambda e: self.zoom_event(-1, e))
-        self.master.bind("<Control-equal>", lambda e: self.zoom_event(1, e))
-        self.master.bind("<Control-underscore>", lambda e: self.zoom_event(-1, e))
+        self.master.bind("<Control-plus>", lambda e: self.zoom_event(Canvas.ZOOM_AMT, e))
+        self.master.bind("<Control-minus>", lambda e: self.zoom_event(1 / Canvas.ZOOM_AMT, e))
+        self.master.bind("<Control-equal>", lambda e: self.zoom_event(Canvas.ZOOM_AMT, e))
+        self.master.bind("<Control-underscore>", lambda e: self.zoom_event(1 / Canvas.ZOOM_AMT, e))
+        self.master.bind("<MouseWheel>", lambda e: self.zoom_event(
+            Canvas.ZOOM_AMT if e.delta > 0 else 1 / Canvas.ZOOM_AMT, e))
 
         # focus, resize and click and drag actions
         self.bind("<Button-1>", lambda e: self.focus_set())  # todo do this for planet settings
@@ -119,8 +120,8 @@ class Canvas(CTkCanvas):
 
         # todo this is just for showing planet while testing, remove this later
         from Physics import Planet
-        self.planet_manager.add_planet(Planet([100, 100], 100, "green"))
         self.planet_manager.add_planet(Planet([200, 200], 100, "yellow"))
+        self.planet_manager.add_planet(Planet([100, 100], 100, "green"))
         self.planet_manager.add_planet(Planet([400, 400], 100, "blue"))
 
     # ============================================== VIEW MODEL CONTROLLER =============================================
@@ -144,19 +145,24 @@ class Canvas(CTkCanvas):
             self.delete(planet.tag)
 
         # adds newly added planets to the display
-        for planet in self.planet_manager.get_added_buffer():
+        added_buffer = self.planet_manager.get_added_buffer()
+        for planet in added_buffer:
             kwargs = {"tags": "planets", "fill": planet.color}
             planet.tag = self.create_oval(0, 0, *([-planet.radius * self.zoom[0, 0]] * 2), **kwargs)
 
         # updates position of all planets
         for planet in self.planet_manager.get_planets():
             bbox = self.bbox(planet.tag)
-            pos = round(self.space_to_canvas(planet.position)[0] - (array([bbox[2] - bbox[0], bbox[3] - bbox[1]]) / 2))
-            self.moveto(planet.tag, pos[0], pos[1])
+
+            # only move planet when it is rendered
+            if bbox:
+                bbox = array([bbox[2] - bbox[0], bbox[3] - bbox[1]]) / 2
+                pos = round(self.space_to_canvas(planet.position)[0] - bbox)
+                self.moveto(planet.tag, pos[0], pos[1])
 
         # ensures proper leveling of canvas items and queues next frame/physics update
-        self.tag_raise("planets")
-        self.tag_raise("navigation")
+        if added_buffer:
+            self.tag_lower("planets", "navigation")
         self.after_update_planets = self.after(int(1000 / Canvas.FPS), self.update_planets)
 
     @staticmethod
@@ -212,7 +218,8 @@ class Canvas(CTkCanvas):
         space = array([space_start, space_end])
 
         # loads the chunks that need to be loaded
-        for chunks in Canvas.chunk_difference(space, self.star_render_range):
+        chunk_load_difference = Canvas.chunk_difference(space, self.star_render_range)
+        for chunks in chunk_load_difference:
             for chunk_x in range(int(chunks[0, 0]), int(chunks[1, 0]),  Canvas.CHUNK_SIZE):
                 for chunk_y in range(int(chunks[0, 1]), int(chunks[1, 1]),  Canvas.CHUNK_SIZE):
                     for star in range(Canvas.STARS_PER_CHUNK):
@@ -230,9 +237,10 @@ class Canvas(CTkCanvas):
                 for chunk_y in range(int(chunks[0, 1]), int(chunks[1, 1]),  Canvas.CHUNK_SIZE):
                     self.delete(f"({chunk_x}, {chunk_y})")
 
-        # updates render range and ensure navigation buttons are on top
+        # updates render range and ensures stars are at the bottom
         self.star_render_range = space
-        self.tag_raise("navigation")
+        if chunk_load_difference:
+            self.tag_lower("stars")
 
     # =================================================== CONVERSIONS ==================================================
 
@@ -264,7 +272,7 @@ class Canvas(CTkCanvas):
 
     # ================================================= EVENT HANDLERS =================================================
 
-    def zoom_event(self, amount: float, event=None):
+    def zoom_event(self, amount: array, event=None):
         """
         updates the position and zoom level so that the screen zooms in where the user performed the zoom action
 
@@ -282,7 +290,6 @@ class Canvas(CTkCanvas):
             mouse = array([event.x, event.y])
 
         # updates zoom and position
-        amount = Canvas.ZOOM_AMT if amount > 0 else 1 / Canvas.ZOOM_AMT
         position = (mouse / self.zoom) + self.space_position
         self.zoom *= amount
         position = self.space_to_canvas(position)
