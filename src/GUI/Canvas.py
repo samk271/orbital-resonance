@@ -12,13 +12,12 @@ class Canvas(CTkCanvas):
         --> star function: functions for rendering stars in the background
         --> conversion function: converting space to canvas coordinates and vice versa
         --> event handler functions: handles user events such as clicking buttons and keyboard/mouse events
-        --> navigation button function: functions for creating/updating the navigation buttons
+        --> button function: functions for creating/updating the navigation buttons and menu visibility buttons
 
     Class also contains class properties for modifying how the class will function/look
         --> navigation button properties
         --> state properties
         --> star generation properties
-    todo add close/open menu buttons
     todo adjust zoom when focusing planet?
         smooth transition to new zoom/position?
     todo update planet settings when a planet is selected
@@ -60,10 +59,16 @@ class Canvas(CTkCanvas):
 
         # gets the planet manager from the kwargs
         if "planet_manger" in kwargs:
-            self.planet_manager = kwargs["planet_manager"]
-            kwargs.pop("planet_manager")
+            self.planet_manager = kwargs.pop("planet_manager")
         else:
             self.planet_manager = PlanetManager()
+
+        # gets the other settings menus from the kwargs
+        if "planet_settings" and "AI_settings" in kwargs:
+            self.menu_visibility = {"planet": {"menu": kwargs.pop("planet_settings"), "visible": True},
+                                    "AI": {"menu": kwargs.pop("AI_settings"), "visible": True}}
+        else:
+            raise AttributeError("Canvas class must have a reference to the planet and AI settings")
 
         # initializes superclass and fields
         super().__init__(*args, **kwargs)
@@ -79,15 +84,15 @@ class Canvas(CTkCanvas):
 
         # creates navigation buttons
         width, height = self.canvas_dimensions
-        self.create_nav_button(width - 80, height - 120, width - 43, height - 83, "↑")
-        self.create_nav_button(width - 80, height - 40, width - 43, height - 3, "↓")
-        self.create_nav_button(width - 120, height - 80, width - 83, height - 43, "←")
-        self.create_nav_button(width - 40, height - 80, width - 3, height - 43, "→")
-        self.create_nav_button(width - 40, height - 120, width - 3, height - 83, "⊕")
-        self.create_nav_button(width - 40, height - 40, width - 3, height - 3, "⊖")
-        self.create_nav_button(width - 80, height - 80, width - 43, height - 43, "🏠")
-        self.create_nav_button(width - 120, height - 120, width - 83, height - 83, "🐇")
-        self.create_nav_button(width - 120, height - 40, width - 83, height - 3, "🐢")
+        self.create_button(width - 80, height - 120, width - 43, height - 83, "↑", "navigation")
+        self.create_button(width - 80, height - 40, width - 43, height - 3, "↓", "navigation")
+        self.create_button(width - 120, height - 80, width - 83, height - 43, "←", "navigation")
+        self.create_button(width - 40, height - 80, width - 3, height - 43, "→", "navigation")
+        self.create_button(width - 40, height - 120, width - 3, height - 83, "⊕", "navigation", (0, -2))
+        self.create_button(width - 40, height - 40, width - 3, height - 3, "⊖", "navigation", (0, -2))
+        self.create_button(width - 80, height - 80, width - 43, height - 43, "🏠", "navigation")
+        self.create_button(width - 120, height - 120, width - 83, height - 83, "🐇", "navigation")
+        self.create_button(width - 120, height - 40, width - 83, height - 3, "🐢", "navigation")
 
         # sets event handlers to navigation buttons
         self.tag_bind("↑", "<Button-1>", lambda e: self.position_event(array([0, -Canvas.POS_AMT])), add="+")
@@ -99,6 +104,14 @@ class Canvas(CTkCanvas):
         self.tag_bind("🏠", "<Button-1>", lambda e: self.home_button(), add="+")
         self.tag_bind("🐇", "<Button-1>", lambda e: setattr(self, "speed", self.speed * Canvas.SPEED_FACTOR), add="+")
         self.tag_bind("🐢", "<Button-1>", lambda e: setattr(self, "speed", self.speed / Canvas.SPEED_FACTOR), add="+")
+
+        # creates buttons to close and reopen settings menus and binds their functions
+        planet_settings = self.create_button(width - 25, 10, width + 17, 47, ">", "planet_settings", (-9, -2))
+        AI_settings = self.create_button(10, height - 20, 47, height + 17, "carrot", "AI_settings")
+        self.itemconfig(AI_settings, angle=180)
+        self.move(AI_settings, 0, -10)
+        self.tag_bind(">", "<Button-1>", lambda e: self.menu_visibility_button(planet_settings), add="+")
+        self.tag_bind("carrot", "<Button-1>", lambda e: self.menu_visibility_button(AI_settings), add="+")
 
         # user movement actions
         self.bind("<w>", lambda e: self.position_event(array([0, -Canvas.POS_AMT]), event=e))
@@ -146,7 +159,7 @@ class Canvas(CTkCanvas):
             return
 
         # adjusts screen to follow the planet
-        amount = (self.space_to_canvas(self.focused_planet.position)[0] - (self.canvas_dimensions / 2))
+        amount = round(self.space_to_canvas(self.focused_planet.position)[0] - (self.canvas_dimensions / 2))
         self.position_event(amount, unfocus=False)
 
     def update_planets(self):
@@ -197,7 +210,7 @@ class Canvas(CTkCanvas):
 
         # ensures proper leveling of canvas items
         if added_buffer:
-            self.tag_lower("planets", "navigation")
+            self.tag_lower("planets", "buttons")
 
     # ================================================= STAR FUNCTIONS =================================================
 
@@ -394,17 +407,19 @@ class Canvas(CTkCanvas):
 
         # moves canvas objects
         self.move("navigation", *difference)
+        self.move("planet_settings", difference[0], 0)
+        self.move("AI_settings", 0, difference[1])
         self.position_event(-difference / 2, unfocus=False)
         self.update_planets()
 
-    # =============================================== NAVIGATION BUTTONS ===============================================
+    # ==================================================== BUTTONS =====================================================
 
-    def create_nav_button(self, x1: int, y1: int, x2: int, y2: int, text: str):
+    def create_button(self, x1: int, y1: int, x2: int, y2: int, text: str, tag: str, text_offset: tuple = (0, 0)):
         """
-        creates a navigation button on the canvas with the given parameters
+        creates a button on the canvas with the given parameters
             --> rectangle with rounded edges
             --> text in the center
-            --> binds handle_nav_button to click event to update button appearance when clicked
+            --> binds click_button to click event to update button appearance when clicked
             --> note: functionality set with tag_bind function with add="+" arg
             --> uses class properties to determine appearance of button
 
@@ -413,15 +428,19 @@ class Canvas(CTkCanvas):
         :param x2: the x coordinate of the bottom right corner of the rectangle
         :param y2: the y coordinate of the bottom right corner of the rectangle
         :param text: the text to add to the button
+        :param tag: the tag to associate with the navigation button (used in resize events)
+        :param text_offset: the offset value to apply to the string so that it is slightly off center
+
+        :return the id of the created text so that it can be mirrored later for settings buttons
         """
 
         # gets variables for creating button
         radius = Canvas.NAV_BUTTON_RADIUS
         kwargs = {"extent": 90, "style": "arc", "outline": Canvas.NAV_BUTTON_BORDER["fill"], **Canvas.NAV_BUTTON_BORDER}
-        center_x = (x1 + x2) / 2
-        center_y = (y1 + y2) / 2
-        center_tag = (text, "navigation", f"center{text}")
-        edge_tag = (text, "navigation")
+        center_x = ((x1 + x2) / 2) + text_offset[0]
+        center_y = ((y1 + y2) / 2) - text_offset[1]
+        center_tag = (text, "buttons", tag, f"center{text}")
+        edge_tag = (text, "buttons", tag)
 
         # draws the rounded corners
         self.create_oval(x1, y1, x1 + radius * 2, y1 + radius * 2, **Canvas.NAV_BUTTON_FILL, tags=center_tag),
@@ -447,10 +466,12 @@ class Canvas(CTkCanvas):
         self.create_line(x2, y1 + radius, x2, y2 - radius, **Canvas.NAV_BUTTON_BORDER, tags=edge_tag),
 
         # draws text and sets click event handler
-        self.create_text(center_x, center_y - 3, text=text, font=("Arial", 20), fill="black", tags=edge_tag)
-        self.tag_bind(text, "<Button-1>", lambda e: self.click_nav_button(text))
+        char = text if text != "carrot" else "^"
+        text_id = self.create_text(center_x, center_y - 3, text=char, font=("Arial", 20), fill="black", tags=edge_tag)
+        self.tag_bind(text, "<Button-1>", lambda e: self.click_button(text))
+        return text_id
 
-    def click_nav_button(self, tag: str):
+    def click_button(self, tag: str):
         """
         updates attributes of the navigation button so that it looks like it was clicked
             --> changes the color if the button for 100 ms
@@ -491,3 +512,35 @@ class Canvas(CTkCanvas):
         self.star_render_range = array([[0, 0], [0, 0]])
         self.draw_stars()
         self.update_planets()
+
+    def menu_visibility_button(self, text_id: int):
+        """
+        handles clicking the menu visibility buttons
+            --> rotates the text on the button 180 degrees to flip the direction of the arrow
+            --> toggles the visibility of the settings menu
+
+        :param text_id: the id of the text display
+        """
+
+        # mirrors the button text when AI settings visibility button is clicked
+        if "AI_settings" in self.gettags(text_id):
+            self.itemconfig(text_id, angle=0 if self.menu_visibility["AI"]["visible"] else 180)
+            self.move(text_id, 0, 10 if self.menu_visibility["AI"]["visible"] else -10)
+            self.menu_visibility["AI"]["visible"] = not self.menu_visibility["AI"]["visible"]
+
+            # toggles the visibility of the menu
+            if self.menu_visibility["AI"]["visible"]:
+                self.menu_visibility["AI"]["menu"].grid(row=1, column=0, columnspan=2, sticky="nsew")
+            else:
+                self.menu_visibility["AI"]["menu"].grid_forget()
+
+        # mirrors the button text when planet settings visibility button is clicked
+        elif "planet_settings" in self.gettags(text_id):
+            self.itemconfig(text_id, angle=180 if self.menu_visibility["planet"]["visible"] else 0)
+            self.menu_visibility["planet"]["visible"] = not self.menu_visibility["planet"]["visible"]
+
+            # toggles the visibility of the menu
+            if self.menu_visibility["planet"]["visible"]:
+                self.menu_visibility["planet"]["menu"].grid(row=0, column=1, sticky="nsew")
+            else:
+                self.menu_visibility["planet"]["menu"].grid_forget()
