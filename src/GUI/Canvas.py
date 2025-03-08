@@ -19,10 +19,10 @@ class Canvas(CTkCanvas):
         --> state properties
         --> star generation properties
     todo add close/open menu buttons
-    todo set focus to planets
-        when done make home set focus to sun? or keep way it is (return to initial zoom/position)
+    todo adjust zoom when focusing planet?
+        smooth transition to new zoom/position?
+    todo update planet settings when a planet is selected
     todo draw planet orbit paths?
-    todo add sun attribute to planet manager? or use 1st element of list?
     """
 
     # properties for how navigation buttons should look/behave
@@ -38,6 +38,7 @@ class Canvas(CTkCanvas):
     POS_AMT = 10
     STAR_POS_FACTOR = .095
     FPS = 60
+    SPEED_FACTOR = 1.1
 
     # properties for how stars should generate
     CHUNK_SIZE = 100
@@ -66,13 +67,15 @@ class Canvas(CTkCanvas):
 
         # initializes superclass and fields
         super().__init__(*args, **kwargs)
+        self.canvas_dimensions = array([self.winfo_width(), self.winfo_height()])
+        self.drag_event = array([0.0, 0.0])
         self.space_position = array([[0.0, 0.0], [0.0, 0.0]])  # planet pos, star pos
         self.zoom = array([[1.0], [1.0]])  # planet amt, star amt
-        self.drag_event = array([0.0, 0.0])
-        self.canvas_dimensions = array([self.winfo_width(), self.winfo_height()])
-        self.star_render_range = array([[0, 0], [0, 0]])
+        self.focused_planet = self.planet_manager.get_sun()
         self.after_update_planets = self.after(int(1000 / Canvas.FPS), self.update_planets)
         self.dt = perf_counter()
+        self.speed = 1
+        self.star_render_range = array([[0, 0], [0, 0]])
 
         # creates navigation buttons
         width, height = self.canvas_dimensions
@@ -83,6 +86,8 @@ class Canvas(CTkCanvas):
         self.create_nav_button(width - 40, height - 120, width - 3, height - 83, "⊕")
         self.create_nav_button(width - 40, height - 40, width - 3, height - 3, "⊖")
         self.create_nav_button(width - 80, height - 80, width - 43, height - 43, "🏠")
+        self.create_nav_button(width - 120, height - 120, width - 83, height - 83, "🐇")
+        self.create_nav_button(width - 120, height - 40, width - 83, height - 3, "🐢")
 
         # sets event handlers to navigation buttons
         self.tag_bind("↑", "<Button-1>", lambda e: self.position_event(array([0, -Canvas.POS_AMT])), add="+")
@@ -92,6 +97,8 @@ class Canvas(CTkCanvas):
         self.tag_bind("⊕", "<Button-1>", lambda e: self.zoom_event(Canvas.ZOOM_AMT), add="+")
         self.tag_bind("⊖", "<Button-1>", lambda e: self.zoom_event(1 / Canvas.ZOOM_AMT), add="+")
         self.tag_bind("🏠", "<Button-1>", lambda e: self.home_button(), add="+")
+        self.tag_bind("🐇", "<Button-1>", lambda e: setattr(self, "speed", self.speed * Canvas.SPEED_FACTOR), add="+")
+        self.tag_bind("🐢", "<Button-1>", lambda e: setattr(self, "speed", self.speed / Canvas.SPEED_FACTOR), add="+")
 
         # user movement actions
         self.bind("<w>", lambda e: self.position_event(array([0, -Canvas.POS_AMT]), event=e))
@@ -110,19 +117,37 @@ class Canvas(CTkCanvas):
         self.bind("<Control-underscore>", lambda e: self.zoom_event(1 / Canvas.ZOOM_AMT, e))
         self.bind("<MouseWheel>", lambda e: self.zoom_event(Canvas.ZOOM_AMT if e.delta > 0 else 1 / Canvas.ZOOM_AMT, e))
 
+        # user speed actions
+        self.bind("<Control-Shift-plus>", lambda e: setattr(self, "speed", self.speed * Canvas.SPEED_FACTOR))
+        self.bind("<Control-Shift-minus>", lambda e: setattr(self, "speed", self.speed / Canvas.SPEED_FACTOR))
+        self.bind("<Control-Shift-equal>", lambda e: setattr(self, "speed", self.speed * Canvas.SPEED_FACTOR))
+        self.bind("<Control-Shift-underscore>", lambda e: setattr(self, "speed", self.speed / Canvas.SPEED_FACTOR))
+
         # focus, resize and click and drag actions
         self.bind("<Button-1>", lambda e: self.focus_set())  # todo do this for planet settings
         self.bind("<Configure>", lambda e: self.resize_event(array([e.width, e.height])))
-        self.bind("<Button-1>", lambda e: self.__setattr__("drag_event", array([e.x, e.y])), add="+")
+        self.bind("<Button-1>", lambda e: setattr(self, "drag_event", array([e.x, e.y])), add="+")
         self.bind("<B1-Motion>", lambda e: self.position_event(self.drag_event - array([e.x, e.y]), event=e))
 
         # todo this is just for showing planet while testing, remove this later
-        from Physics import Planet
-        self.planet_manager.add_planet(Planet([200, 200], 50, "yellow"))
+        from Physics.Planet import Planet
         self.planet_manager.add_planet(Planet([100, 100], 50, "green"))
         self.planet_manager.add_planet(Planet([400, 400], 50, "blue"))
 
-    # ============================================== VIEW MODEL CONTROLLER =============================================
+    # ================================================ PLANET FUNCTIONS ================================================
+
+    def focus_planet(self):
+        """
+        ensures the focused planet remains in the center of the screen
+        """
+
+        # handles when no planet is focused
+        if not self.focused_planet:
+            return
+
+        # adjusts screen to follow the planet
+        amount = (self.space_to_canvas(self.focused_planet.position)[0] - (self.canvas_dimensions / 2))
+        self.position_event(amount, unfocus=False)
 
     def update_planets(self):
         """
@@ -138,8 +163,9 @@ class Canvas(CTkCanvas):
 
         # updates physics
         dt = perf_counter()
-        self.planet_manager.update_planet_physics(dt - self.dt)
+        self.planet_manager.update_planet_physics((dt - self.dt) * self.speed)
         self.dt = dt
+        self.focus_planet()
 
         # deletes planets in delete buffer
         for planet in self.planet_manager.get_removed_buffer():
@@ -150,6 +176,8 @@ class Canvas(CTkCanvas):
         for planet in added_buffer:
             kwargs = {"tags": "planets", "fill": planet.color}
             planet.tag = self.create_oval(0, 0, *([-planet.radius * 2 * self.zoom[0, 0]] * 2), **kwargs)
+            self.tag_bind(planet.tag, "<Button-1>", lambda e, p=planet: setattr(self, "focused_planet", p))
+            self.tag_bind(planet.tag, "<Button-1>", lambda e: self.update_planets(), add="+")
 
         # updates position of all planets
         for planet in self.planet_manager.get_planets():
@@ -170,6 +198,8 @@ class Canvas(CTkCanvas):
         # ensures proper leveling of canvas items
         if added_buffer:
             self.tag_lower("planets", "navigation")
+
+    # ================================================= STAR FUNCTIONS =================================================
 
     @staticmethod
     def chunk_difference(chunks1: array, chunks2: array):
@@ -226,13 +256,12 @@ class Canvas(CTkCanvas):
         # loads the chunks that need to be loaded
         chunk_load_difference = Canvas.chunk_difference(space, self.star_render_range)
         for chunks in chunk_load_difference:
-            for chunk_x in range(int(chunks[0, 0]), int(chunks[1, 0]),  Canvas.CHUNK_SIZE):
-                for chunk_y in range(int(chunks[0, 1]), int(chunks[1, 1]),  Canvas.CHUNK_SIZE):
+            for chunk_x in range(int(chunks[0, 0]), int(chunks[1, 0]), Canvas.CHUNK_SIZE):
+                for chunk_y in range(int(chunks[0, 1]), int(chunks[1, 1]), Canvas.CHUNK_SIZE):
 
                     # prepares seed for chunk so every time it is rendered it renders the same star pattern
                     seed(hash((chunk_x, chunk_y)))
                     for star in range(Canvas.STARS_PER_CHUNK):
-
                         # generates stars in the chunk
                         x = uniform(chunk_x, chunk_x + Canvas.CHUNK_SIZE)
                         y = uniform(chunk_y, chunk_y + Canvas.CHUNK_SIZE)
@@ -242,8 +271,8 @@ class Canvas(CTkCanvas):
 
         # unloads chunks that are not visible
         for chunks in Canvas.chunk_difference(self.star_render_range, space):
-            for chunk_x in range(int(chunks[0, 0]), int(chunks[1, 0]),  Canvas.CHUNK_SIZE):
-                for chunk_y in range(int(chunks[0, 1]), int(chunks[1, 1]),  Canvas.CHUNK_SIZE):
+            for chunk_x in range(int(chunks[0, 0]), int(chunks[1, 0]), Canvas.CHUNK_SIZE):
+                for chunk_y in range(int(chunks[0, 1]), int(chunks[1, 1]), Canvas.CHUNK_SIZE):
                     self.delete(f"({chunk_x}, {chunk_y})")
 
         # updates render range and ensures stars are at the bottom
@@ -284,6 +313,14 @@ class Canvas(CTkCanvas):
     def zoom_event(self, amount: array, event=None):
         """
         updates the position and zoom level so that the screen zooms in where the user performed the zoom action
+            --> updates the zoom amount
+            --> updates the position amount to be proportional to the zoom amount
+                ** screen will zoom into where the users mouse cursor is on scroll events **
+            --> stars will need to be scaled, moved and rendered/un-rendered
+            --> planets will need to be scaled, moved and rendered/un-rendered
+                ** zoom events will not affect the focused planet **
+
+        ** note that stars are affected by zoom events less than planets are **
 
         :param amount: how much the screen should zoom
         :param event: the keyboard/mouse event that triggered the state update
@@ -295,7 +332,7 @@ class Canvas(CTkCanvas):
 
         # gets the position of zoom event
         mouse = self.canvas_dimensions / 2
-        if event and event.type == "38":
+        if event and event.type == "38" and (not self.focused_planet):
             mouse = array([event.x, event.y])
 
         # updates zoom and position
@@ -310,14 +347,17 @@ class Canvas(CTkCanvas):
         self.draw_stars()
         self.update_planets()
 
-    def position_event(self, amount: array, event=None):
+    def position_event(self, amount: array, event=None, unfocus: bool = True):
         """
         updates the display when a position event is triggered
             --> stars will need to be moved and rendered/un-rendered
             --> planets will need to be moved and rendered/un-rendered
 
+        ** note that stars are affected by position events less than planets are **
+
         :param amount: a numpy array that determines by how much the position should change in the form [dx, dy]
         :param event: the keyboard/mouse event that triggered the state update
+        :param unfocus: determines if the position event should set the unfocus the selected planet
         """
 
         # check if the event happened within the canvas bounds
@@ -331,24 +371,30 @@ class Canvas(CTkCanvas):
         # handles updating position and star rendering
         amount = vstack((amount, amount * Canvas.STAR_POS_FACTOR))
         self.space_position += (amount / self.zoom)
-        self.move("planets", *-amount[0])
         self.move("stars", *-amount[1])
         self.draw_stars()
-        self.update_planets()
+        if unfocus:
+            self.focused_planet = None
+            self.update_planets()
 
     def resize_event(self, size: array):
         """
         handles when the user resizes the canvas object
             --> navigation buttons will need to be moved
             --> stars will need to be rendered/un-rendered
+            --> planets will need to be updated
+                ** resize events will not affect focused planet **
 
         :param size: the new size of the canvas as a numpy array in the form [width, height]
         """
 
-        self.move("navigation", *(size - self.canvas_dimensions))
-        self.position_event(-(size - self.canvas_dimensions) / 2)
+        # adjusts canvas size
+        difference = size - self.canvas_dimensions
         self.canvas_dimensions = size
-        self.draw_stars()
+
+        # moves canvas objects
+        self.move("navigation", *difference)
+        self.position_event(-difference / 2, unfocus=False)
         self.update_planets()
 
     # =============================================== NAVIGATION BUTTONS ===============================================
@@ -402,9 +448,9 @@ class Canvas(CTkCanvas):
 
         # draws text and sets click event handler
         self.create_text(center_x, center_y - 3, text=text, font=("Arial", 20), fill="black", tags=edge_tag)
-        self.tag_bind(text, "<Button-1>", lambda e: self.handle_nav_button(text))
+        self.tag_bind(text, "<Button-1>", lambda e: self.click_nav_button(text))
 
-    def handle_nav_button(self, tag: str):
+    def click_nav_button(self, tag: str):
         """
         updates attributes of the navigation button so that it looks like it was clicked
             --> changes the color if the button for 100 ms
@@ -438,6 +484,7 @@ class Canvas(CTkCanvas):
         self.zoom_event(1 / self.zoom)
         self.position_event(-self.space_position[0])
         self.space_position = array([[0.0, 0.0], [0.0, 0.0]])
+        self.focused_planet = self.planet_manager.get_sun()
 
         # re-renders stars and planets
         self.delete("stars")

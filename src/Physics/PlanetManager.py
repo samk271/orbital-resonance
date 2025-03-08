@@ -13,16 +13,24 @@ class PlanetManager:
         """
         creates the planet manager class with the list of planets given by the user
 
-        :param planets: a list of planets created by the user, if none, the initial planet list will be empty
+        :param planets: a list of planets created by the user, must have at least 1 element the sun. if none is given
+            a sun will be generated automatically
         """
 
-        self.planets = [] if planets is None else planets
+        self.planets = planets if planets else [Planet([0, 0], 50, "yellow")]  # todo adjust default sun settings when min/max values are determined
         self.removed_buffer = []
         self.added_buffer = self.planets.copy()
 
+    def get_sun(self):
+        """
+        :return: the sun, the first element of the planet list
+        """
+
+        return self.planets[0]
+
     def get_planets(self):
         """
-        :return: the list of planets that exist within the program
+        :return: the list of planets that exist within the program including the sun
         """
 
         return self.planets
@@ -87,8 +95,8 @@ class PlanetManager:
         for planet in self.planets:
 
             # todo this is just for showing planet while testing, remove this later
-            rel_x = planet.position[0] - 200
-            rel_y = planet.position[1] - 200
+            rel_x = planet.position[0]
+            rel_y = planet.position[1]
 
             # Apply rotation matrix
             import math
@@ -98,4 +106,4 @@ class PlanetManager:
 
             # Update absolute position
             from numpy import array
-            planet.position = array([200 + new_x, 200 + new_y])
+            planet.position = array([new_x, new_y])
