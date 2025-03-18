@@ -1,5 +1,5 @@
 from numpy import array
-
+import math
 
 class Planet:
     """
@@ -22,5 +22,7 @@ class Planet:
 
         self.position = array(position)
         self.radius = radius
+        self.orbital_radius = math.sqrt(self.position[0]**2 + self.position[1]**2)
+        self.period = self.orbital_radius**(3/2) / 1000
         self.color = color
         self.tag = None

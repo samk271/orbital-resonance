@@ -4,6 +4,8 @@ from customtkinter import CTkFrame, CTkLabel, CTkTextbox, CTkButton, CTkCanvas
 class AISettings(CTkFrame):
     """
     The class that will handle the settings menu that controls the AI planet generation
+
+    todo add to solar system button functionality
     """
 
     def __init__(self, *args, **kwargs):
@@ -25,8 +27,9 @@ class AISettings(CTkFrame):
         self.textbox = CTkTextbox(self, height=94)
         self.textbox.grid(row=0, column=2, rowspan=3, pady=20, padx=10)
 
-        # creates generate button todo add function
+        # creates generate button
         generate_button = CTkButton(self, text="Generate")
+        generate_button.configure(command=lambda: self.generate_planet(generate_button.cget("fg_color")))
         generate_button.grid(row=0, column=3, sticky="n", pady=(20, 0))
 
         # creates play sound button todo add function
@@ -37,11 +40,8 @@ class AISettings(CTkFrame):
         self.add_button = CTkButton(self, text="Add to Solar System", state="disabled", fg_color="gray25")
         self.add_button.grid(row=2, column=3, sticky="s", pady=(0, 20))
 
-        # creates the planet output label
-        planet_label = CTkLabel(self, text="Generated\nPlanet/Sound:", font=("Arial", 20))
-        planet_label.grid(row=0, column=4, rowspan=3, sticky="ne", pady=20, padx=(10, 10))
-
-        # creates generated planet display
+        # creates generated planet display and label
+        self.planet_label = CTkLabel(self, text="Generated\nPlanet/Sound:", font=("Arial", 20))
         self.planet_canvas = CTkCanvas(self, width=60, height=60, bg="gray17", highlightthickness=0)
         self.planet_canvas.grid(row=0, column=5, rowspan=3)
 
@@ -58,9 +58,35 @@ class AISettings(CTkFrame):
         for child in self.winfo_children():
             child.bind("<Button-1>", lambda event: self.focus_set())
 
-        # creates an example planet and sound to display todo remove when functionality has been added
-        self.planet_canvas.create_oval(0, 0, 60, 60, fill="red")
+    def generate_planet(self, color: str):
+        """
+        generates a planet using the AI
+            --> enables the play sound and add to solar system buttons
+            --> adds a label for the created planet/sound
+            --> displays what the planet will look like
+            --> displays what the audio for the planet will look like
+
+        :param color: the fg color to set the disabled buttons to
+        """
+
+        # enabled the buttons
+        self.play_button.configure(state="normal", fg_color=color)
+        self.add_button.configure(state="normal", fg_color=color)
+
+        # creates the planet output label
+        self.planet_label.grid(row=0, column=4, rowspan=3, sticky="ne", pady=20, padx=(10, 10))
+
+        # generates the planet todo add AI function
+        text = self.textbox.get("1.0", "end-1c")
+        print(f"AI input: {text}")
+
+        # draws the planet todo currently randomly generated
+        from random import randint
+        self.planet_canvas.delete("all")
+        self.planet_canvas.create_oval(0, 0, 60, 60, fill="#{:06x}".format(randint(0, 0xFFFFFF)))
+
+        # draws the audio of the planet todo currently randomly generated
+        self.sound_canvas.delete("all")
         for i in range(60):
-            from random import randint
             dx = randint(0, 30)
             self.sound_canvas.create_line(i, 30 + dx, i, 30 - dx, fill="blue")
