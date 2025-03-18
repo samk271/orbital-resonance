@@ -94,15 +94,22 @@ class PlanetManager:
 
         for planet in self.planets:
 
-            # todo this is just for showing planet while testing, remove this later
+            #if planet is the sun, skip it
+            if planet.period == 0:
+                continue
+
             rel_x = planet.position[0]
             rel_y = planet.position[1]
 
-            # Apply rotation matrix
+            # Apply rotation matrix and use polar coordinates
             import math
-            speed = dt
-            new_x = rel_x * math.cos(speed) - rel_y * math.sin(speed)
-            new_y = rel_x * math.sin(speed) + rel_y * math.cos(speed)
+            angular_speed = 2*math.pi/planet.period
+            rel_angle = math.atan2(rel_y, rel_x)
+            new_angle = rel_angle + angular_speed * dt
+
+            #switch back to rectangular coodinates
+            new_x = planet.orbital_radius * math.cos(new_angle)
+            new_y = planet.orbital_radius * math.sin(new_angle)
 
             # Update absolute position
             from numpy import array
