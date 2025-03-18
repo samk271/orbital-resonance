@@ -3,6 +3,7 @@ from random import uniform, seed
 from numpy import array, floor, ceil, sort, round, vstack
 from Physics import PlanetManager
 from time import perf_counter
+from uuid import uuid1
 
 
 class Canvas(CTkCanvas):
@@ -22,6 +23,7 @@ class Canvas(CTkCanvas):
         smooth transition to new zoom/position?
     todo update planet settings when a planet is selected
     todo draw planet orbit paths?
+    todo change nav buttons so they can be held
     """
 
     # properties for how navigation buttons should look/behave
@@ -80,6 +82,7 @@ class Canvas(CTkCanvas):
         self.after_update_planets = self.after(int(1000 / Canvas.FPS), self.update_planets)
         self.dt = perf_counter()
         self.speed = 1
+        self.star_seed = uuid1()
         self.star_render_range = array([[0, 0], [0, 0]])
 
         # creates navigation buttons
@@ -141,6 +144,9 @@ class Canvas(CTkCanvas):
         self.bind("<Configure>", lambda e: self.resize_event(array([e.width, e.height])))
         self.bind("<Button-1>", lambda e: setattr(self, "drag_event", array([e.x, e.y])), add="+")
         self.bind("<B1-Motion>", lambda e: self.position_event(self.drag_event - array([e.x, e.y]), event=e))
+        self.bind("<Button-1>", lambda e: setattr(self, "focused_planet", None if (not e.widget.find_withtag(
+                "current")) or "stars" in self.gettags(e.widget.find_withtag("current")) else self.focused_planet),
+                  add="+")
 
         # todo this is just for showing planet while testing, remove this later
         from Physics.Planet import Planet
@@ -273,8 +279,9 @@ class Canvas(CTkCanvas):
                 for chunk_y in range(int(chunks[0, 1]), int(chunks[1, 1]), Canvas.CHUNK_SIZE):
 
                     # prepares seed for chunk so every time it is rendered it renders the same star pattern
-                    seed(hash((chunk_x, chunk_y)))
+                    seed(hash((self.star_seed, chunk_x, chunk_y)))
                     for star in range(Canvas.STARS_PER_CHUNK):
+
                         # generates stars in the chunk
                         x = uniform(chunk_x, chunk_x + Canvas.CHUNK_SIZE)
                         y = uniform(chunk_y, chunk_y + Canvas.CHUNK_SIZE)
