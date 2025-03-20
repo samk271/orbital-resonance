@@ -1,6 +1,10 @@
 import os
 from customtkinter import CTkFrame, CTkLabel, CTkTextbox, CTkButton, CTkCanvas
 from CTkListbox import *
+import scipy.io.wavfile  as wav
+import numpy as np
+from matplotlib.figure import Figure
+from matplotlib.backends.backend_tkagg import (FigureCanvasTkAgg, NavigationToolbar2Tk)
 
 class AISettings(CTkFrame):
     """
@@ -32,13 +36,24 @@ class AISettings(CTkFrame):
         """
 
         self.listbox = CTkListbox(self, width=320,height=120, hover=True)
-        self.listbox.grid(row=0,column=0,rowspan=3,pady=20,padx=10)
+        self.listbox.grid(row=0,column=0,rowspan=2,pady=20,padx=10)
 
         # doesnt crash if dataset is not found
         try:
-            self.add_wav_to_listbox(listbox=self.listbox, wav_dir="./AI/dataset/clotho/development")
+            self.add_wav_to_listbox(listbox=self.listbox, wav_dir="./AUDIO/temp_samples")
         except:
             pass
+
+        # creates the generated sound display
+        fig = Figure(figsize = (5, 3), dpi = 100)
+        plot1 = fig.add_subplot(111)
+        self.sound_graph = FigureCanvasTkAgg(fig, master = self)
+        self.sound_graph.draw()
+        self.sound_graph.get_tk_widget().grid(row=0, column=1, rowspan=2, pady=10, padx=10)
+
+        self.play_button = CTkButton(self, text="Select Sound")
+        self.play_button.configure(command=lambda: self.select_sound(wav_dir="./AUDIO/temp_samples", plot=plot1, color=generate_button.cget("fg_color")))
+        self.play_button.grid(row=2, column=0, pady=5)
 
         # creates generate button
         generate_button = CTkButton(self, text="Generate")
@@ -58,9 +73,6 @@ class AISettings(CTkFrame):
         self.planet_canvas = CTkCanvas(self, width=60, height=60, bg="gray17", highlightthickness=0)
         self.planet_canvas.grid(row=0, column=5, rowspan=3)
 
-        # creates the generated sound display
-        self.sound_canvas = CTkCanvas(self, width=120, height=120, bg="gray17", highlightthickness=0)
-        self.sound_canvas.grid(row=0, column=1, rowspan=3, padx=(10, 20))
 
         # sets column weights for dynamic resizing
         self.columnconfigure(0, weight=1)
@@ -70,6 +82,22 @@ class AISettings(CTkFrame):
         self.bind("<Button-1>", lambda event: self.focus_set())
         for child in self.winfo_children():
             child.bind("<Button-1>", lambda event: self.focus_set())
+
+    def select_sound(self, wav_dir, plot, color: str):
+        wav_file = self.listbox.get()
+        fs, x = wav.read(os.path.join(wav_dir,wav_file))
+
+        #average stereo wav signal
+        x = np.average(x, axis=1)
+
+        plot.cla()
+        
+        plot.plot(range(len(x)),x)
+        self.sound_graph.draw()
+
+        # enabled the buttons
+        self.play_button.configure(state="normal", fg_color=color)
+        self.add_button.configure(state="normal", fg_color=color)
 
     def generate_planet(self, color: str):
         """
@@ -81,10 +109,6 @@ class AISettings(CTkFrame):
 
         :param color: the fg color to set the disabled buttons to
         """
-
-        # enabled the buttons
-        self.play_button.configure(state="normal", fg_color=color)
-        self.add_button.configure(state="normal", fg_color=color)
 
         # creates the planet output label
         self.planet_label.grid(row=0, column=4, rowspan=3, sticky="ne", pady=20, padx=(10, 10))
@@ -107,6 +131,6 @@ class AISettings(CTkFrame):
     #add all the wav files from the directory to the listbox
     def add_wav_to_listbox(self, listbox, wav_dir):
         wav_files = os.listdir(wav_dir)
-        for i, file in enumerate(wav_files[100:200]):
+        for i, file in enumerate(wav_files):
             listbox.insert(i, file)
         listbox.activate(0)
