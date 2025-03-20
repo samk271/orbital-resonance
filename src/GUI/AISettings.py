@@ -1,5 +1,6 @@
+import os
 from customtkinter import CTkFrame, CTkLabel, CTkTextbox, CTkButton, CTkCanvas
-
+from CTkListbox import *
 
 class AISettings(CTkFrame):
     """
@@ -19,6 +20,8 @@ class AISettings(CTkFrame):
         # initializes superclass and binds user actions
         super().__init__(*args, **kwargs)
 
+        """
+        TEMPORARILY DISABLING AI PROMPT
         # creates the input label
         input_label = CTkLabel(self, text="AI Input:", font=("Arial", 20))
         input_label.grid(row=0, column=1, rowspan=3, sticky="ne", pady=20, padx=(20, 0))
@@ -26,6 +29,12 @@ class AISettings(CTkFrame):
         # creates user input text box
         self.textbox = CTkTextbox(self, height=94)
         self.textbox.grid(row=0, column=2, rowspan=3, pady=20, padx=10)
+        """
+
+        self.listbox = CTkListbox(self, width=320,height=120, hover=True)
+        self.listbox.grid(row=0,column=0,rowspan=3,pady=20,padx=10)
+
+        self.add_wav_to_listbox(listbox=self.listbox, wav_dir="./AI/dataset/clotho/development")
 
         # creates generate button
         generate_button = CTkButton(self, text="Generate")
@@ -46,8 +55,8 @@ class AISettings(CTkFrame):
         self.planet_canvas.grid(row=0, column=5, rowspan=3)
 
         # creates the generated sound display
-        self.sound_canvas = CTkCanvas(self, width=60, height=60, bg="gray17", highlightthickness=0)
-        self.sound_canvas.grid(row=0, column=6, rowspan=3, padx=(10, 20))
+        self.sound_canvas = CTkCanvas(self, width=120, height=120, bg="gray17", highlightthickness=0)
+        self.sound_canvas.grid(row=0, column=1, rowspan=3, padx=(10, 20))
 
         # sets column weights for dynamic resizing
         self.columnconfigure(0, weight=1)
@@ -77,8 +86,8 @@ class AISettings(CTkFrame):
         self.planet_label.grid(row=0, column=4, rowspan=3, sticky="ne", pady=20, padx=(10, 10))
 
         # generates the planet todo add AI function
-        text = self.textbox.get("1.0", "end-1c")
-        print(f"AI input: {text}")
+        #text = self.textbox.get("1.0", "end-1c")
+        # print(f"AI input: {text}")
 
         # draws the planet todo currently randomly generated
         from random import randint
@@ -87,6 +96,13 @@ class AISettings(CTkFrame):
 
         # draws the audio of the planet todo currently randomly generated
         self.sound_canvas.delete("all")
-        for i in range(60):
-            dx = randint(0, 30)
-            self.sound_canvas.create_line(i, 30 + dx, i, 30 - dx, fill="blue")
+        for i in range(120):
+            dx = randint(0, 120)
+            self.sound_canvas.create_line(i, 60 + dx, i, 60 - dx, fill="blue")
+
+    #add all the wav files from the directory to the listbox
+    def add_wav_to_listbox(self, listbox, wav_dir):
+        wav_files = os.listdir(wav_dir)
+        for i, file in enumerate(wav_files[100:200]):
+            listbox.insert(i, file)
+        listbox.activate(0)
