@@ -19,8 +19,7 @@ class Canvas(CTkCanvas):
         --> navigation button properties
         --> state properties
         --> star generation properties
-    todo adjust zoom when focusing planet?
-        smooth transition to new zoom/position?
+    todo smooth transition to new zoom/position when focusing/home button?
     todo update planet settings when a planet is selected
     todo draw planet orbit paths?
     todo change nav buttons so they can be held
@@ -132,6 +131,12 @@ class Canvas(CTkCanvas):
         self.bind("<Control-equal>", lambda e: self.zoom_event(Canvas.ZOOM_AMT, e))
         self.bind("<Control-underscore>", lambda e: self.zoom_event(1 / Canvas.ZOOM_AMT, e))
         self.bind("<MouseWheel>", lambda e: self.zoom_event(Canvas.ZOOM_AMT if e.delta > 0 else 1 / Canvas.ZOOM_AMT, e))
+
+        # user speed control actions
+        self.bind("<Control-Shift-plus>", lambda e: setattr(self, "speed", self.speed * Canvas.SPEED_FACTOR))
+        self.bind("<Control-Shift-minus>", lambda e: setattr(self, "speed", self.speed / Canvas.SPEED_FACTOR))
+        self.bind("<Control-Shift-equal>", lambda e: setattr(self, "speed", self.speed * Canvas.SPEED_FACTOR))
+        self.bind("<Control-Shift-underscore>", lambda e: setattr(self, "speed", self.speed / Canvas.SPEED_FACTOR))
 
         # user speed actions
         self.bind("<Control-Shift-plus>", lambda e: setattr(self, "speed", self.speed * Canvas.SPEED_FACTOR))

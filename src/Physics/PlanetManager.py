@@ -1,4 +1,6 @@
 from Physics.Planet import Planet
+from numpy import array
+from math import cos, sin, pi, atan2
 
 
 class PlanetManager:
@@ -87,14 +89,14 @@ class PlanetManager:
 
     def update_planet_physics(self, dt):
         """
-        runs the physics engine on each of the planets within the application todo david add physics engine to this function
+        runs the physics engine on each of the planets within the application
 
         :param dt: the change in time since the last physics update in seconds
         """
 
         for planet in self.planets:
 
-            #if planet is the sun, skip it
+            # if planet is the sun, skip it
             if planet.period == 0:
                 continue
 
@@ -102,15 +104,13 @@ class PlanetManager:
             rel_y = planet.position[1]
 
             # Apply rotation matrix and use polar coordinates
-            import math
-            angular_speed = 2*math.pi/planet.period
-            rel_angle = math.atan2(rel_y, rel_x)
+            angular_speed = 2 * pi/planet.period
+            rel_angle = atan2(rel_y, rel_x)
             new_angle = rel_angle + angular_speed * dt
 
-            #switch back to rectangular coodinates
-            new_x = planet.orbital_radius * math.cos(new_angle)
-            new_y = planet.orbital_radius * math.sin(new_angle)
+            # switch back to rectangular coordinates
+            new_x = planet.orbital_radius * cos(new_angle)
+            new_y = planet.orbital_radius * sin(new_angle)
 
             # Update absolute position
-            from numpy import array
             planet.position = array([new_x, new_y])
