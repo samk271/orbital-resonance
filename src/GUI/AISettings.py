@@ -34,7 +34,11 @@ class AISettings(CTkFrame):
         self.listbox = CTkListbox(self, width=320,height=120, hover=True)
         self.listbox.grid(row=0,column=0,rowspan=3,pady=20,padx=10)
 
-        self.add_wav_to_listbox(listbox=self.listbox, wav_dir="./AI/dataset/clotho/development")
+        # doesnt crash if dataset is not found
+        try:
+            self.add_wav_to_listbox(listbox=self.listbox, wav_dir="./AI/dataset/clotho/development")
+        except:
+            pass
 
         # creates generate button
         generate_button = CTkButton(self, text="Generate")

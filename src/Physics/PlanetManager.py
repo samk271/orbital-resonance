@@ -1,6 +1,10 @@
 from Physics.Planet import Planet
 from numpy import array
 from math import cos, sin, pi, atan2
+import pygame
+
+# initializes pygame
+pygame.mixer.init()
 
 
 class PlanetManager:
