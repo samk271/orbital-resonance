@@ -11,18 +11,18 @@ class Planet:
         feel free to add more attributes/functions as needed for physics
     """
 
-    def __init__(self, position: list, radius: float, color: str):
+    def __init__(self, period: float, radius: float, color: str):
         """
         creates the planet with the given attributes
 
-        :param position: the position of the planet in space
+        :param period: how long it takes the planet to revolve
         :param radius: the radius of the planet
         :param color: the color of the planet
         """
 
-        self.position = array(position)
+        self.period = period
+        self.orbital_radius = (period**(2/3)) * 500
+        self.position = array([0, -round(self.orbital_radius)])
         self.radius = radius
-        self.orbital_radius = math.sqrt(self.position[0]**2 + self.position[1]**2)
-        self.period = self.orbital_radius**(3/2) / 1000
         self.color = color
         self.tag = None

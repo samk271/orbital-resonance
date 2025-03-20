@@ -155,8 +155,8 @@ class Canvas(CTkCanvas):
 
         # todo this is just for showing planet while testing, remove this later
         from Physics.Planet import Planet
-        self.planet_manager.add_planet(Planet([100, 100], 50, "green"))
-        self.planet_manager.add_planet(Planet([400, 400], 50, "blue"))
+        self.planet_manager.add_planet(Planet(1, 25, "green"))
+        self.planet_manager.add_planet(Planet(2, 25, "blue"))
 
     # ================================================ PLANET FUNCTIONS ================================================
 

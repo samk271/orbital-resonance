@@ -19,7 +19,7 @@ class PlanetManager:
             a sun will be generated automatically
         """
 
-        self.planets = planets if planets else [Planet([0, 0], 50, "yellow")]  # todo adjust default sun settings when min/max values are determined
+        self.planets = planets if planets else [Planet(0, 50, "yellow")]  # todo adjust default sun settings when min/max values are determined
         self.removed_buffer = []
         self.added_buffer = self.planets.copy()
 
@@ -114,3 +114,7 @@ class PlanetManager:
 
             # Update absolute position
             planet.position = array([new_x, new_y])
+
+            #if rel_x < 0 and new_x >= 0:
+                #insert sound playing here
+                
