@@ -1,11 +1,12 @@
 import os
+import csv
 import torch
 import random
 import numpy as np
 from torch.utils.data import Dataset
 
 """
-Dataset returns 4.87 second intervals from the clotho dataset
+Dataset returns 5 second intervals from the clotho dataset
 
 129x1722 images
 
@@ -14,15 +15,26 @@ comment at bottom of file
 """
 
 class CustomDataset(Dataset):
-    def __init__(self, root_dir):
-        self.root_dir = root_dir
+    def __init__(self, root_dir, train=True):
+        if (train):
+            self.data_dir = os.path.join(root_dir, "develop_spectro")
+            #Load captions as a dictionary object
+            with open(os.path.join(root_dir,"clotho_captions_developmet.csv"), mode='r') as infile:
+                reader = csv.reader(infile)
+                self.captions = {row[0]:row[1:] for row in reader}
+        else:
+            self.data_dir = os.path.join(root_dir, "eval_spectro")
+            #Load captions as a dictionary object
+            with open(os.path.join(root_dir,"clotho_captions_evaluation.csv"), mode='r') as infile:
+                reader = csv.reader(infile)
+                self.captions = {row[0]:row[1:] for row in reader}
 
     def __len__(self):
         count = 0
         # Iterate directory
-        for path in os.listdir(self.root_dir):
+        for path in os.listdir(self.data_dir):
             # check if current path is a file
-            if os.path.isfile(os.path.join(self.root_dir, path)):
+            if os.path.isfile(os.path.join(self.data_dir, path)):
                 count += 1
         return count
     
@@ -41,19 +53,20 @@ class CustomDataset(Dataset):
 
 
     def __getitem__(self, idx):
-        file_path = os.listdir(self.root_dir)[idx]
+        file_name = os.listdir(self.data_dir)[idx]
 
-        uncropped_data = np.genfromtxt(os.path.join(self.root_dir, file_path),dtype=np.complex128, delimiter=",", comments="#")
+        #Find caption for index
+        caption_list = self.captions[file_name[:-8]]
+        caption = caption_list[random.randint(0,4)]
 
+        uncropped_data = np.genfromtxt(os.path.join(self.data_dir, file_name),dtype=np.complex128, delimiter=",", comments="#")
         num_columns = uncropped_data.shape[1]
-        
         start_index = random.randint(0, num_columns - 1722) #Find random starting index
-
         cropped_spectrogram = uncropped_data[:,start_index:start_index+1722] #Crop spectrogram to 5 second interval
 
         two_channel_tensor = self.preprocess_complex_image(cropped_spectrogram)
 
-        return two_channel_tensor
+        return two_channel_tensor, caption
 
 """
 Maximum wav file length was 30 seconds, full spectrograms are 129x10337
