@@ -6,7 +6,6 @@ from time import perf_counter
 from uuid import uuid1
 
 
-# noinspection PyTypeChecker
 class Canvas(CTkCanvas):
     """
     The canvas that will be used to display the solar system in the prototype with 3 sections of functions
