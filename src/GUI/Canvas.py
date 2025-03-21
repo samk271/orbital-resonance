@@ -22,7 +22,6 @@ class Canvas(CTkCanvas):
         --> star generation properties
     todo update planet settings when a planet is selected
     todo draw planet orbit paths?
-    todo fix drag on planet removes focus
     """
 
     # properties for how navigation buttons should look and function
