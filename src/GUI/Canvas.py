@@ -1,6 +1,7 @@
 from customtkinter import CTkCanvas
 from random import uniform, seed
-from numpy import array, floor, ceil, sort, vstack, array_equal
+from numpy import array, floor, ceil, sort, vstack
+from numpy.linalg import norm
 from Physics import *
 from time import perf_counter
 from uuid import uuid1
@@ -44,6 +45,7 @@ class Canvas(CTkCanvas):
     # misc properties for timing and chunk loading
     FPS = 60
     FOCUS_FRAMES = 30
+    FOCUS_DRAG_THRESHOLD = 10
     CHUNK_SIZE = 100
     STARS_PER_CHUNK = 3
 
@@ -76,7 +78,8 @@ class Canvas(CTkCanvas):
 
         # initializes superclass and canvas fields
         super().__init__(*args, **kwargs)
-        self.canvas_dimensions = array([self.winfo_width(), self.winfo_height()])
+        self.canvas_size = array([self.winfo_width(), self.winfo_height()])
+        self.initial_canvas_size = None  # initialized after first resize
         self.initialized = False
         self.after_update_planets = self.after(int(1000 / Canvas.FPS), self.update_planets)
         self.after_nav = self.after(0, lambda: None)
@@ -85,13 +88,14 @@ class Canvas(CTkCanvas):
         self.space_position = array([[0.0, 0.0], [0.0, 0.0]])  # planet pos, star pos
         self.zoom = array([[1.0], [1.0]])  # planet amt, star amt
         self.drag_event = array([0.0, 0.0])
+        self.drag_amt = 0
 
         # sets speed fields
         self.speed = 1
         self.dt = perf_counter()
 
         # sets focus fields
-        self.focused_planet = None  # initialized after resize
+        self.focused_planet = None  # initialized after first resize
         self.focus_frames = 0
         self.focus_step = {"position": array([0, 0]), "zoom": array([[1], [1]])}
 
@@ -100,7 +104,7 @@ class Canvas(CTkCanvas):
         self.star_render_range = array([[0, 0], [0, 0]])
 
         # creates navigation buttons
-        width, height = self.canvas_dimensions
+        width, height = self.canvas_size
         self.create_button(width - 80, height - 120, width - 43, height - 83, "↑", "navigation")
         self.create_button(width - 80, height - 40, width - 43, height - 3, "↓", "navigation")
         self.create_button(width - 120, height - 80, width - 83, height - 43, "←", "navigation")
@@ -171,6 +175,7 @@ class Canvas(CTkCanvas):
         self.bind("<Button-1>", lambda e: self.focus_set())  # todo do this for planet settings
         self.bind("<Configure>", lambda e: self.resize_event(array([e.width, e.height])))
         self.bind("<Button-1>", lambda e: setattr(self, "drag_event", array([e.x, e.y])), add="+")
+        self.bind("<Button-1>", lambda e: setattr(self, "drag_amt", 0), add="+")
         self.bind("<B1-Motion>", lambda e: self.position_event(self.drag_event - array([e.x, e.y]), event=e))
         self.bind("<Button-1>", lambda e: setattr(self, "focused_planet", None if (not e.widget.find_withtag(
                 "current")) or "stars" in self.gettags(e.widget.find_withtag("current")) else self.focused_planet),
@@ -196,11 +201,11 @@ class Canvas(CTkCanvas):
 
         # gets required position updates
         frames = Canvas.FOCUS_FRAMES if smooth else 1
-        pos_diff = (self.focused_planet.position - self.canvas_to_space(self.canvas_dimensions / 2)[0])
+        pos_diff = (self.focused_planet.position - self.canvas_to_space(self.canvas_size / 2)[0])
         self.focus_step["position"] = pos_diff / frames
 
         # gets required zoom updates
-        end_planet_zoom = 1 / max((planet.radius / self.canvas_dimensions) * (Canvas.DEFAULT_ZOOM_PADDING + 1) * 2)
+        end_planet_zoom = 1 / max((planet.radius / self.initial_canvas_size) * (Canvas.DEFAULT_ZOOM_PADDING + 1) * 2)
         end_zoom = array([[end_planet_zoom], [Canvas.ZOOM_AMT[1, 0]]])
         self.focus_step["zoom"] = (end_zoom / self.zoom) ** (1 / frames) if zoom else array([[1], [1]])
         self.update_planets()
@@ -257,7 +262,8 @@ class Canvas(CTkCanvas):
         for planet in added_buffer:
             kwargs = {"tags": "planets", "fill": planet.color}
             planet.tag = self.create_oval(0, 0, *([-planet.radius * 2 * self.zoom[0, 0]] * 2), **kwargs)
-            self.tag_bind(planet.tag, "<ButtonRelease-1>", lambda e, p=planet: self.set_focus(p))
+            self.tag_bind(planet.tag, "<ButtonRelease-1>", lambda e, p=planet: self.set_focus(
+                p) if self.drag_amt < Canvas.FOCUS_DRAG_THRESHOLD else None)
 
         # updates position of all planets
         for planet in self.planet_manager.get_planets():
@@ -330,7 +336,7 @@ class Canvas(CTkCanvas):
 
         # gets the sizing of the canvas in space coordinates
         space_start = floor(self.space_position[1] / Canvas.CHUNK_SIZE) * Canvas.CHUNK_SIZE
-        space_end = ceil(self.canvas_to_space(self.canvas_dimensions)[1] / Canvas.CHUNK_SIZE) * Canvas.CHUNK_SIZE
+        space_end = ceil(self.canvas_to_space(self.canvas_size)[1] / Canvas.CHUNK_SIZE) * Canvas.CHUNK_SIZE
         space = array([space_start, space_end])
 
         # loads the chunks that need to be loaded
@@ -413,7 +419,7 @@ class Canvas(CTkCanvas):
             return
 
         # gets the position of zoom event
-        mouse = self.canvas_dimensions / 2
+        mouse = self.canvas_size / 2
         if event and event.type == "38" and (not self.focused_planet):
             mouse = array([event.x, event.y])
 
@@ -451,6 +457,7 @@ class Canvas(CTkCanvas):
 
         # handles click and drag events
         if event and event.type == "6":
+            self.drag_amt += norm(self.drag_event - array([event.x, event.y]))
             self.drag_event = array([event.x, event.y])
 
         # handles updating position and star rendering
@@ -476,8 +483,8 @@ class Canvas(CTkCanvas):
         """
 
         # adjusts canvas size
-        difference = size - self.canvas_dimensions
-        self.canvas_dimensions = size
+        difference = size - self.canvas_size
+        self.canvas_size = size
 
         # moves canvas objects
         self.move("navigation", *difference)
@@ -490,6 +497,7 @@ class Canvas(CTkCanvas):
         # handles initial resize event
         if not self.initialized:
             self.initialized = True
+            self.initial_canvas_size = self.canvas_size.copy()
             self.set_focus(self.planet_manager.get_sun(), True, False)
 
     # ==================================================== BUTTONS =====================================================
