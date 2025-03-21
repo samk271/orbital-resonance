@@ -1,8 +1,8 @@
 from customtkinter import CTk
 from GUI import *
-from pickle import dump, load
+from pickle import dump, load  # todo compress files as well
 
-# loads previous save  todo add save/load menu
+# loads previous save  todo add save/load menu, probably better to save list of planets instead of planet manager to avoid need to reload
 with open("save.pkl", "rb") as file:
     planet_manager = load(file)
 
