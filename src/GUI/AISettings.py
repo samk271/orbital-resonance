@@ -56,7 +56,7 @@ class AISettings(CTkFrame):
         plot1 = fig.add_subplot(111)
         self.sound_graph = FigureCanvasTkAgg(fig, master = self)
         self.sound_graph.draw()
-        self.sound_graph.get_tk_widget().grid(row=0, column=1, rowspan=2, pady=(10,0), padx=10)
+        self.sound_graph.get_tk_widget().grid(row=0, column=1, columnspan=2, rowspan=2, pady=(10,0), padx=10)
 
         self.select_button = CTkButton(self, text="Select Sound")
         self.select_button.configure(command=lambda: self.select_sound(
@@ -68,20 +68,21 @@ class AISettings(CTkFrame):
         self.hRight = tk.DoubleVar(value=1)
         self.hSlider = RangeSliderH(self , [self.hLeft, self.hRight],
                                      padX = 12, bgColor="gray17", font_color="#ffffff", digit_precision='.2f')
-        self.hSlider.grid(row=2,column=1,pady=10)
+        self.hSlider.grid(row=2,column=1, columnspan=2,pady=10)
 
         self.update_sound_button = CTkButton(self, text="Crop", width=100, height=20, state="disabled")
         self.update_sound_button.configure(command=lambda: self.update_sound(plot=plot1))
         self.update_sound_button.grid(row=3,column=1,pady=10)
 
+        # creates play sound button todo add function
+        self.play_button = CTkButton(self, text="Play Sound",width=100, height=20,  state="disabled", fg_color="gray25")
+        self.play_button.configure(command=lambda: self.play_sound())
+        self.play_button.grid(row=3,column=2,pady=10)
+
         # creates generate button
         generate_button = CTkButton(self, text="Generate")
         generate_button.configure(command=lambda: self.generate_planet(generate_button.cget("fg_color")))
         generate_button.grid(row=0, column=3, sticky="n", pady=(20, 0))
-
-        # creates play sound button todo add function
-        self.play_button = CTkButton(self, text="Play Sound", state="disabled", fg_color="gray25")
-        self.play_button.grid(row=1, column=3, pady=5)
 
         # creates add button todo add function
         self.add_button = CTkButton(self, text="Add to Solar System", state="disabled", fg_color="gray25")
@@ -142,13 +143,16 @@ class AISettings(CTkFrame):
         
 
 
-    def play_sound(self, wav_dir):
+    def play_sound(self):
 
         if not os.path.isfile("./AUDIO/temp_wav.wav"):
             wav.write("./AUDIO/temp_wav.wav",self.sr, self.signal[
                 int(len(self.signal)*self.hLeft.get()):int(len(self.signal)*self.hRight.get())])
+            
 
-        pygame.mixer
+        sound = pygame.mixer.Sound("./AUDIO/temp_wav.wav")
+        sound.play()
+
 
     def generate_planet(self, color: str):
         """
