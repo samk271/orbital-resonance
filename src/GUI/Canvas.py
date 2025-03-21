@@ -1,6 +1,6 @@
 from customtkinter import CTkCanvas
 from random import uniform, seed
-from numpy import array, floor, ceil, sort, vstack
+from numpy import array, floor, ceil, sort, vstack, array_equal
 from Physics import *
 from time import perf_counter
 from uuid import uuid1
@@ -21,33 +21,29 @@ class Canvas(CTkCanvas):
         --> star generation properties
     todo update planet settings when a planet is selected
     todo draw planet orbit paths?
+    todo fix drag on planet removes focus
     """
 
-    # properties for how navigation buttons should look
+    # properties for how navigation buttons should look and function
     NAV_BUTTON_FILL = {"fill": "gray50", "outline": "gray50"}
     NAV_BUTTON_RADIUS = 5
     NAV_BUTTON_BORDER = {"width": 2, "fill": "gray23"}
-
-    # properties for how nav buttons should behave when clicked
     NAV_BUTTON_CLICKED = {"fill": "gray80", "outline": "gray80"}
     NAV_BUTTON_CLICK_OFFSET = 1
-    NAV_BUTTON_CLICK_TIME = 100
+    NAV_BUTTON_CLICK_TIME = 100  # ms
+    NAV_BUTTON_REPEAT_DELAY = 600  # ms
+    NAV_BUTTON_REPEAT = 30  # ms
 
-    # properties for how nav buttons should behave when held
-    NAV_BUTTON_REPEAT_DELAY = 600
-    NAV_BUTTON_REPEAT = 30
-
-    # properties for how much class fields should update when state is updated and frames per second
+    # properties for how much class fields should update when state is updated
     ZOOM_AMT = array([[1.1], [1.005]])  # planet amt, star amt
     POS_AMT = 10
     STAR_POS_FACTOR = .095
     SPEED_FACTOR = 1.1
+    DEFAULT_ZOOM_PADDING = 2
 
-    # properties for fps and frames to complete focus
+    # misc properties for timing and chunk loading
     FPS = 60
     FOCUS_FRAMES = 30
-
-    # properties for how stars should generate
     CHUNK_SIZE = 100
     STARS_PER_CHUNK = 3
 
@@ -81,8 +77,9 @@ class Canvas(CTkCanvas):
         # initializes superclass and canvas fields
         super().__init__(*args, **kwargs)
         self.canvas_dimensions = array([self.winfo_width(), self.winfo_height()])
+        self.initialized = False
         self.after_update_planets = self.after(int(1000 / Canvas.FPS), self.update_planets)
-        self.after_nav = None
+        self.after_nav = self.after(0, lambda: None)
 
         # sets event fields
         self.space_position = array([[0.0, 0.0], [0.0, 0.0]])  # planet pos, star pos
@@ -94,7 +91,7 @@ class Canvas(CTkCanvas):
         self.dt = perf_counter()
 
         # sets focus fields
-        self.focused_planet = self.planet_manager.get_sun()
+        self.focused_planet = None  # initialized after resize
         self.focus_frames = 0
         self.focus_step = {"position": array([0, 0]), "zoom": array([[1], [1]])}
 
@@ -129,7 +126,7 @@ class Canvas(CTkCanvas):
         # sets event handlers for releasing navigation buttons
         for tag in ("↑", "↓", "←", "→", "⊕", "⊖", "🐇", "🐢"):
             self.tag_bind(tag, "<ButtonRelease-1>", lambda e: self.after_cancel(self.after_nav))
-            self.tag_bind(tag, "<ButtonRelease-1>", lambda e: setattr(self, "after_nav", None), add="+")
+            self.tag_bind(tag, "<Leave>", lambda e: self.after_cancel(self.after_nav))
 
         # creates buttons to close and reopen settings menus and binds their functions
         planet_settings = self.create_button(width - 25, 10, width + 17, 47, ">", "planet_settings", (-9, -2))
@@ -181,7 +178,7 @@ class Canvas(CTkCanvas):
 
     # ================================================ PLANET FUNCTIONS ================================================
 
-    def set_focus(self, planet: Planet, zoom: bool = False):
+    def set_focus(self, planet: Planet, zoom: bool = False, smooth: bool = True):
         """
         sets the focus to a given planet:
             --> updates focused planet
@@ -190,13 +187,22 @@ class Canvas(CTkCanvas):
 
         :param planet: the planet to focus
         :param zoom: determines if the zoom should be set to default as well as position when focusing
+        :param smooth: determines if the focus event should be smooth (only isn't during initial resize event)
         """
 
+        # sets focus on planet
         self.focused_planet = planet
-        self.focus_frames = 0
+        self.focus_frames = 0 if smooth else Canvas.FOCUS_FRAMES - 1
+
+        # gets required position updates
+        frames = Canvas.FOCUS_FRAMES if smooth else 1
         pos_diff = (self.focused_planet.position - self.canvas_to_space(self.canvas_dimensions / 2)[0])
-        self.focus_step["position"] = pos_diff / Canvas.FOCUS_FRAMES
-        self.focus_step["zoom"] = (1 / self.zoom) ** (1 / Canvas.FOCUS_FRAMES) if zoom else array([[1], [1]])
+        self.focus_step["position"] = pos_diff / frames
+
+        # gets required zoom updates
+        end_planet_zoom = 1 / max((planet.radius / self.canvas_dimensions) * (Canvas.DEFAULT_ZOOM_PADDING + 1) * 2)
+        end_zoom = array([[end_planet_zoom], [Canvas.ZOOM_AMT[1, 0]]])
+        self.focus_step["zoom"] = (end_zoom / self.zoom) ** (1 / frames) if zoom else array([[1], [1]])
         self.update_planets()
 
     def maintain_focus(self, old_space_pos: array):
@@ -251,7 +257,7 @@ class Canvas(CTkCanvas):
         for planet in added_buffer:
             kwargs = {"tags": "planets", "fill": planet.color}
             planet.tag = self.create_oval(0, 0, *([-planet.radius * 2 * self.zoom[0, 0]] * 2), **kwargs)
-            self.tag_bind(planet.tag, "<Button-1>", lambda e, p=planet: self.set_focus(p))
+            self.tag_bind(planet.tag, "<ButtonRelease-1>", lambda e, p=planet: self.set_focus(p))
 
         # updates position of all planets
         for planet in self.planet_manager.get_planets():
@@ -480,6 +486,11 @@ class Canvas(CTkCanvas):
         self.position_event(-difference / 2, unfocus=False)
         self.draw_stars() if not self.focused_planet else None
         self.update_planets()
+
+        # handles initial resize event
+        if not self.initialized:
+            self.initialized = True
+            self.set_focus(self.planet_manager.get_sun(), True, False)
 
     # ==================================================== BUTTONS =====================================================
 
