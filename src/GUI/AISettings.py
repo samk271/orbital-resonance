@@ -127,11 +127,14 @@ class AISettings(CTkFrame):
 
     def update_sound(self,plot):
 
+        x= np.average(self.signal, axis=1)
+
         #Update plot
         plot.cla()
-        plot.plot(range(len(self.signal)),self.signal)
-        plot.plot(range(int(len(self.signal)*self.hLeft.get())),self.signal[:int(len(self.signal)*self.hLeft.get())], color="skyblue")
-        plot.plot(range(int(len(self.signal)*self.hRight.get()),len(self.signal)),self.signal[int(len(self.signal)*self.hRight.get()):], color="skyblue")
+        plot.plot(range(len(x)),x)
+        plot.plot(range(int(len(x)*self.hLeft.get())),x[:int(len(x)*self.hLeft.get())], color="skyblue")
+        plot.plot(range(int(len(x)*self.hRight.get()),len(x)),x[int(len(x)*self.hRight.get()):], color="skyblue")
+        self.sound_graph.draw()
 
         #Write the sound file with the slider cropping
         wav.write("./AUDIO/temp_wav.wav",self.sr, self.signal[
