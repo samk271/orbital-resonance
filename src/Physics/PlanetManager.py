@@ -41,6 +41,14 @@ class PlanetManager:
 
         return self.planets
 
+    def reload(self):
+        """
+        adds all of the planets to the added buffer so they can be redrawn to the screen, will need to be called when a
+        save file is loaded
+        """
+
+        self.added_buffer = self.planets.copy()
+
     def add_planet(self, planet: Planet):
         """
         adds a planet to the list of planets that exist in the program

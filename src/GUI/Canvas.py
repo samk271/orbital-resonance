@@ -66,7 +66,7 @@ class Canvas(CTkCanvas):
         """
 
         # gets the planet manager from the kwargs
-        if "planet_manger" in kwargs:
+        if "planet_manager" in kwargs:
             self.planet_manager = kwargs.pop("planet_manager")
         else:
             self.planet_manager = PlanetManager()
@@ -178,11 +178,6 @@ class Canvas(CTkCanvas):
         self.bind("<Button-1>", lambda e: setattr(self, "focused_planet", None if (not e.widget.find_withtag(
                 "current")) or "stars" in self.gettags(e.widget.find_withtag("current")) else self.focused_planet),
                   add="+")
-
-        # todo this is just for showing planet while testing, remove this later
-        from Physics.Planet import Planet
-        self.planet_manager.add_planet(Planet(1, 25, "green"))
-        self.planet_manager.add_planet(Planet(2, 25, "blue"))
 
     # ================================================ PLANET FUNCTIONS ================================================
 
