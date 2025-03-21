@@ -21,16 +21,21 @@ class Canvas(CTkCanvas):
         --> star generation properties
     todo update planet settings when a planet is selected
     todo draw planet orbit paths?
-    todo change nav buttons so they can be held
     """
 
-    # properties for how navigation buttons should look/behave
+    # properties for how navigation buttons should look
     NAV_BUTTON_FILL = {"fill": "gray50", "outline": "gray50"}
     NAV_BUTTON_RADIUS = 5
     NAV_BUTTON_BORDER = {"width": 2, "fill": "gray23"}
+
+    # properties for how nav buttons should behave when clicked
     NAV_BUTTON_CLICKED = {"fill": "gray80", "outline": "gray80"}
-    NAV_BUTTON_CLICKED_OFFSET = 1
-    NAV_BUTTON_CLICKED_TIME = 100
+    NAV_BUTTON_CLICK_OFFSET = 1
+    NAV_BUTTON_CLICK_TIME = 100
+
+    # properties for how nav buttons should behave when held
+    NAV_BUTTON_REPEAT_DELAY = 600
+    NAV_BUTTON_REPEAT = 30
 
     # properties for how much class fields should update when state is updated and frames per second
     ZOOM_AMT = array([[1.1], [1.005]])  # planet amt, star amt
@@ -77,6 +82,7 @@ class Canvas(CTkCanvas):
         super().__init__(*args, **kwargs)
         self.canvas_dimensions = array([self.winfo_width(), self.winfo_height()])
         self.after_update_planets = self.after(int(1000 / Canvas.FPS), self.update_planets)
+        self.after_nav = None
 
         # sets event fields
         self.space_position = array([[0.0, 0.0], [0.0, 0.0]])  # planet pos, star pos
@@ -104,26 +110,34 @@ class Canvas(CTkCanvas):
         self.create_button(width - 40, height - 80, width - 3, height - 43, "→", "navigation")
         self.create_button(width - 40, height - 120, width - 3, height - 83, "⊕", "navigation", (0, -2))
         self.create_button(width - 40, height - 40, width - 3, height - 3, "⊖", "navigation", (0, -2))
-        self.create_button(width - 80, height - 80, width - 43, height - 43, "🏠", "navigation")
         self.create_button(width - 120, height - 120, width - 83, height - 83, "🐇", "navigation")
         self.create_button(width - 120, height - 40, width - 83, height - 3, "🐢", "navigation")
+        self.create_button(width - 80, height - 80, width - 43, height - 43, "🏠", "navigation")
 
-        # sets event handlers to navigation buttons
-        self.tag_bind("↑", "<Button-1>", lambda e: self.position_event(array([0, -Canvas.POS_AMT])), add="+")
-        self.tag_bind("↓", "<Button-1>", lambda e: self.position_event(array([0, Canvas.POS_AMT])), add="+")
-        self.tag_bind("←", "<Button-1>", lambda e: self.position_event(array([-Canvas.POS_AMT, 0])), add="+")
-        self.tag_bind("→", "<Button-1>", lambda e: self.position_event(array([Canvas.POS_AMT, 0])), add="+")
-        self.tag_bind("⊕", "<Button-1>", lambda e: self.zoom_event(Canvas.ZOOM_AMT), add="+")
-        self.tag_bind("⊖", "<Button-1>", lambda e: self.zoom_event(1 / Canvas.ZOOM_AMT), add="+")
+        # sets event handlers for clicking navigation buttons
+        self.tag_repeat_action("↑", lambda: self.position_event(array([0, -Canvas.POS_AMT])))
+        self.tag_repeat_action("↓", lambda: self.position_event(array([0, Canvas.POS_AMT])))
+        self.tag_repeat_action("←", lambda: self.position_event(array([-Canvas.POS_AMT, 0])))
+        self.tag_repeat_action("→", lambda: self.position_event(array([Canvas.POS_AMT, 0])))
+        self.tag_repeat_action("⊕", lambda: self.zoom_event(Canvas.ZOOM_AMT))
+        self.tag_repeat_action("⊖", lambda: self.zoom_event(1 / Canvas.ZOOM_AMT))
+        self.tag_repeat_action("🐇", lambda: setattr(self, "speed", self.speed * Canvas.SPEED_FACTOR))
+        self.tag_repeat_action("🐢", lambda: setattr(self, "speed", self.speed / Canvas.SPEED_FACTOR))
+        self.tag_bind("🏠", "<Button-1>", lambda e: self.button_click_animation("🏠"))
         self.tag_bind("🏠", "<Button-1>", lambda e: self.set_focus(self.planet_manager.get_sun(), True), add="+")
-        self.tag_bind("🐇", "<Button-1>", lambda e: setattr(self, "speed", self.speed * Canvas.SPEED_FACTOR), add="+")
-        self.tag_bind("🐢", "<Button-1>", lambda e: setattr(self, "speed", self.speed / Canvas.SPEED_FACTOR), add="+")
+
+        # sets event handlers for releasing navigation buttons
+        for tag in ("↑", "↓", "←", "→", "⊕", "⊖", "🐇", "🐢"):
+            self.tag_bind(tag, "<ButtonRelease-1>", lambda e: self.after_cancel(self.after_nav))
+            self.tag_bind(tag, "<ButtonRelease-1>", lambda e: setattr(self, "after_nav", None), add="+")
 
         # creates buttons to close and reopen settings menus and binds their functions
         planet_settings = self.create_button(width - 25, 10, width + 17, 47, ">", "planet_settings", (-9, -2))
         AI_settings = self.create_button(10, height - 20, 47, height + 17, "carrot", "AI_settings")
         self.itemconfig(AI_settings, angle=180)
         self.move(AI_settings, 0, -10)
+        self.tag_bind(">", "<Button-1>", lambda e: self.button_click_animation(">"))
+        self.tag_bind("carrot", "<Button-1>", lambda e: self.button_click_animation("carrot"))
         self.tag_bind(">", "<Button-1>", lambda e: self.menu_visibility_button(planet_settings), add="+")
         self.tag_bind("carrot", "<Button-1>", lambda e: self.menu_visibility_button(AI_settings), add="+")
 
@@ -430,8 +444,8 @@ class Canvas(CTkCanvas):
         :param unfocus: determines if the position event should set the unfocus the selected planet
         """
 
-        # check if the event happened within the canvas bounds
-        if event and event.widget != self:
+        # check if the event happened outside the canvas bounds or happened over a navigation button
+        if event and (event.widget != self or "buttons" in self.gettags(event.widget.find_withtag("current"))):
             return
 
         # handles click and drag events
@@ -479,8 +493,6 @@ class Canvas(CTkCanvas):
         creates a button on the canvas with the given parameters
             --> rectangle with rounded edges
             --> text in the center
-            --> binds click_button to click event to update button appearance when clicked
-            --> note: functionality set with tag_bind function with add="+" arg
             --> uses class properties to determine appearance of button
 
         :param x1: the x coordinate of the top left corner of the rectangle
@@ -528,10 +540,9 @@ class Canvas(CTkCanvas):
         # draws text and sets click event handler
         char = text if text != "carrot" else "^"
         text_id = self.create_text(center_x, center_y - 3, text=char, font=("Arial", 20), fill="black", tags=edge_tag)
-        self.tag_bind(text, "<Button-1>", lambda e: self.handle_button_click(text))
         return text_id
 
-    def handle_button_click(self, tag: str):
+    def button_click_animation(self, tag: str, hold: bool = False):
         """
         updates attributes of the navigation button so that it looks like it was clicked
             --> changes the color if the button for 100 ms
@@ -539,16 +550,59 @@ class Canvas(CTkCanvas):
             --> uses class properties to determine fill and offset values
 
         :param tag: a string representing the tag of the navigation button that was clicked
+        :param hold: determines if the button is being held
+
+        :return the queued actions to reset the button state (they will be canceled if the button is held)
         """
 
-        # updates the button color
-        self.itemconfig("center" + tag, **Canvas.NAV_BUTTON_CLICKED)
-        self.after(Canvas.NAV_BUTTON_CLICKED_TIME, lambda: self.itemconfig(f"center{tag}", **Canvas.NAV_BUTTON_FILL))
+        # updates the button to the clicked state
+        if not hold:
+            self.itemconfig("center" + tag, **Canvas.NAV_BUTTON_CLICKED)
+            self.move(tag, Canvas.NAV_BUTTON_CLICK_OFFSET, Canvas.NAV_BUTTON_CLICK_OFFSET)
+            self.update_idletasks()
 
-        # shifts button position
-        self.move(tag, Canvas.NAV_BUTTON_CLICKED_OFFSET, Canvas.NAV_BUTTON_CLICKED_OFFSET)
-        self.after(Canvas.NAV_BUTTON_CLICKED_TIME, lambda: self.move(tag, *([-Canvas.NAV_BUTTON_CLICKED_OFFSET] * 2)))
-        self.update_idletasks()
+        # queues actions to release the button
+        return (
+            self.after(Canvas.NAV_BUTTON_CLICK_TIME, lambda: self.itemconfig(f"center{tag}", **Canvas.NAV_BUTTON_FILL)),
+            self.after(Canvas.NAV_BUTTON_CLICK_TIME, lambda: self.move(tag, *([-Canvas.NAV_BUTTON_CLICK_OFFSET] * 2)))
+        )
+
+    def tag_repeat_action(self, tag: str, function):
+        """
+        generates functions that will be called repeatedly with some delay when a nav button is clicked until the button
+        is released
+
+        :param tag: the tag for the nav button
+        :param function: the function to call while the button is clicked
+        """
+
+        def repeat(after_click: tuple = ()):
+            """
+            the function for repeating the given action when the button is clicked
+                --> button will stay held down
+                --> action will occur at faster rate
+
+            :param after_click: the actions for setting the button to the non-clicked state (will be canceled repeatedly
+                until user has released the button)
+            """
+
+            [self.after_cancel(event) for event in after_click]
+            after_click = self.button_click_animation(tag, hold=after_click)
+            function()
+            self.after_nav = self.after(Canvas.NAV_BUTTON_REPEAT, lambda: repeat(after_click))
+
+        def first_click():
+            """
+            the function for when the button is first clicked
+                --> button will play click animation
+                --> action will repeat after a certain delay
+            """
+
+            self.button_click_animation(tag)
+            function()
+            self.after_nav = self.after(Canvas.NAV_BUTTON_REPEAT_DELAY, repeat)
+
+        self.tag_bind(tag, "<Button-1>", lambda e: first_click())
 
     def menu_visibility_button(self, text_id: int):
         """
