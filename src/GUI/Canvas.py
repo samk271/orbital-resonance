@@ -1,11 +1,12 @@
 from customtkinter import CTkCanvas
 from random import uniform, seed
-from numpy import array, floor, ceil, sort, round, vstack
-from Physics import PlanetManager
+from numpy import array, floor, ceil, sort, vstack
+from Physics import *
 from time import perf_counter
 from uuid import uuid1
 
 
+# noinspection PyTypeChecker
 class Canvas(CTkCanvas):
     """
     The canvas that will be used to display the solar system in the prototype with 3 sections of functions
@@ -19,7 +20,6 @@ class Canvas(CTkCanvas):
         --> navigation button properties
         --> state properties
         --> star generation properties
-    todo smooth transition to new zoom/position when focusing/home button?
     todo update planet settings when a planet is selected
     todo draw planet orbit paths?
     todo change nav buttons so they can be held
@@ -37,8 +37,11 @@ class Canvas(CTkCanvas):
     ZOOM_AMT = array([[1.1], [1.005]])  # planet amt, star amt
     POS_AMT = 10
     STAR_POS_FACTOR = .095
-    FPS = 60
     SPEED_FACTOR = 1.1
+
+    # properties for fps and frames to complete focus
+    FPS = 60
+    FOCUS_FRAMES = 30
 
     # properties for how stars should generate
     CHUNK_SIZE = 100
@@ -71,16 +74,26 @@ class Canvas(CTkCanvas):
         else:
             raise AttributeError("Canvas class must have a reference to the planet and AI settings")
 
-        # initializes superclass and fields
+        # initializes superclass and canvas fields
         super().__init__(*args, **kwargs)
         self.canvas_dimensions = array([self.winfo_width(), self.winfo_height()])
-        self.drag_event = array([0.0, 0.0])
+        self.after_update_planets = self.after(int(1000 / Canvas.FPS), self.update_planets)
+
+        # sets event fields
         self.space_position = array([[0.0, 0.0], [0.0, 0.0]])  # planet pos, star pos
         self.zoom = array([[1.0], [1.0]])  # planet amt, star amt
-        self.focused_planet = self.planet_manager.get_sun()
-        self.after_update_planets = self.after(int(1000 / Canvas.FPS), self.update_planets)
-        self.dt = perf_counter()
+        self.drag_event = array([0.0, 0.0])
+
+        # sets speed fields
         self.speed = 1
+        self.dt = perf_counter()
+
+        # sets focus fields
+        self.focused_planet = self.planet_manager.get_sun()
+        self.focus_frames = 0
+        self.focus_step = {"position": array([0, 0]), "zoom": array([[1], [1]])}
+
+        # sets star render fields
         self.star_seed = uuid1()
         self.star_render_range = array([[0, 0], [0, 0]])
 
@@ -103,7 +116,7 @@ class Canvas(CTkCanvas):
         self.tag_bind("→", "<Button-1>", lambda e: self.position_event(array([Canvas.POS_AMT, 0])), add="+")
         self.tag_bind("⊕", "<Button-1>", lambda e: self.zoom_event(Canvas.ZOOM_AMT), add="+")
         self.tag_bind("⊖", "<Button-1>", lambda e: self.zoom_event(1 / Canvas.ZOOM_AMT), add="+")
-        self.tag_bind("🏠", "<Button-1>", lambda e: self.home_button(), add="+")
+        self.tag_bind("🏠", "<Button-1>", lambda e: self.set_focus(self.planet_manager.get_sun(), True), add="+")
         self.tag_bind("🐇", "<Button-1>", lambda e: setattr(self, "speed", self.speed * Canvas.SPEED_FACTOR), add="+")
         self.tag_bind("🐢", "<Button-1>", lambda e: setattr(self, "speed", self.speed / Canvas.SPEED_FACTOR), add="+")
 
@@ -160,18 +173,47 @@ class Canvas(CTkCanvas):
 
     # ================================================ PLANET FUNCTIONS ================================================
 
-    def focus_planet(self):
+    def set_focus(self, planet: Planet, zoom: bool = False):
+        """
+        sets the focus to a given planet:
+            --> updates focused planet
+            --> updates focus frames
+            --> updates focus steps
+
+        :param planet: the planet to focus
+        :param zoom: determines if the zoom should be set to default as well as position when focusing
+        """
+
+        self.focused_planet = planet
+        self.focus_frames = 0
+        pos_diff = (self.focused_planet.position - self.canvas_to_space(self.canvas_dimensions / 2)[0])
+        self.focus_step["position"] = pos_diff / Canvas.FOCUS_FRAMES
+        self.focus_step["zoom"] = (1 / self.zoom) ** (1 / Canvas.FOCUS_FRAMES) if zoom else array([[1], [1]])
+        self.update_planets()
+
+    def maintain_focus(self, old_space_pos: array):
         """
         ensures the focused planet remains in the center of the screen
+
+        :param old_space_pos: the old position of the focused planet, used for smooth focus
         """
 
         # handles when no planet is focused
         if not self.focused_planet:
             return
 
-        # adjusts screen to follow the planet
-        amount = round(self.space_to_canvas(self.focused_planet.position)[0] - (self.canvas_dimensions / 2))
-        self.position_event(amount, unfocus=False)
+        # maintains focus after smooth focus is complete
+        space_pos_diff = self.focused_planet.position - old_space_pos
+        if self.focus_frames >= Canvas.FOCUS_FRAMES:
+            self.position_event(space_pos_diff * self.zoom[0], unfocus=False)
+
+        # handles smooth focus
+        else:
+            self.zoom_event(self.focus_step["zoom"], render=False)
+            self.position_event((self.focus_step["position"] + space_pos_diff) * self.zoom[0], unfocus=False)
+            self.focus_frames += 1
+
+        self.draw_stars()
 
     def update_planets(self):
         """
@@ -185,11 +227,12 @@ class Canvas(CTkCanvas):
         self.after_cancel(self.after_update_planets)
         self.after_update_planets = self.after(int(1000 / Canvas.FPS), self.update_planets)
 
-        # updates physics
+        # updates physics and focus
         dt = perf_counter()
+        old_pos = self.focused_planet.position.copy() if self.focused_planet else None
         self.planet_manager.update_planet_physics((dt - self.dt) * self.speed)
         self.dt = dt
-        self.focus_planet()
+        self.maintain_focus(old_pos)
 
         # deletes planets in delete buffer
         for planet in self.planet_manager.get_removed_buffer():
@@ -200,8 +243,7 @@ class Canvas(CTkCanvas):
         for planet in added_buffer:
             kwargs = {"tags": "planets", "fill": planet.color}
             planet.tag = self.create_oval(0, 0, *([-planet.radius * 2 * self.zoom[0, 0]] * 2), **kwargs)
-            self.tag_bind(planet.tag, "<Button-1>", lambda e, p=planet: setattr(self, "focused_planet", p))
-            self.tag_bind(planet.tag, "<Button-1>", lambda e: self.update_planets(), add="+")
+            self.tag_bind(planet.tag, "<Button-1>", lambda e, p=planet: self.set_focus(p))
 
         # updates position of all planets
         for planet in self.planet_manager.get_planets():
@@ -210,7 +252,7 @@ class Canvas(CTkCanvas):
             # moves planet when it is rendered
             if bbox:
                 bbox = array([bbox[2] - bbox[0], bbox[3] - bbox[1]]) / 2
-                pos = round(self.space_to_canvas(planet.position)[0] - bbox)
+                pos = floor(self.space_to_canvas(planet.position)[0] - bbox)
                 self.moveto(planet.tag, pos[0], pos[1])
 
             # resets bbox if it is removed after large zoom/position events (can happen when home button is clicked)
@@ -335,7 +377,7 @@ class Canvas(CTkCanvas):
 
     # ================================================= EVENT HANDLERS =================================================
 
-    def zoom_event(self, amount: array, event=None):
+    def zoom_event(self, amount: array, event=None, render: bool = True):
         """
         updates the position and zoom level so that the screen zooms in where the user performed the zoom action
             --> updates the zoom amount
@@ -349,6 +391,7 @@ class Canvas(CTkCanvas):
 
         :param amount: how much the screen should zoom
         :param event: the keyboard/mouse event that triggered the state update
+        :param render: determines if the event should re-render stars and planets
         """
 
         # check if the event happened within the canvas bounds
@@ -369,8 +412,11 @@ class Canvas(CTkCanvas):
         # handles star/planet rendering
         self.scale("planets", mouse[0], mouse[1], amount[0, 0], amount[0, 0])
         self.scale("stars", mouse[0], mouse[1], amount[1, 0], amount[1, 0])
-        self.draw_stars()
-        self.update_planets()
+
+        # ensures infinite recursion does not occur when called from update planets
+        if render:
+            self.draw_stars() if not self.focused_planet else None
+            self.update_planets()
 
     def position_event(self, amount: array, event=None, unfocus: bool = True):
         """
@@ -397,9 +443,11 @@ class Canvas(CTkCanvas):
         amount = vstack((amount, amount * Canvas.STAR_POS_FACTOR))
         self.space_position += (amount / self.zoom)
         self.move("stars", *-amount[1])
-        self.draw_stars()
+
+        # ensures infinite recursion does not occur when called from update planets
         if unfocus:
             self.focused_planet = None
+            self.draw_stars() if not self.focused_planet else None
             self.update_planets()
 
     def resize_event(self, size: array):
@@ -422,6 +470,7 @@ class Canvas(CTkCanvas):
         self.move("planet_settings", difference[0], 0)
         self.move("AI_settings", 0, difference[1])
         self.position_event(-difference / 2, unfocus=False)
+        self.draw_stars() if not self.focused_planet else None
         self.update_planets()
 
     # ==================================================== BUTTONS =====================================================
@@ -480,10 +529,10 @@ class Canvas(CTkCanvas):
         # draws text and sets click event handler
         char = text if text != "carrot" else "^"
         text_id = self.create_text(center_x, center_y - 3, text=char, font=("Arial", 20), fill="black", tags=edge_tag)
-        self.tag_bind(text, "<Button-1>", lambda e: self.click_button(text))
+        self.tag_bind(text, "<Button-1>", lambda e: self.handle_button_click(text))
         return text_id
 
-    def click_button(self, tag: str):
+    def handle_button_click(self, tag: str):
         """
         updates attributes of the navigation button so that it looks like it was clicked
             --> changes the color if the button for 100 ms
@@ -501,29 +550,6 @@ class Canvas(CTkCanvas):
         self.move(tag, Canvas.NAV_BUTTON_CLICKED_OFFSET, Canvas.NAV_BUTTON_CLICKED_OFFSET)
         self.after(Canvas.NAV_BUTTON_CLICKED_TIME, lambda: self.move(tag, *([-Canvas.NAV_BUTTON_CLICKED_OFFSET] * 2)))
         self.update_idletasks()
-
-    def home_button(self):
-        """
-        handles when the home button is clicked
-            --> resets zoom value
-            --> resets position value
-            --> deletes and redraws all stars
-
-        ** note resetting zoom and position can cause large zoom/position events which can cause canvas elements to
-            be un-rendered unintentionally. This is why stars and planets need to be redrawn. **
-        """
-
-        # resets zoom and position
-        self.zoom_event(1 / self.zoom)
-        self.position_event(-self.space_position[0])
-        self.space_position = array([[0.0, 0.0], [0.0, 0.0]])
-        self.focused_planet = self.planet_manager.get_sun()
-
-        # re-renders stars and planets
-        self.delete("stars")
-        self.star_render_range = array([[0, 0], [0, 0]])
-        self.draw_stars()
-        self.update_planets()
 
     def menu_visibility_button(self, text_id: int):
         """

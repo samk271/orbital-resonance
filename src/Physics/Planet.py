@@ -22,7 +22,7 @@ class Planet:
 
         self.period = period
         self.orbital_radius = (period**(2/3)) * 500
-        self.position = array([0, -round(self.orbital_radius)])
+        self.position = array([0.0, -round(self.orbital_radius)])
         self.radius = radius
         self.color = color
         self.tag = None
