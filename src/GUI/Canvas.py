@@ -22,6 +22,7 @@ class Canvas(CTkCanvas):
         --> star generation properties
     todo update planet settings when a planet is selected
     todo draw planet orbit paths?
+    todo add new, save as, save, load, undo and redo buttons
     """
 
     # properties for how navigation buttons should look and function

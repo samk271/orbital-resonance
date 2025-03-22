@@ -1,8 +1,12 @@
+from customtkinter import CTk
 from Physics.Planet import Planet
 from numpy import array
 from math import cos, sin, pi, atan2
 from pickle import dumps, loads
 from zlib import compress, decompress
+from tkinter.filedialog import asksaveasfilename, askopenfilename
+from pathlib import Path
+from re import findall
 
 
 class PlanetManager:
@@ -12,6 +16,30 @@ class PlanetManager:
         --> can destroy planets
         --> can get the list of plants
     """
+
+    # options for save as file explorer
+    SAVE_OPTIONS = {
+        "initialdir": Path("saves"),
+        "initialfile": "save.orbres",
+        "defaultextension": ".orbres",
+        "filetypes": [
+            ("Orbital Resonance Files", "*.orbres")
+        ],
+        "title": "Save As",
+        "parent": CTk(),
+        "confirmoverwrite": True
+    }
+    
+    # options for load file explorer
+    LOAD_OPTIONS = {
+        "initialdir": Path("saves"),
+        "title": "Select a File",
+        "filetypes": [
+            ("Orbital Resonance Files", "*.orbres")
+        ],
+        "defaultextension": ".orbres",
+        "parent": SAVE_OPTIONS["parent"]
+    }
 
     def __init__(self, planets: list[Planet] = None):
         """
@@ -33,7 +61,19 @@ class PlanetManager:
         :param path: the file path to save the file to, if given functions like save as, otherwise functions like save
         """
 
-        # do nothing if no save path is found  todo display ask user where they want to save
+        # ask user for save path if no save path is found
+        if (not path) and (not self.save_path):
+            while (PlanetManager.SAVE_OPTIONS["initialdir"] / PlanetManager.SAVE_OPTIONS["initialfile"]).is_file():
+
+                # ensures default file name is unique
+                file_num = findall(r'\d+', PlanetManager.SAVE_OPTIONS["initialfile"])
+                file_num = int(file_num[0]) + 1 if len(file_num) == 1 else 1
+                PlanetManager.SAVE_OPTIONS["initialfile"] = f"save ({file_num}).orbres"
+
+            # opens file explorer
+            path = asksaveasfilename(**PlanetManager.SAVE_OPTIONS)
+
+        # exits if user did not pick a save path
         if (not path) and (not self.save_path):
             return
 
@@ -45,15 +85,24 @@ class PlanetManager:
             file.write(data)
 
     @staticmethod
-    def load(path: str):
-        """ todo return new manager if file doesnt exist, make file menu as well
+    def load(path: str = None):
+        """
         decompresses and loads a saved planet manger class
 
-        :param path: the file path to the saved planet manager class
+        :param path: the file path to the saved planet manager class, if none is given file explorer will open
 
         :return: an instance of the planet manager class that was loaded from the file
         """
 
+        # asks user what file they want to load when no path is given
+        if not path:
+            path = askopenfilename(**PlanetManager.LOAD_OPTIONS)
+
+        # does nothing if user did not pick a load path
+        if not path:
+            return
+
+        # loads the file
         with open(path, "rb") as file:
             planet_manager = loads(decompress(file.read()))
         planet_manager.save_path = path
