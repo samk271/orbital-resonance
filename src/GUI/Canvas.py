@@ -78,7 +78,6 @@ class Canvas(CTkCanvas):
         # initializes superclass and canvas fields
         super().__init__(*args, **kwargs)
         self.canvas_size = array([self.winfo_width(), self.winfo_height()])
-        self.initial_canvas_size = None  # initialized after first resize
         self.initialized = False
         self.after_update_planets = self.after(int(1000 / Canvas.FPS), self.update_planets)
         self.after_nav = self.after(0, lambda: None)
@@ -204,7 +203,7 @@ class Canvas(CTkCanvas):
         self.focus_step["position"] = pos_diff / frames
 
         # gets required zoom updates
-        end_planet_zoom = 1 / max((planet.radius / self.initial_canvas_size) * (Canvas.DEFAULT_ZOOM_PADDING + 1) * 2)
+        end_planet_zoom = 1 / max((planet.radius / self.canvas_size) * (Canvas.DEFAULT_ZOOM_PADDING + 1) * 2)
         end_zoom = array([[end_planet_zoom], [Canvas.ZOOM_AMT[1, 0]]])
         self.focus_step["zoom"] = (end_zoom / self.zoom) ** (1 / frames) if zoom else array([[1], [1]])
         self.update_planets()
@@ -496,7 +495,6 @@ class Canvas(CTkCanvas):
         # handles initial resize event
         if not self.initialized:
             self.initialized = True
-            self.initial_canvas_size = self.canvas_size.copy()
             self.set_focus(self.planet_manager.get_sun(), True, False)
 
     # ==================================================== BUTTONS =====================================================

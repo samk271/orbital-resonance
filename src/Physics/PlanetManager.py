@@ -1,10 +1,8 @@
 from Physics.Planet import Planet
 from numpy import array
 from math import cos, sin, pi, atan2
-import pygame
-
-# initializes pygame
-pygame.mixer.init()
+from pickle import dumps, loads
+from zlib import compress, decompress
 
 
 class PlanetManager:
@@ -27,6 +25,32 @@ class PlanetManager:
         self.removed_buffer = []
         self.added_buffer = self.planets.copy()
 
+    def save(self, path: str):
+        """
+        compresses and saves the planet manager class to a file
+
+        :param path: the file path to save the file to
+        """
+
+        self.added_buffer = self.planets.copy()
+        data = compress(dumps(self))
+        with open(path, "wb") as file:
+            file.write(data)
+
+    @staticmethod
+    def load(path: str):
+        """ todo return new manager if file doesnt exist, make file menu as well
+        decompresses and loads a saved planet manger class
+
+        :param path: the file path to the saved planet manager class
+
+        :return: an instance of the planet manager class that was loaded from the file
+        """
+
+        with open(path, "rb") as file:
+            planet_manager = loads(decompress(file.read()))
+        return planet_manager
+
     def get_sun(self):
         """
         :return: the sun, the first element of the planet list
@@ -40,14 +64,6 @@ class PlanetManager:
         """
 
         return self.planets
-
-    def reload(self):
-        """
-        adds all of the planets to the added buffer so they can be redrawn to the screen, will need to be called when a
-        save file is loaded
-        """
-
-        self.added_buffer = self.planets.copy()
 
     def add_planet(self, planet: Planet):
         """
