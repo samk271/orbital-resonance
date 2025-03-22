@@ -24,17 +24,24 @@ class PlanetManager:
         self.planets = planets if planets else [Planet(0, 50, "yellow")]  # todo adjust default sun settings when min/max values are determined
         self.removed_buffer = []
         self.added_buffer = self.planets.copy()
+        self.save_path = None
 
-    def save(self, path: str):
+    def save(self, path: str = None):
         """
         compresses and saves the planet manager class to a file
 
-        :param path: the file path to save the file to
+        :param path: the file path to save the file to, if given functions like save as, otherwise functions like save
         """
 
-        self.added_buffer = self.planets.copy()
-        data = compress(dumps(self))
-        with open(path, "wb") as file:
+        # do nothing if no save path is found  todo display ask user where they want to save
+        if (not path) and (not self.save_path):
+            return
+
+        # saves data and updates save path
+        self.save_path = path if path else self.save_path
+        copy = PlanetManager(self.planets)
+        data = compress(dumps(copy))
+        with open(self.save_path, "wb") as file:
             file.write(data)
 
     @staticmethod
@@ -49,6 +56,7 @@ class PlanetManager:
 
         with open(path, "rb") as file:
             planet_manager = loads(decompress(file.read()))
+        planet_manager.save_path = path
         return planet_manager
 
     def get_sun(self):

@@ -62,18 +62,13 @@ class Canvas(CTkCanvas):
         :param kwargs: the key word arguments to be passed to the super class
         """
 
-        # gets the planet manager from the kwargs
-        if "planet_manager" in kwargs:
+        # gets kwargs
+        if "planet_settings" and "AI_settings" and "planet_manager" in kwargs:
             self.planet_manager = kwargs.pop("planet_manager")
-        else:
-            self.planet_manager = PlanetManager()
-
-        # gets the other settings menus from the kwargs
-        if "planet_settings" and "AI_settings" in kwargs:
             self.menu_visibility = {"planet": {"menu": kwargs.pop("planet_settings"), "visible": True},
                                     "AI": {"menu": kwargs.pop("AI_settings"), "visible": True}}
         else:
-            raise AttributeError("Canvas class must have a reference to the planet and AI settings")
+            raise AttributeError("kwargs missing planet_settings, AI_settings or planet_manager")
 
         # initializes superclass and canvas fields
         super().__init__(*args, **kwargs)

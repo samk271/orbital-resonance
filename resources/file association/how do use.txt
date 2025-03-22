@@ -1,0 +1,22 @@
+to set up file association make sure you have the virtual enviornment in the correct place with the following file structure:
+
+C:\Project
+│
+├── orbital-resonance
+│   ├── resources
+│   │   └── file association
+│   │       ├── orbital resonance.bat
+│   │       └── icon.ico
+│   ├── src
+│   │   └── main.py
+│
+├── venv
+│   └── Scripts
+│       └── activate.bat
+
+then right click on a .orbres file and select the following:
+	Open with... -> More Apps -> Look for another app on this PC
+make sure you check "Always use this app to open .orbres files" before clicking "Look for another app on this PC"
+then navigate to the "orbital resonance.bat" file and select it
+now every time you open a .orbres file, the program will automatically start with the selected file loaded
+** note: this only works for windows **
