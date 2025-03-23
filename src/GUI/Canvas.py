@@ -1,4 +1,5 @@
 from customtkinter import CTkCanvas
+from tkinter.messagebox import askokcancel
 from random import uniform, seed
 from numpy import array, floor, ceil, sort, vstack
 from numpy.linalg import norm
@@ -22,7 +23,8 @@ class Canvas(CTkCanvas):
         --> star generation properties
     todo update planet settings when a planet is selected
     todo draw planet orbit paths?
-    todo undo/redo functionality + warning about losing save
+    todo undo/redo functionality
+    todo unsaved work detection
     todo add tooltips when hovering over buttons
     """
 
@@ -141,16 +143,16 @@ class Canvas(CTkCanvas):
         self.create_button((168, 3, 201, 36), "↪", "File", (0, -5, 1.3))
 
         # sets event handlers for clicking file menu buttons
-        self.tag_bind("🆕", "<Button-1>", lambda e: self.file_buttons("🆕"))
+        self.tag_bind("🆕", "<Button-1>", lambda e: self.after(0, lambda: self.file_buttons("🆕")))
         self.tag_bind("📂", "<Button-1>", lambda e: self.after(0, lambda: self.file_buttons("📂")))
-        self.tag_bind("📑", "<Button-1>", lambda e: self.file_buttons("📑"))
-        self.tag_repeat_action("💾", lambda: self.planet_manager.save())
+        self.tag_bind("📑", "<Button-1>", lambda e: self.after(0, lambda: self.file_buttons("📑")))
+        self.tag_repeat_action("💾", lambda: self.after(0, lambda: self.planet_manager.save()))
         self.tag_repeat_action("↩", lambda: None)
         self.tag_repeat_action("↪", lambda: None)
 
         # binds hotkeys to file functions
         self.bind("<Control-n>", lambda e: self.file_buttons("🆕", e))
-        self.bind("<Control-o>", lambda e: self.after(0, lambda: self.file_buttons("📂", e)))
+        self.bind("<Control-o>", lambda e: self.file_buttons("📂", e))
         self.bind("<Control-Shift-S>", lambda e: self.file_buttons("📑", e))
         self.bind("<Control-s>", lambda e: self.planet_manager.save())
         self.bind("<Control-z>", lambda e: None)
@@ -543,27 +545,27 @@ class Canvas(CTkCanvas):
         edge_tag = (text, "buttons", tag)
 
         # draws the rounded corners
-        self.create_oval(x1, y1, x1 + radius * 2, y1 + radius * 2, **Canvas.NAV_BUTTON_FILL, tags=center_tag),
-        self.create_oval(x2 - radius * 2, y1, x2, y1 + radius * 2, **Canvas.NAV_BUTTON_FILL, tags=center_tag),
-        self.create_oval(x1, y2 - radius * 2, x1 + radius * 2, y2, **Canvas.NAV_BUTTON_FILL, tags=center_tag),
-        self.create_oval(x2 - radius * 2, y2 - radius * 2, x2, y2, **Canvas.NAV_BUTTON_FILL, tags=center_tag),
+        self.create_oval(x1, y1, x1 + radius * 2, y1 + radius * 2, **Canvas.NAV_BUTTON_FILL, tags=center_tag)
+        self.create_oval(x2 - radius * 2, y1, x2, y1 + radius * 2, **Canvas.NAV_BUTTON_FILL, tags=center_tag)
+        self.create_oval(x1, y2 - radius * 2, x1 + radius * 2, y2, **Canvas.NAV_BUTTON_FILL, tags=center_tag)
+        self.create_oval(x2 - radius * 2, y2 - radius * 2, x2, y2, **Canvas.NAV_BUTTON_FILL, tags=center_tag)
 
         # draws the remainder of the rounded rectangle
-        self.create_rectangle(x1 + radius, y1, x2 - radius, y2, **Canvas.NAV_BUTTON_FILL, tags=center_tag),
-        self.create_rectangle(x1, y1 + radius, x1 + radius * 2, y2 - radius, **Canvas.NAV_BUTTON_FILL, tags=center_tag),
-        self.create_rectangle(x2 - radius * 2, y1 + radius, x2, y2 - radius, **Canvas.NAV_BUTTON_FILL, tags=center_tag),
+        self.create_rectangle(x1 + radius, y1, x2 - radius, y2, **Canvas.NAV_BUTTON_FILL, tags=center_tag)
+        self.create_rectangle(x1, y1 + radius, x1 + radius * 2, y2 - radius, **Canvas.NAV_BUTTON_FILL, tags=center_tag)
+        self.create_rectangle(x2 - radius * 2, y1 + radius, x2, y2 - radius, **Canvas.NAV_BUTTON_FILL, tags=center_tag)
 
         # draws rounded borders
-        self.create_arc(x1, y1, x1 + radius * 2, y1 + radius * 2, start=90, **kwargs, tags=edge_tag),
-        self.create_arc(x2 - radius * 2, y1, x2, y1 + radius * 2, start=0, **kwargs, tags=edge_tag),
-        self.create_arc(x1, y2 - radius * 2, x1 + radius * 2, y2, start=180, **kwargs, tags=edge_tag),
-        self.create_arc(x2 - radius * 2, y2 - radius * 2, x2, y2, start=270, **kwargs, tags=edge_tag),
+        self.create_arc(x1, y1, x1 + radius * 2, y1 + radius * 2, start=90, **kwargs, tags=edge_tag)
+        self.create_arc(x2 - radius * 2, y1, x2, y1 + radius * 2, start=0, **kwargs, tags=edge_tag)
+        self.create_arc(x1, y2 - radius * 2, x1 + radius * 2, y2, start=180, **kwargs, tags=edge_tag)
+        self.create_arc(x2 - radius * 2, y2 - radius * 2, x2, y2, start=270, **kwargs, tags=edge_tag)
 
         # draws straight borders
-        self.create_line(x1 + radius, y1, x2 - radius, y1, **Canvas.NAV_BUTTON_BORDER, tags=edge_tag),
-        self.create_line(x1 + radius, y2, x2 - radius, y2, **Canvas.NAV_BUTTON_BORDER, tags=edge_tag),
-        self.create_line(x1, y1 + radius, x1, y2 - radius, **Canvas.NAV_BUTTON_BORDER, tags=edge_tag),
-        self.create_line(x2, y1 + radius, x2, y2 - radius, **Canvas.NAV_BUTTON_BORDER, tags=edge_tag),
+        self.create_line(x1 + radius, y1, x2 - radius, y1, **Canvas.NAV_BUTTON_BORDER, tags=edge_tag)
+        self.create_line(x1 + radius, y2, x2 - radius, y2, **Canvas.NAV_BUTTON_BORDER, tags=edge_tag)
+        self.create_line(x1, y1 + radius, x1, y2 - radius, **Canvas.NAV_BUTTON_BORDER, tags=edge_tag)
+        self.create_line(x2, y1 + radius, x2, y2 - radius, **Canvas.NAV_BUTTON_BORDER, tags=edge_tag)
 
         # draws text and sets click event handler
         char = text if text != "carrot" else "^"
@@ -670,14 +672,19 @@ class Canvas(CTkCanvas):
 
     def file_buttons(self, tag: str, event=None):
         """
-        handles when the file buttons are clicked: new, load, save, save as, undo and redo
+        handles when the file buttons are clicked: new, load, save as/save, undo and redo
 
         :param tag: the tag of the button that was pressed
         :param event: the event that triggered the function
         """
 
-        # changes file manager if new or load are clicked
+        # warns the user they might lose progress if they perform the action without saving
         self.button_click_animation(tag) if not event else None
+        args = "Save Project", "You have unsaved changes that will be lost without saving. Continue?"
+        if tag in ("🆕", "📂", "exit") and not askokcancel(*args):
+            return "cancel"
+
+        # changes file manager if new or load are clicked
         manager = PlanetManager() if tag == "🆕" else None
         if tag == "📂":
             manager = PlanetManager.load()
