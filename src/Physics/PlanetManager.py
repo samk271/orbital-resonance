@@ -85,7 +85,7 @@ class PlanetManager:
             file.write(data)
 
     @staticmethod
-    def load(path: str = None):
+    def load(path: str = None) -> object:
         """
         decompresses and loads a saved planet manger class
 
@@ -108,19 +108,12 @@ class PlanetManager:
         planet_manager.save_path = path
         return planet_manager
 
-    def get_sun(self):
+    def get_sun(self) -> Planet:
         """
         :return: the sun, the first element of the planet list
         """
 
         return self.planets[0]
-
-    def get_planets(self):
-        """
-        :return: the list of planets that exist within the program including the sun
-        """
-
-        return self.planets
 
     def add_planet(self, planet: Planet):
         """
@@ -150,7 +143,7 @@ class PlanetManager:
         self.planets.remove(planet)
         self.removed_buffer.append(planet)
 
-    def get_added_buffer(self):
+    def get_added_buffer(self) -> list[Planet]:
         """
         gets the list of planets that have been queued to add to the UI and clears the queue
 
@@ -161,7 +154,7 @@ class PlanetManager:
         self.added_buffer.clear()
         return buffer
 
-    def get_removed_buffer(self):
+    def get_removed_buffer(self) -> list[Planet]:
         """
         gets the list of planets that have been queued to remove from the UI and clears the queue
 

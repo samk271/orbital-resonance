@@ -22,7 +22,8 @@ class Canvas(CTkCanvas):
         --> star generation properties
     todo update planet settings when a planet is selected
     todo draw planet orbit paths?
-    todo add new, save as, save, load, undo and redo buttons
+    todo undo/redo functionality + warning about losing save
+    todo add tooltips when hovering over buttons
     """
 
     # properties for how navigation buttons should look and function
@@ -65,7 +66,7 @@ class Canvas(CTkCanvas):
 
         # gets kwargs
         if "planet_settings" and "AI_settings" and "planet_manager" in kwargs:
-            self.planet_manager = kwargs.pop("planet_manager")
+            self.planet_manager: PlanetManager = kwargs.pop("planet_manager")
             self.menu_visibility = {"planet": {"menu": kwargs.pop("planet_settings"), "visible": True},
                                     "AI": {"menu": kwargs.pop("AI_settings"), "visible": True}}
         else:
@@ -76,7 +77,7 @@ class Canvas(CTkCanvas):
         self.canvas_size = array([self.winfo_width(), self.winfo_height()])
         self.initialized = False
         self.after_update_planets = self.after(int(1000 / Canvas.FPS), self.update_planets)
-        self.after_nav = self.after(0, lambda: None)
+        self.after_click = self.after(0, lambda: None)
 
         # sets event fields
         self.space_position = array([[0.0, 0.0], [0.0, 0.0]])  # planet pos, star pos
@@ -89,7 +90,7 @@ class Canvas(CTkCanvas):
         self.dt = perf_counter()
 
         # sets focus fields
-        self.focused_planet = None  # initialized after first resize
+        self.focused_planet: Planet = None  # initialized after first resize
         self.focus_frames = 0
         self.focus_step = {"position": array([0, 0]), "zoom": array([[1], [1]])}
 
@@ -99,15 +100,15 @@ class Canvas(CTkCanvas):
 
         # creates navigation buttons
         width, height = self.canvas_size
-        self.create_button(width - 80, height - 120, width - 43, height - 83, "↑", "navigation")
-        self.create_button(width - 80, height - 40, width - 43, height - 3, "↓", "navigation")
-        self.create_button(width - 120, height - 80, width - 83, height - 43, "←", "navigation")
-        self.create_button(width - 40, height - 80, width - 3, height - 43, "→", "navigation")
-        self.create_button(width - 40, height - 120, width - 3, height - 83, "⊕", "navigation", (0, -2))
-        self.create_button(width - 40, height - 40, width - 3, height - 3, "⊖", "navigation", (0, -2))
-        self.create_button(width - 120, height - 120, width - 83, height - 83, "🐇", "navigation")
-        self.create_button(width - 120, height - 40, width - 83, height - 3, "🐢", "navigation")
-        self.create_button(width - 80, height - 80, width - 43, height - 43, "🏠", "navigation")
+        self.create_button((width - 80, height - 120, width - 43, height - 83), "↑", "navigation")
+        self.create_button((width - 80, height - 40, width - 43, height - 3), "↓", "navigation")
+        self.create_button((width - 120, height - 80, width - 83, height - 43), "←", "navigation")
+        self.create_button((width - 40, height - 80, width - 3, height - 43), "→", "navigation")
+        self.create_button((width - 40, height - 120, width - 3, height - 83), "⊕", "navigation", (0, -2, 1))
+        self.create_button((width - 40, height - 40, width - 3, height - 3), "⊖", "navigation", (0, -2, 1))
+        self.create_button((width - 120, height - 120, width - 83, height - 83), "🐇", "navigation")
+        self.create_button((width - 120, height - 40, width - 83, height - 3), "🐢", "navigation")
+        self.create_button((width - 80, height - 80, width - 43, height - 43), "🏠", "navigation")
 
         # sets event handlers for clicking navigation buttons
         self.tag_repeat_action("↑", lambda: self.position_event(array([0, -Canvas.POS_AMT])))
@@ -121,20 +122,39 @@ class Canvas(CTkCanvas):
         self.tag_bind("🏠", "<Button-1>", lambda e: self.button_click_animation("🏠"))
         self.tag_bind("🏠", "<Button-1>", lambda e: self.set_focus(self.planet_manager.get_sun(), True), add="+")
 
-        # sets event handlers for releasing navigation buttons
-        for tag in ("↑", "↓", "←", "→", "⊕", "⊖", "🐇", "🐢"):
-            self.tag_bind(tag, "<ButtonRelease-1>", lambda e: self.after_cancel(self.after_nav))
-            self.tag_bind(tag, "<Leave>", lambda e: self.after_cancel(self.after_nav))
-
         # creates buttons to close and reopen settings menus and binds their functions
-        planet_settings = self.create_button(width - 25, 10, width + 17, 47, ">", "planet_settings", (-9, -2))
-        AI_settings = self.create_button(10, height - 20, 47, height + 17, "carrot", "AI_settings")
+        planet_settings = self.create_button((width - 25, 10, width + 17, 47), ">", "planet_settings", (-9, -2, 1))
+        AI_settings = self.create_button((10, height - 20, 47, height + 17), "carrot", "AI_settings")
         self.itemconfig(AI_settings, angle=180)
         self.move(AI_settings, 0, -10)
         self.tag_bind(">", "<Button-1>", lambda e: self.button_click_animation(">"))
         self.tag_bind("carrot", "<Button-1>", lambda e: self.button_click_animation("carrot"))
-        self.tag_bind(">", "<Button-1>", lambda e: self.menu_visibility_button(planet_settings), add="+")
-        self.tag_bind("carrot", "<Button-1>", lambda e: self.menu_visibility_button(AI_settings), add="+")
+        self.tag_bind(">", "<Button-1>", lambda e: self.menu_visibility_buttons(planet_settings), add="+")
+        self.tag_bind("carrot", "<Button-1>", lambda e: self.menu_visibility_buttons(AI_settings), add="+")
+
+        # creates file menu buttons
+        self.create_button((3, 3, 36, 36), "🆕", "File", (0, 0, .75))
+        self.create_button((36, 3, 69, 36), "📂", "File", (0, 0, .75))
+        self.create_button((69, 3, 102, 36), "💾", "File", (0, 0, .75))
+        self.create_button((102, 3, 135, 36), "📑", "File", (0, 0, .75))
+        self.create_button((135, 3, 168, 36), "↩", "File", (0, -5, 1.3))
+        self.create_button((168, 3, 201, 36), "↪", "File", (0, -5, 1.3))
+
+        # sets event handlers for clicking file menu buttons
+        self.tag_bind("🆕", "<Button-1>", lambda e: self.file_buttons("🆕"))
+        self.tag_bind("📂", "<Button-1>", lambda e: self.after(0, lambda: self.file_buttons("📂")))
+        self.tag_bind("📑", "<Button-1>", lambda e: self.file_buttons("📑"))
+        self.tag_repeat_action("💾", lambda: self.planet_manager.save())
+        self.tag_repeat_action("↩", lambda: None)
+        self.tag_repeat_action("↪", lambda: None)
+
+        # binds hotkeys to file functions
+        self.bind("<Control-n>", lambda e: self.file_buttons("🆕", e))
+        self.bind("<Control-o>", lambda e: self.after(0, lambda: self.file_buttons("📂", e)))
+        self.bind("<Control-Shift-S>", lambda e: self.file_buttons("📑", e))
+        self.bind("<Control-s>", lambda e: self.planet_manager.save())
+        self.bind("<Control-z>", lambda e: None)
+        self.bind("<Control-y>", lambda e: None)
 
         # user movement actions
         self.bind("<w>", lambda e: self.position_event(array([0, -Canvas.POS_AMT]), event=e))
@@ -260,7 +280,7 @@ class Canvas(CTkCanvas):
                 p) if self.drag_amt < Canvas.FOCUS_DRAG_THRESHOLD else None)
 
         # updates position of all planets
-        for planet in self.planet_manager.get_planets():
+        for planet in self.planet_manager.planets:
             bbox = self.bbox(planet.tag)
 
             # moves planet when it is rendered
@@ -282,13 +302,14 @@ class Canvas(CTkCanvas):
     # ================================================= STAR FUNCTIONS =================================================
 
     @staticmethod
-    def chunk_difference(chunks1: array, chunks2: array):
+    def chunk_difference(chunks1: array, chunks2: array) -> list[array]:
         """
         takes 2 sets of chunks and finds the chunks that are in chunk 1 but not in chunk 2
 
         :param chunks1: a numpy array representing the corners of chunks 1 in the form [[xmin, ymin], [xmax, ymax]]
         :param chunks2: a numpy array representing the corners of chunks 2 in the form [[xmin, ymin], [xmax, ymax]]
-        :return: a generator function for the range of chunks that are in chunk 1 but not chunk 2
+
+        :return: a list of the range of chunks that are in chunk 1 but not chunk 2
         """
 
         # gets the min and max x and y values of the 2 chunks
@@ -363,7 +384,7 @@ class Canvas(CTkCanvas):
 
     # =================================================== CONVERSIONS ==================================================
 
-    def space_to_canvas(self, coordinates: array):
+    def space_to_canvas(self, coordinates: array) -> array:
         """
         converts coordinates representing a position in space to coordinates representing a position on the canvas
 
@@ -377,7 +398,7 @@ class Canvas(CTkCanvas):
 
         return (coordinates - self.space_position) * self.zoom
 
-    def canvas_to_space(self, coordinates: array):
+    def canvas_to_space(self, coordinates: array) -> array:
         """
         converts coordinates representing a position on the canvas to coordinates representing a position in space
 
@@ -495,29 +516,29 @@ class Canvas(CTkCanvas):
 
     # ==================================================== BUTTONS =====================================================
 
-    def create_button(self, x1: int, y1: int, x2: int, y2: int, text: str, tag: str, text_offset: tuple = (0, 0)):
+    def create_button(self, corners: tuple, text: str, tag: str, shift: tuple = (0, 0, 1)) -> int:
         """
         creates a button on the canvas with the given parameters
             --> rectangle with rounded edges
             --> text in the center
             --> uses class properties to determine appearance of button
 
-        :param x1: the x coordinate of the top left corner of the rectangle
-        :param y1: the y coordinate of the top left corner of the rectangle
-        :param x2: the x coordinate of the bottom right corner of the rectangle
-        :param y2: the y coordinate of the bottom right corner of the rectangle
+        :param corners: the coordinates of the top left corner and bottom right corners of the rectangle in the form
+            (x1, y1, x2, y2)
         :param text: the text to add to the button
         :param tag: the tag to associate with the navigation button (used in resize events)
-        :param text_offset: the offset value to apply to the string so that it is slightly off center
+        :param shift: the offset value to apply to the string so that it is slightly off center and scale in the form
+            (dx, dy, scale)
 
         :return the id of the created text so that it can be mirrored later for settings buttons
         """
 
         # gets variables for creating button
+        x1, y1, x2, y2 = corners
         radius = Canvas.NAV_BUTTON_RADIUS
         kwargs = {"extent": 90, "style": "arc", "outline": Canvas.NAV_BUTTON_BORDER["fill"], **Canvas.NAV_BUTTON_BORDER}
-        center_x = ((x1 + x2) / 2) + text_offset[0]
-        center_y = ((y1 + y2) / 2) - text_offset[1]
+        center_x = ((x1 + x2) / 2) + shift[0]
+        center_y = ((y1 + y2) / 2) - shift[1]
         center_tag = (text, "buttons", tag, f"center{text}")
         edge_tag = (text, "buttons", tag)
 
@@ -546,10 +567,11 @@ class Canvas(CTkCanvas):
 
         # draws text and sets click event handler
         char = text if text != "carrot" else "^"
-        text_id = self.create_text(center_x, center_y - 3, text=char, font=("Arial", 20), fill="black", tags=edge_tag)
+        kwargs = {"text": char, "font": ("Arial", int(20 * shift[2])), "fill": "black", "tags": edge_tag}
+        text_id = self.create_text(center_x, center_y - 3, **kwargs)
         return text_id
 
-    def button_click_animation(self, tag: str, hold: bool = False):
+    def button_click_animation(self, tag: str, hold: bool = False) -> tuple:
         """
         updates attributes of the navigation button so that it looks like it was clicked
             --> changes the color if the button for 100 ms
@@ -595,8 +617,8 @@ class Canvas(CTkCanvas):
 
             [self.after_cancel(event) for event in after_click]
             after_click = self.button_click_animation(tag, hold=after_click)
+            self.after_click = self.after(Canvas.NAV_BUTTON_REPEAT, lambda: repeat(after_click))
             function()
-            self.after_nav = self.after(Canvas.NAV_BUTTON_REPEAT, lambda: repeat(after_click))
 
         def first_click():
             """
@@ -606,12 +628,15 @@ class Canvas(CTkCanvas):
             """
 
             self.button_click_animation(tag)
+            self.after_click = self.after(Canvas.NAV_BUTTON_REPEAT_DELAY, repeat)
             function()
-            self.after_nav = self.after(Canvas.NAV_BUTTON_REPEAT_DELAY, repeat)
 
+        # binds functions to tags
         self.tag_bind(tag, "<Button-1>", lambda e: first_click())
+        self.tag_bind(tag, "<ButtonRelease-1>", lambda e: self.after_cancel(self.after_click))
+        self.tag_bind(tag, "<Leave>", lambda e: self.after_cancel(self.after_click))
 
-    def menu_visibility_button(self, text_id: int):
+    def menu_visibility_buttons(self, text_id: int):
         """
         handles clicking the menu visibility buttons
             --> rotates the text on the button 180 degrees to flip the direction of the arrow
@@ -642,3 +667,31 @@ class Canvas(CTkCanvas):
                 self.menu_visibility["planet"]["menu"].grid(row=0, column=1, sticky="nsew")
             else:
                 self.menu_visibility["planet"]["menu"].grid_forget()
+
+    def file_buttons(self, tag: str, event=None):
+        """
+        handles when the file buttons are clicked: new, load, save, save as, undo and redo
+
+        :param tag: the tag of the button that was pressed
+        :param event: the event that triggered the function
+        """
+
+        # changes file manager if new or load are clicked
+        self.button_click_animation(tag) if not event else None
+        manager = PlanetManager() if tag == "🆕" else None
+        if tag == "📂":
+            manager = PlanetManager.load()
+
+        # updates planet manager and ui if user selected a file to load
+        if manager:
+            self.planet_manager = manager
+            self.delete("planets")
+            self.set_focus(self.planet_manager.get_sun(), True, False)
+
+        # handles when user clicks save as
+        manager = self.planet_manager
+        if tag == "📑":
+            old_path = manager.save_path
+            manager.save_path = None
+            manager.save()
+            manager.save_path = old_path if not manager.save_path else manager.save_path
