@@ -5,8 +5,7 @@ C:\Project
 ├── orbital-resonance
 │   ├── resources
 │   │   └── file association
-│   │       ├── orbital resonance.bat
-│   │       └── icon.ico
+│   │       └── orbital resonance.bat
 │   ├── src
 │   │   └── main.py
 │

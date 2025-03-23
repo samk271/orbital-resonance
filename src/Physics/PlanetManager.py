@@ -59,6 +59,8 @@ class PlanetManager:
         compresses and saves the planet manager class to a file
 
         :param path: the file path to save the file to, if given functions like save as, otherwise functions like save
+
+        :return True if save was successful
         """
 
         # ask user for save path if no save path is found
@@ -83,6 +85,7 @@ class PlanetManager:
         data = compress(dumps(copy))
         with open(self.save_path, "wb") as file:
             file.write(data)
+        return True
 
     @staticmethod
     def load(path: str = None) -> object:

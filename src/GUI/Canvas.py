@@ -24,7 +24,7 @@ class Canvas(CTkCanvas):
     todo update planet settings when a planet is selected
     todo draw planet orbit paths?
     todo undo/redo functionality
-    todo unsaved work detection
+    todo change unsaved value when changes are made
     todo add tooltips when hovering over buttons
     """
 
@@ -78,6 +78,7 @@ class Canvas(CTkCanvas):
         super().__init__(*args, **kwargs)
         self.canvas_size = array([self.winfo_width(), self.winfo_height()])
         self.initialized = False
+        self.unsaved = False
         self.after_update_planets = self.after(int(1000 / Canvas.FPS), self.update_planets)
         self.after_click = self.after(0, lambda: None)
 
@@ -146,9 +147,10 @@ class Canvas(CTkCanvas):
         self.tag_bind("🆕", "<Button-1>", lambda e: self.after(0, lambda: self.file_buttons("🆕")))
         self.tag_bind("📂", "<Button-1>", lambda e: self.after(0, lambda: self.file_buttons("📂")))
         self.tag_bind("📑", "<Button-1>", lambda e: self.after(0, lambda: self.file_buttons("📑")))
-        self.tag_repeat_action("💾", lambda: self.after(0, lambda: self.planet_manager.save()))
         self.tag_repeat_action("↩", lambda: None)
         self.tag_repeat_action("↪", lambda: None)
+        self.tag_repeat_action("💾", lambda: self.after(0, lambda: setattr(
+            self, "unsaved", False if self.planet_manager.save() else self.unsaved)))
 
         # binds hotkeys to file functions
         self.bind("<Control-n>", lambda e: self.file_buttons("🆕", e))
@@ -681,7 +683,15 @@ class Canvas(CTkCanvas):
         # warns the user they might lose progress if they perform the action without saving
         self.button_click_animation(tag) if not event else None
         args = "Save Project", "You have unsaved changes that will be lost without saving. Continue?"
-        if tag in ("🆕", "📂", "exit") and not askokcancel(*args):
+        if tag in ("🆕", "📂", "exit") and self.unsaved and (not askokcancel(*args)):
+            return "cancel"
+
+        # asks user if they are sure they want to start a new project
+        elif tag == "🆕" and (not askokcancel("Start New Project", "You are about to start a new project. Continue?")):
+            return
+
+        # asks user if they are sure they want to exit
+        elif tag == "exit" and (not askokcancel("Exit", "Are you sure you want to exit?")):
             return "cancel"
 
         # changes file manager if new or load are clicked
@@ -694,11 +704,12 @@ class Canvas(CTkCanvas):
             self.planet_manager = manager
             self.delete("planets")
             self.set_focus(self.planet_manager.get_sun(), True, False)
+            self.unsaved = False
 
         # handles when user clicks save as
         manager = self.planet_manager
         if tag == "📑":
             old_path = manager.save_path
             manager.save_path = None
-            manager.save()
+            self.unsaved = False if manager.save() else self.unsaved
             manager.save_path = old_path if not manager.save_path else manager.save_path
