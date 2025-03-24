@@ -1,6 +1,8 @@
 from numpy import array
+from GUI.StateManager import StateManger
 import math
 import pygame
+
 
 class Planet:
     """
@@ -24,8 +26,73 @@ class Planet:
         self.period = period
         self.orbital_radius = (period**(2/3)) * 500
         self.position = array([0.0, -round(self.orbital_radius)])
-        self.radius = radius
-        self.color = color
+        self._radius = radius
+        self._color = color
         self.tag = None
-        if sound != None:
-            self.sound = sound
+        self.sound = sound
+        self.state_manager: StateManger = None  # will be assigned when added by to a planet manager
+
+    @staticmethod
+    def set_value_generator(attribute: str):
+        """
+        generates a set value function for a given attribute
+
+        :param attribute: the attribute of the class to update
+
+        :return: the function used to update that attribute
+        """
+
+        def set_value(self, value):
+            """
+            handles when the user updates a value
+                --> updates the value in the class
+                --> adds the state update to the state manager
+
+            :param self: the instance of the class to update
+            :param value: the value of the class to update
+
+            :return the function to redo the action
+            """
+
+            self.state_manager.add_undo(lambda old=getattr(self, attribute): setattr(self, attribute, old))  # todo return this lambda: setattr(self, attribute, value)
+            setattr(self, attribute, value)
+
+        return set_value
+
+    @staticmethod
+    def get_value_generator(attribute: str):
+        """
+        generates a get value function for a given attribute
+
+        :param attribute: the attribute of the class to get
+
+        :return: the function used to get that attribute
+        """
+
+        def get_value(self):
+            """
+            gets a value of the class
+
+            :param self: the instance of the class to get the value of
+
+            :return: the value of the class specified by the generator function
+            """
+
+            return getattr(self, attribute)
+
+        return get_value
+
+    # sets class attributes to properties so state can be stored in state manager  todo add distance from sun update
+    color = property(get_value_generator("_color"), set_value_generator("_color"))
+    radius = property(get_value_generator("_radius"), set_value_generator("_radius"))
+
+
+p = Planet(1, 1, "green")
+p.state_manager = StateManger()
+print(p.color)
+p.color = "orange"
+print(p.color)
+p.state_manager.undo()
+print(p.color)
+p.state_manager.redo()
+print(p.color)
