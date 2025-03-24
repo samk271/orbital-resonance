@@ -702,6 +702,7 @@ class Canvas(CTkCanvas):
         # updates planet manager and ui if user selected a file to load
         if manager:
             self.planet_manager = manager
+            self.menu_visibility["AI"]["menu"].planet_manager = manager
             self.delete("planets")
             self.set_focus(self.planet_manager.get_sun(), True, False)
             self.unsaved = False

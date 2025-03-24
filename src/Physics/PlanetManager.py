@@ -8,6 +8,7 @@ from tkinter.filedialog import asksaveasfilename, askopenfilename
 from pathlib import Path
 from re import findall
 from GUI.StateManager import StateManger
+from pygame.mixer import Sound
 
 
 class PlanetManager:
@@ -111,6 +112,10 @@ class PlanetManager:
         with open(path, "rb") as file:
             planet_manager = loads(decompress(file.read()))
         planet_manager.save_path = path
+
+        # loads all of sound files and returns
+        for planet in planet_manager.planets:
+            planet.sound = Sound(planet.sound_path) if planet.sound_path else None
         return planet_manager
 
     def get_sun(self) -> Planet:
@@ -229,5 +234,5 @@ class PlanetManager:
 
             if rel_x < 0 and new_x >= 0:
                 #insert sound playing here
-                planet.sound.play()
+                planet.sound.play() if planet.sound else None
                 

@@ -1,5 +1,6 @@
 from numpy import array
 from GUI.StateManager import StateManger
+from pygame.mixer import Sound
 
 
 class Planet:
@@ -12,13 +13,14 @@ class Planet:
         feel free to add more attributes/functions as needed for physics
     """
 
-    def __init__(self, period: float, radius: float, color: str, sound=None):
+    def __init__(self, period: float, radius: float, color: str, sound_path=None):
         """
         creates the planet with the given attributes
 
         :param period: how long it takes the planet to revolve
         :param radius: the radius of the planet
         :param color: the color of the planet
+        :param sound_path: the file path of to the sound to play
         """
 
         self.period = period
@@ -27,8 +29,20 @@ class Planet:
         self._radius = radius
         self._color = color
         self.tag = None
-        self.sound = sound
+        self.sound_path = sound_path
+        self.sound = Sound(sound_path) if sound_path else None
         self.state_manager: StateManger = None  # will be assigned when added by to a planet manager
+
+    def __getstate__(self):
+        """
+        gets the state of the planet to serialize when saving
+
+        :return: the state of the planet excluding the play sound file object
+        """
+
+        state = self.__dict__.copy()
+        del state["sound"]
+        return state
 
     @staticmethod
     def set_value_generator(attribute: str):

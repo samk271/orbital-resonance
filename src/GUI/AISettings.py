@@ -224,8 +224,7 @@ class AISettings(CTkFrame):
     #Add planet to solar system
     def add_planet_to_ss(self):
 
-        sound = pygame.mixer.Sound("./AUDIO/temp_wav.wav")
-        planet= Planet(period=1,radius=20, color=self.planet_color, sound=sound)
+        planet= Planet(period=1,radius=20, color=self.planet_color, sound_path="./AUDIO/temp_wav.wav")
 
         self.planet_manager.add_planet(planet)
 
