@@ -196,7 +196,7 @@ class AISettings(CTkFrame):
         """
 
         planet_name = self.planet_name_input.get()
-        nlg.gen_note_library(wav_file="./AUDIO/temp_wav.wav",library_folder=f"./AUDIO/{planet_name}", name=planet_name)
+        #nlg.gen_note_library(wav_file="./AUDIO/temp_wav.wav",library_folder=f"./AUDIO/{planet_name}", name=planet_name)
 
         
     #Add planet to solar system
