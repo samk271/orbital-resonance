@@ -7,6 +7,7 @@ from zlib import compress, decompress
 from tkinter.filedialog import asksaveasfilename, askopenfilename
 from pathlib import Path
 from re import findall
+from GUI.StateManager import StateManger
 
 
 class PlanetManager:
@@ -53,6 +54,7 @@ class PlanetManager:
         self.removed_buffer = []
         self.added_buffer = self.planets.copy()
         self.save_path = None
+        self.state_manager = StateManger()
 
     def save(self, path: str = None):
         """
@@ -129,6 +131,7 @@ class PlanetManager:
         :param planet: the planet that has been created that should be added to the planets list
         """
 
+        planet.state_manager = self.state_manager
         self.planets.append(planet)
         self.added_buffer.append(planet)
 

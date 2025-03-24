@@ -10,8 +10,9 @@ from matplotlib.backends.backend_tkagg import (FigureCanvasTkAgg, NavigationTool
 from RangeSlider.RangeSlider import RangeSliderH 
 import pygame
 from random import randint
-from GUI import note_lib_gen as nlg
+# from GUI import note_lib_gen as nlg
 from Physics import *
+
 
 class AISettings(CTkFrame):
     """
