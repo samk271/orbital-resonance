@@ -23,8 +23,6 @@ class Canvas(CTkCanvas):
         --> star generation properties
     todo update planet settings when a planet is selected
     todo draw planet orbit paths?
-    todo undo/redo functionality
-    todo change unsaved value when changes are made
     todo add tooltips when hovering over buttons
     """
 
@@ -69,6 +67,7 @@ class Canvas(CTkCanvas):
         # gets kwargs
         if "planet_settings" and "AI_settings" and "planet_manager" in kwargs:
             self.planet_manager: PlanetManager = kwargs.pop("planet_manager")
+            self.planet_manager.state_manager.canvas = self
             self.menu_visibility = {"planet": {"menu": kwargs.pop("planet_settings"), "visible": True},
                                     "AI": {"menu": kwargs.pop("AI_settings"), "visible": True}}
         else:
@@ -152,14 +151,6 @@ class Canvas(CTkCanvas):
         self.tag_repeat_action("💾", lambda: self.after(0, lambda: setattr(
             self, "unsaved", False if self.planet_manager.save() else self.unsaved)))
 
-        # binds hotkeys to file functions
-        self.bind("<Control-n>", lambda e: self.file_buttons("🆕", e))
-        self.bind("<Control-o>", lambda e: self.file_buttons("📂", e))
-        self.bind("<Control-Shift-S>", lambda e: self.file_buttons("📑", e))
-        self.bind("<Control-s>", lambda e: self.planet_manager.save())
-        self.bind("<Control-z>", lambda e: self.planet_manager.state_manager.undo())
-        self.bind("<Control-y>", lambda e: self.planet_manager.state_manager.redo())
-
         # user movement actions
         self.bind("<w>", lambda e: self.position_event(array([0, -Canvas.POS_AMT]), event=e))
         self.bind("<a>", lambda e: self.position_event(array([-Canvas.POS_AMT, 0]), event=e))
@@ -170,33 +161,15 @@ class Canvas(CTkCanvas):
         self.bind("<Down>", lambda e: self.position_event(array([0, Canvas.POS_AMT]), event=e))
         self.bind("<Right>", lambda e: self.position_event(array([Canvas.POS_AMT, 0]), event=e))
 
-        # user zoom actions
-        self.bind("<Control-plus>", lambda e: self.zoom_event(Canvas.ZOOM_AMT, e))
-        self.bind("<Control-minus>", lambda e: self.zoom_event(1 / Canvas.ZOOM_AMT, e))
-        self.bind("<Control-equal>", lambda e: self.zoom_event(Canvas.ZOOM_AMT, e))
-        self.bind("<Control-underscore>", lambda e: self.zoom_event(1 / Canvas.ZOOM_AMT, e))
+        # misc actions
         self.bind("<MouseWheel>", lambda e: self.zoom_event(Canvas.ZOOM_AMT if e.delta > 0 else 1 / Canvas.ZOOM_AMT, e))
-
-        # user speed control actions
-        self.bind("<Control-Shift-plus>", lambda e: setattr(self, "speed", self.speed * Canvas.SPEED_FACTOR))
-        self.bind("<Control-Shift-minus>", lambda e: setattr(self, "speed", self.speed / Canvas.SPEED_FACTOR))
-        self.bind("<Control-Shift-equal>", lambda e: setattr(self, "speed", self.speed * Canvas.SPEED_FACTOR))
-        self.bind("<Control-Shift-underscore>", lambda e: setattr(self, "speed", self.speed / Canvas.SPEED_FACTOR))
-
-        # user speed actions
-        self.bind("<Control-Shift-plus>", lambda e: setattr(self, "speed", self.speed * Canvas.SPEED_FACTOR))
-        self.bind("<Control-Shift-minus>", lambda e: setattr(self, "speed", self.speed / Canvas.SPEED_FACTOR))
-        self.bind("<Control-Shift-equal>", lambda e: setattr(self, "speed", self.speed * Canvas.SPEED_FACTOR))
-        self.bind("<Control-Shift-underscore>", lambda e: setattr(self, "speed", self.speed / Canvas.SPEED_FACTOR))
-
-        # focus, resize and click and drag actions
         self.bind("<Button-1>", lambda e: self.focus_set())  # todo do this for planet settings
         self.bind("<Configure>", lambda e: self.resize_event(array([e.width, e.height])))
         self.bind("<Button-1>", lambda e: setattr(self, "drag_event", array([e.x, e.y])), add="+")
         self.bind("<Button-1>", lambda e: setattr(self, "drag_amt", 0), add="+")
         self.bind("<B1-Motion>", lambda e: self.position_event(self.drag_event - array([e.x, e.y]), event=e))
         self.bind("<Button-1>", lambda e: setattr(self, "focused_planet", None if (not e.widget.find_withtag(
-                "current")) or "stars" in self.gettags(e.widget.find_withtag("current")) else self.focused_planet),
+            "current")) or "stars" in self.gettags(e.widget.find_withtag("current")) else self.focused_planet),
                   add="+")
 
     # ================================================ PLANET FUNCTIONS ================================================
@@ -372,7 +345,6 @@ class Canvas(CTkCanvas):
                     # prepares seed for chunk so every time it is rendered it renders the same star pattern
                     seed(hash((self.star_seed, chunk_x, chunk_y)))
                     for star in range(Canvas.STARS_PER_CHUNK):
-
                         # generates stars in the chunk
                         x = uniform(chunk_x, chunk_x + Canvas.CHUNK_SIZE)
                         y = uniform(chunk_y, chunk_y + Canvas.CHUNK_SIZE)
@@ -437,10 +409,6 @@ class Canvas(CTkCanvas):
         :param event: the keyboard/mouse event that triggered the state update
         :param render: determines if the event should re-render stars and planets
         """
-
-        # check if the event happened within the canvas bounds
-        if event and event.widget != self:
-            return
 
         # gets the position of zoom event
         mouse = self.canvas_size / 2
@@ -685,19 +653,24 @@ class Canvas(CTkCanvas):
         :param event: the event that triggered the function
         """
 
-        # warns the user they might lose progress if they perform the action without saving
+        # sets text for warning
         self.button_click_animation(tag) if not event else None
         args = "Save Project", "You have unsaved changes that will be lost without saving. Continue?"
-        if tag in ("🆕", "📂", "exit") and self.unsaved and (not askokcancel(*args)):
-            return "cancel"
+        args = ("Exit", "You are are about to exit. Continue?") if tag == "exit" and (not self.unsaved) else args
+        args = ("Start New Project", "You are about to start a new project. Continue?") if \
+            tag == "🆕" and (not self.unsaved) else args
+
+        # warns user they will lose progress if loading when not saved
+        if tag == "📂" and self.unsaved and (not askokcancel(*args)):
+            return
 
         # asks user if they are sure they want to start a new project
-        elif tag == "🆕" and (not askokcancel("Start New Project", "You are about to start a new project. Continue?")):
+        elif tag == "🆕" and (not askokcancel(*args)):
             return
 
         # asks user if they are sure they want to exit
-        elif tag == "exit" and (not askokcancel("Exit", "Are you sure you want to exit?")):
-            return "cancel"
+        elif tag == "exit" and askokcancel(*args):
+            return "exit"
 
         # changes file manager if new or load are clicked
         manager = PlanetManager() if tag == "🆕" else None
@@ -706,6 +679,7 @@ class Canvas(CTkCanvas):
 
         # updates planet manager and ui if user selected a file to load
         if manager:
+            manager.state_manager.canvas = self
             self.planet_manager = manager
             self.menu_visibility["AI"]["menu"].planet_manager = manager
             self.delete("planets")

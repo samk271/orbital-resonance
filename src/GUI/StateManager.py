@@ -13,6 +13,7 @@ class StateManger:
 
         self.undo_actions = []
         self.redo_actions = []
+        self.canvas = None  # set by canvas
 
     def add_state(self, functions: dict):
         """
@@ -23,6 +24,7 @@ class StateManger:
         """
 
         # handles when max states has not been reached
+        self.canvas.unsaved = True
         if len(self.undo_actions) < StateManger.MAX_STATES:
             self.undo_actions.append(functions)
             self.redo_actions.clear()

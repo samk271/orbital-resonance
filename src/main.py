@@ -7,22 +7,42 @@ from sys import argv
 pygame.mixer.init()
 
 # creates the screen and its widgets
-display = PlanetManager.SAVE_OPTIONS["parent"]
-display.title("Orbital Resonance")
-display.geometry("800x600")
-planet_settings = PlanetSettings(display, border_width=2)
+root = PlanetManager.SAVE_OPTIONS["parent"]
+root.title("Orbital Resonance")
+root.geometry("800x600")
+planet_settings = PlanetSettings(root, border_width=2)
 planet_manager = PlanetManager.load(argv[1]) if len(argv) == 2 else PlanetManager()
-AI_settings = AISettings(display, border_width=2, planet_manager=planet_manager)
-canvas = Canvas(display, bg="black", highlightthickness=1, planet_settings=planet_settings, AI_settings=AI_settings,
+AI_settings = AISettings(root, border_width=2, planet_manager=planet_manager)
+canvas = Canvas(root, bg="black", highlightthickness=1, planet_settings=planet_settings, AI_settings=AI_settings,
                 planet_manager=planet_manager)
 
 # configures grid for dynamic resizing and close function
-display.protocol("WM_DELETE_WINDOW", lambda: display.destroy() if not canvas.file_buttons("exit") else None)
-display.rowconfigure(0, weight=1)
-display.columnconfigure(0, weight=1)
+root.protocol("WM_DELETE_WINDOW", lambda: root.destroy() if canvas.file_buttons("exit") else None)
+root.rowconfigure(0, weight=1)
+root.columnconfigure(0, weight=1)
+
+# binds hotkeys to file functions
+root.bind_all("<Control-n>", lambda e: canvas.file_buttons("🆕", e))
+root.bind_all("<Control-o>", lambda e: canvas.file_buttons("📂", e))
+root.bind_all("<Control-Shift-S>", lambda e: canvas.file_buttons("📑", e))
+root.bind_all("<Control-s>", lambda e: canvas.planet_manager.save())
+root.bind_all("<Control-z>", lambda e: canvas.planet_manager.state_manager.undo())
+root.bind_all("<Control-y>", lambda e: canvas.planet_manager.state_manager.redo())
+
+# user zoom actions
+root.bind_all("<Control-plus>", lambda e: canvas.zoom_event(Canvas.ZOOM_AMT, e))
+root.bind_all("<Control-minus>", lambda e: canvas.zoom_event(1 / Canvas.ZOOM_AMT, e))
+root.bind_all("<Control-equal>", lambda e: canvas.zoom_event(Canvas.ZOOM_AMT, e))
+root.bind_all("<Control-underscore>", lambda e: canvas.zoom_event(1 / Canvas.ZOOM_AMT, e))
+
+# user speed control actions
+root.bind_all("<Control-Shift-plus>", lambda e: setattr(canvas, "speed", canvas.speed * Canvas.SPEED_FACTOR))
+root.bind_all("<Control-Shift-minus>", lambda e: setattr(canvas, "speed", canvas.speed / Canvas.SPEED_FACTOR))
+root.bind_all("<Control-Shift-equal>", lambda e: setattr(canvas, "speed", canvas.speed * Canvas.SPEED_FACTOR))
+root.bind_all("<Control-Shift-underscore>", lambda e: setattr(canvas, "speed", canvas.speed / Canvas.SPEED_FACTOR))
 
 # places widgets on the screen and starts display
 planet_settings.grid(row=0, column=1, sticky="nsew")
 AI_settings.grid(row=1, column=0, columnspan=2, sticky="nsew")
 canvas.grid(row=0, column=0, sticky="nsew")
-display.mainloop()
+root.mainloop()
