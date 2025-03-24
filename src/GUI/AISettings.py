@@ -1,5 +1,6 @@
 import os
 import tkinter as tk
+from tkinter.colorchooser import askcolor
 from customtkinter import CTkFrame, CTkLabel, CTkTextbox, CTkButton, CTkCanvas
 from CTkListbox import *
 import scipy.io.wavfile  as wav
@@ -108,9 +109,12 @@ class AISettings(CTkFrame):
         self.add_button.grid(row=2, column=3, sticky="s", pady=(0, 20))
 
         # creates generated planet display and label
+        self.planet_color = "#{:06x}".format(randint(0, 0xFFFFFF))
         self.planet_canvas = CTkCanvas(self, width=60, height=60, bg="gray17", highlightthickness=0)
         self.planet_canvas.grid(row=0, column=5, rowspan=3)
-        self.planet_canvas.create_oval(0, 0, 60, 60, fill="#{:06x}".format(randint(0, 0xFFFFFF)))
+
+        self.planet_preview_tag = self.planet_canvas.create_oval(0, 0, 60, 60, fill=self.planet_color)
+        self.planet_canvas.tag_bind(self.planet_preview_tag, "<ButtonRelease-1>", lambda e: self.select_color())
 
 
         # sets column weights for dynamic resizing
@@ -121,6 +125,12 @@ class AISettings(CTkFrame):
         self.bind("<Button-1>", lambda event: self.focus_set())
         for child in self.winfo_children():
             child.bind("<Button-1>", lambda event: self.focus_set())
+
+    def select_color(self):
+        self.planet_color = askcolor(color=self.planet_color)[1]
+        self.planet_canvas.delete("all")
+        new_tag = self.planet_canvas.create_oval(0, 0, 60, 60, fill=self.planet_color)
+        self.planet_canvas.tag_bind(new_tag, "<ButtonRelease-1>", lambda e: self.select_color())
 
     def select_sound(self, wav_dir, plot, color: str):
         wav_file = self.listbox.get()
@@ -186,14 +196,14 @@ class AISettings(CTkFrame):
         """
 
         planet_name = self.planet_name_input.get()
-        nlg.gen_note_library(wav_file="./AUDIO/temp_wav.wav",library_folder=f"./AUDIO/{planet_name}", name=planet_name)
+        #nlg.gen_note_library(wav_file="./AUDIO/temp_wav.wav",library_folder=f"./AUDIO/{planet_name}", name=planet_name)
 
         
     #Add planet to solar system
     def add_planet_to_ss(self):
 
         sound = pygame.mixer.Sound("./AUDIO/temp_wav.wav")
-        planet= Planet(period=1,radius=60, color="#{:06x}".format(randint(0, 0xFFFFFF)), sound=sound)
+        planet= Planet(period=1,radius=20, color=self.planet_color, sound=sound)
 
         self.planet_manager.add_planet(planet)
 
