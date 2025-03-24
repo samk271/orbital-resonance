@@ -1,9 +1,10 @@
 class StateManger:
     """
     keeps track of any updates the user makes to any planets so that undo and redo can be applied
-    todo add limit to number of undo action
-    todo add actions to undo from redo call
+    todo disable undo/redo buttons as needed
     """
+
+    MAX_STATES = 1000
 
     def __init__(self):
         """
@@ -13,26 +14,38 @@ class StateManger:
         self.undo_actions = []
         self.redo_actions = []
 
-    def add_undo(self, function):
+    def add_state(self, functions: dict):
         """
         adds an undo action to the state manager. additionally clears the redo action list
 
-        :param function: the function to perform when the undo function is performed
+        :param functions: the functions to perform when updating the state in the form:
+            {"undo": (def, *args), "redo": (def, *args)}
         """
 
-        self.undo_actions.append(function)
-        self.redo_actions.clear()
+        # handles when max states has not been reached
+        if len(self.undo_actions) < StateManger.MAX_STATES:
+            self.undo_actions.append(functions)
+            self.redo_actions.clear()
+
+        # handles when max states has been reached
+        else:
+            self.undo_actions.pop(0)
+            self.add_state(functions)
 
     def undo(self):
         """
         performs an undo action and removes it from the undo list. additionally adds a redo action
         """
 
-        self.redo_actions.append(self.undo_actions.pop()())
+        action = self.undo_actions.pop()
+        action["undo"][0](*action["undo"][1:])
+        self.redo_actions.append(action)
 
     def redo(self):
         """
-        performs a redo action and removes it from the redo list
+        performs a redo action and removes it from the redo list. additionally adds an undo action
         """
 
-        self.redo_actions.pop()()
+        action = self.redo_actions.pop()
+        action["redo"][0](*action["redo"][1:])
+        self.undo_actions.append(action)

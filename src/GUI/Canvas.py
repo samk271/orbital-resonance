@@ -288,16 +288,21 @@ class Canvas(CTkCanvas):
             bbox = self.bbox(planet.tag)
 
             # moves planet when it is rendered
-            if bbox:
+            if bbox and (not planet.update):
                 bbox = array([bbox[2] - bbox[0], bbox[3] - bbox[1]]) / 2
                 pos = floor(self.space_to_canvas(planet.position)[0] - bbox)
                 self.moveto(planet.tag, pos[0], pos[1])
 
-            # resets bbox if it is removed after large zoom/position events (can happen when home button is clicked)
+            # resets bbox if it is glitched or planet state changes
             else:
                 pos = self.space_to_canvas(planet.position)[0]
                 radius = planet.radius * self.zoom[0, 0]
                 self.coords(planet.tag, *(pos - radius), *(pos + radius))
+
+            # handles planet state change
+            if planet.update:
+                self.itemconfig(planet.tag, fill=planet.color)
+                planet.update = False
 
         # ensures proper leveling of canvas items
         if added_buffer:
