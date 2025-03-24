@@ -8,6 +8,7 @@ import numpy as np
 from matplotlib.figure import Figure
 from matplotlib.backends.backend_tkagg import (FigureCanvasTkAgg, NavigationToolbar2Tk)
 from RangeSlider.RangeSlider import RangeSliderH 
+import librosa
 import pygame
 from random import randint
 # from GUI import note_lib_gen as nlg
@@ -116,6 +117,25 @@ class AISettings(CTkFrame):
         self.planet_preview_tag = self.planet_canvas.create_oval(0, 0, 60, 60, fill=self.planet_color)
         self.planet_canvas.tag_bind(self.planet_preview_tag, "<ButtonRelease-1>", lambda e: self.select_color())
 
+        #create option menu for planet pitch
+        self.note_menu_label = CTkLabel(self, height=10, text="Select a note")
+        self.note_menu_label.grid(row=1,column=6, sticky="n",padx=10)
+        note_list = [librosa.midi_to_note(midi) for midi in range(30,61)]
+        self.planet_note = tk.StringVar(self)
+        self.planet_note.set("Select Note")
+        self.note_menu = tk.OptionMenu(self, self.planet_note, *note_list)
+        self.note_menu.grid(row=1,column=6, sticky="n", padx=10,pady=40)
+
+        #create optiom menu for note duration
+        self.note_menu_label = CTkLabel(self, height=10, text="Select a duration")
+        self.note_menu_label.grid(row=1,column=7,sticky="n", padx=10)
+        duration_list = ["Whole","Half","Quarter","Eigth","Sixteenth"]
+        self.planet_duration = tk.StringVar(self)
+        self.planet_duration.set("Select Duration")
+        self.duration_menu = tk.OptionMenu(self, self.planet_duration, *duration_list)
+        self.duration_menu.grid(row=1,column=7,sticky="n",padx=10,pady=40)
+
+
 
         # sets column weights for dynamic resizing
         self.columnconfigure(0, weight=1)
@@ -127,10 +147,12 @@ class AISettings(CTkFrame):
             child.bind("<Button-1>", lambda event: self.focus_set())
 
     def select_color(self):
-        self.planet_color = askcolor(color=self.planet_color)[1]
-        self.planet_canvas.delete("all")
-        new_tag = self.planet_canvas.create_oval(0, 0, 60, 60, fill=self.planet_color)
-        self.planet_canvas.tag_bind(new_tag, "<ButtonRelease-1>", lambda e: self.select_color())
+        temp_planet_color = askcolor(color=self.planet_color)[1]
+        if temp_planet_color != None:
+            self.planet_color = temp_planet_color
+            self.planet_canvas.delete("all")
+            new_tag = self.planet_canvas.create_oval(0, 0, 60, 60, fill=self.planet_color)
+            self.planet_canvas.tag_bind(new_tag, "<ButtonRelease-1>", lambda e: self.select_color())
 
     def select_sound(self, wav_dir, plot, color: str):
         wav_file = self.listbox.get()
