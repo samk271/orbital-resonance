@@ -1,6 +1,8 @@
 class StateManger:
     """
     keeps track of any updates the user makes to any planets so that undo and redo can be applied
+    todo add limit to number of undo action
+    todo add actions to undo from redo call
     """
 
     def __init__(self):
@@ -13,28 +15,20 @@ class StateManger:
 
     def add_undo(self, function):
         """
-        adds an undo action to the state manager
+        adds an undo action to the state manager. additionally clears the redo action list
 
         :param function: the function to perform when the undo function is performed
         """
 
         self.undo_actions.append(function)
-
-    def add_redo(self, function):
-        """
-        adds a redo action to the state manager
-
-        :param function: the function to perform when the redo function is performed
-        """
-
-        self.redo_actions.append(function)
+        self.redo_actions.clear()
 
     def undo(self):
         """
         performs an undo action and removes it from the undo list. additionally adds a redo action
         """
 
-        self.add_redo(self.undo_actions.pop()())
+        self.redo_actions.append(self.undo_actions.pop()())
 
     def redo(self):
         """

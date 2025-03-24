@@ -147,8 +147,8 @@ class Canvas(CTkCanvas):
         self.tag_bind("🆕", "<Button-1>", lambda e: self.after(0, lambda: self.file_buttons("🆕")))
         self.tag_bind("📂", "<Button-1>", lambda e: self.after(0, lambda: self.file_buttons("📂")))
         self.tag_bind("📑", "<Button-1>", lambda e: self.after(0, lambda: self.file_buttons("📑")))
-        self.tag_repeat_action("↩", lambda: None)
-        self.tag_repeat_action("↪", lambda: None)
+        self.tag_repeat_action("↩", lambda: self.planet_manager.state_manager.undo())
+        self.tag_repeat_action("↪", lambda: self.planet_manager.state_manager.redo())
         self.tag_repeat_action("💾", lambda: self.after(0, lambda: setattr(
             self, "unsaved", False if self.planet_manager.save() else self.unsaved)))
 
@@ -157,8 +157,8 @@ class Canvas(CTkCanvas):
         self.bind("<Control-o>", lambda e: self.file_buttons("📂", e))
         self.bind("<Control-Shift-S>", lambda e: self.file_buttons("📑", e))
         self.bind("<Control-s>", lambda e: self.planet_manager.save())
-        self.bind("<Control-z>", lambda e: None)
-        self.bind("<Control-y>", lambda e: None)
+        self.bind("<Control-z>", lambda e: self.planet_manager.state_manager.undo())
+        self.bind("<Control-y>", lambda e: self.planet_manager.state_manager.redo())
 
         # user movement actions
         self.bind("<w>", lambda e: self.position_event(array([0, -Canvas.POS_AMT]), event=e))

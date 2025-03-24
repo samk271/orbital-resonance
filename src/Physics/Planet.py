@@ -54,7 +54,19 @@ class Planet:
             :return the function to redo the action
             """
 
-            self.state_manager.add_undo(lambda old=getattr(self, attribute): setattr(self, attribute, old))  # todo return this lambda: setattr(self, attribute, value)
+            def state_undo(old=getattr(self, attribute)):
+                """
+                the function to handle the undo action
+
+                :param old: the old value of the attribute
+
+                :return: the function for the redo action
+                """
+
+                setattr(self, attribute, old)
+                return lambda: setattr(self, attribute, value)
+
+            self.state_manager.add_undo(state_undo)
             setattr(self, attribute, value)
 
         return set_value
@@ -85,14 +97,3 @@ class Planet:
     # sets class attributes to properties so state can be stored in state manager  todo add distance from sun update
     color = property(get_value_generator("_color"), set_value_generator("_color"))
     radius = property(get_value_generator("_radius"), set_value_generator("_radius"))
-
-
-p = Planet(1, 1, "green")
-p.state_manager = StateManger()
-print(p.color)
-p.color = "orange"
-print(p.color)
-p.state_manager.undo()
-print(p.color)
-p.state_manager.redo()
-print(p.color)
