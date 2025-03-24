@@ -120,7 +120,7 @@ class PlanetManager:
 
         return self.planets[0]
 
-    def add_planet(self, planet: Planet):
+    def add_planet(self, planet: Planet, add_undo: bool = True):
         """
         adds a planet to the list of planets that exist in the program
             ** note: planet class must be created externally and passed as a parameter **
@@ -128,14 +128,28 @@ class PlanetManager:
         the planet will not be added to the UI immediately but will be added to the add buffer which the UI will draw
         each frame
 
+        additionally adds the remove planet action to the undo buffer
+
         :param planet: the planet that has been created that should be added to the planets list
+        :param add_undo: determines if the action should be added to the undo buffer
         """
 
+        def state_undo():
+            """
+            the function to handle the undo action
+
+            :return: the function for the redo action
+            """
+
+            self.remove_planet(planet, False)
+            return lambda: self.add_planet(planet, False)
+
+        self.state_manager.add_undo(state_undo) if add_undo else None
         planet.state_manager = self.state_manager
         self.planets.append(planet)
         self.added_buffer.append(planet)
 
-    def remove_planet(self, planet: Planet):
+    def remove_planet(self, planet: Planet, add_undo: bool = True):
         """
         removes a planet from the list of planets that exist in the program
             ** note: this planet must have already been added to the list with add_planet and passed again to remove **
@@ -143,9 +157,23 @@ class PlanetManager:
         the planet will not be removed from the UI immediately but will be added to the removed buffer which the UI will
         remove each frame update
 
+        additionally adds the add planet action to the undo buffer
+
         :param planet: the planet to remove from the planets list
+        :param add_undo: determines if the action should be added to the undo buffer
         """
 
+        def state_undo():
+            """
+            the function to handle the undo action
+
+            :return: the function for the redo action
+            """
+
+            self.add_planet(planet)
+            return lambda: self.remove_planet(planet)
+
+        self.state_manager.add_undo(state_undo) if add_undo else None
         self.planets.remove(planet)
         self.removed_buffer.append(planet)
 
