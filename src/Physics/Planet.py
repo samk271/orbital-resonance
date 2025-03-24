@@ -1,7 +1,5 @@
 from numpy import array
 from GUI.StateManager import StateManger
-import math
-import pygame
 
 
 class Planet:
