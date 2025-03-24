@@ -8,7 +8,9 @@ from matplotlib.figure import Figure
 from matplotlib.backends.backend_tkagg import (FigureCanvasTkAgg, NavigationToolbar2Tk)
 from RangeSlider.RangeSlider import RangeSliderH 
 import pygame
-
+from random import randint
+from GUI import note_lib_gen as nlg
+from Physics import *
 
 class AISettings(CTkFrame):
     """
@@ -25,8 +27,15 @@ class AISettings(CTkFrame):
         :param kwargs: the key word arguments to be passed to the super class
         """
 
+        #Check for planet manager in args
+        if "planet_manager" in kwargs:
+            self.planet_manager: PlanetManager = kwargs.pop("planet_manager")
+        else:
+            raise AttributeError("kwargs missing planet_manager")
+
         # initializes superclass and binds user actions
         super().__init__(*args, **kwargs)
+
 
         """
         TEMPORARILY DISABLING AI PROMPT
@@ -79,19 +88,28 @@ class AISettings(CTkFrame):
         self.play_button.configure(command=lambda: self.play_sound())
         self.play_button.grid(row=3,column=2,pady=10)
 
-        # creates generate button
-        generate_button = CTkButton(self, text="Generate")
-        generate_button.configure(command=lambda: self.generate_planet(generate_button.cget("fg_color")))
-        generate_button.grid(row=0, column=3, sticky="n", pady=(20, 0))
+
+        #Create name input box
+        self.name_label = CTkLabel(self,height=10, text="Name your planet")
+        self.name_label.grid(row=0, column=3, sticky="n", pady=(20,0))
+        self.planet_name_input = CTkTextbox(self, height=10)
+        self.planet_name_input.grid(row=0, column=3, sticky="n",pady=(40))
+        self.planet_name_input.insert(index=tk.END,text ="Planet")
+
+        #Generate sound library button
+        generate_button = CTkButton(self, text="Use Sample")
+        generate_button.configure(command=lambda: self.generate_library())
+        generate_button.grid(row=1, column=3, sticky="n", pady=(20, 0))
 
         # creates add button todo add function
-        self.add_button = CTkButton(self, text="Add to Solar System", state="disabled", fg_color="gray25")
+        self.add_button = CTkButton(self, text="Add to Solar System", fg_color="gray25")
+        self.add_button.configure(command=lambda: self.add_planet_to_ss())
         self.add_button.grid(row=2, column=3, sticky="s", pady=(0, 20))
 
         # creates generated planet display and label
-        self.planet_label = CTkLabel(self, text="Generated\nPlanet/Sound:", font=("Arial", 20))
         self.planet_canvas = CTkCanvas(self, width=60, height=60, bg="gray17", highlightthickness=0)
         self.planet_canvas.grid(row=0, column=5, rowspan=3)
+        self.planet_canvas.create_oval(0, 0, 60, 60, fill="#{:06x}".format(randint(0, 0xFFFFFF)))
 
 
         # sets column weights for dynamic resizing
@@ -109,6 +127,11 @@ class AISettings(CTkFrame):
 
         self.sr=fs
         self.signal=x
+
+        #Write the sound file with the slider cropping
+        wav.write("./AUDIO/temp_wav.wav",self.sr, self.signal[
+            int(len(self.signal)*self.hLeft.get()):int(len(self.signal)*self.hRight.get())])
+        
 
         #average stereo wav signal
         x = np.average(x, axis=1)
@@ -154,28 +177,24 @@ class AISettings(CTkFrame):
         sound.play()
 
 
-    def generate_planet(self, color: str):
+    def generate_library(self):
         """
-        generates a planet using the AI
-            --> enables the play sound and add to solar system buttons
-            --> adds a label for the created planet/sound
-            --> displays what the planet will look like
-            --> displays what the audio for the planet will look like
+        generates a library of notes for the selected sample
 
-        :param color: the fg color to set the disabled buttons to
+        activates the dialog to select pitch for the planet
         """
 
-        # creates the planet output label
-        self.planet_label.grid(row=0, column=4, rowspan=3, sticky="ne", pady=20, padx=(10, 10))
+        planet_name = self.planet_name_input.get()
+        nlg.gen_note_library(wav_file="./AUDIO/temp_wav.wav",library_folder=f"./AUDIO/{planet_name}", name=planet_name)
 
-        # generates the planet todo add AI function
-        #text = self.textbox.get("1.0", "end-1c")
-        # print(f"AI input: {text}")
+        
+    #Add planet to solar system
+    def add_planet_to_ss(self):
 
-        # draws the planet todo currently randomly generated
-        from random import randint
-        self.planet_canvas.delete("all")
-        self.planet_canvas.create_oval(0, 0, 60, 60, fill="#{:06x}".format(randint(0, 0xFFFFFF)))
+        sound = pygame.mixer.Sound("./AUDIO/temp_wav.wav")
+        planet= Planet(period=1,radius=60, color="#{:06x}".format(randint(0, 0xFFFFFF)), sound=sound)
+
+        self.planet_manager.add_planet(planet)
 
     #add all the wav files from the directory to the listbox
     def add_wav_to_listbox(self, listbox, wav_dir):

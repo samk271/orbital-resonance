@@ -1,5 +1,6 @@
 from numpy import array
 import math
+import pygame
 
 class Planet:
     """
@@ -11,7 +12,7 @@ class Planet:
         feel free to add more attributes/functions as needed for physics
     """
 
-    def __init__(self, period: float, radius: float, color: str):
+    def __init__(self, period: float, radius: float, color: str, sound=None):
         """
         creates the planet with the given attributes
 
@@ -26,3 +27,5 @@ class Planet:
         self.radius = radius
         self.color = color
         self.tag = None
+        if sound != None:
+            self.sound = sound

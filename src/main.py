@@ -11,9 +11,10 @@ display = PlanetManager.SAVE_OPTIONS["parent"]
 display.title("Orbital Resonance")
 display.geometry("800x600")
 planet_settings = PlanetSettings(display, border_width=2)
-AI_settings = AISettings(display, border_width=2)
+planet_manager = PlanetManager.load(argv[1]) if len(argv) == 2 else PlanetManager()
+AI_settings = AISettings(display, border_width=2, planet_manager=planet_manager)
 canvas = Canvas(display, bg="black", highlightthickness=1, planet_settings=planet_settings, AI_settings=AI_settings,
-                planet_manager=PlanetManager.load(argv[1]) if len(argv) == 2 else PlanetManager())
+                planet_manager=planet_manager)
 
 # configures grid for dynamic resizing and close function
 display.protocol("WM_DELETE_WINDOW", lambda: display.destroy() if not canvas.file_buttons("exit") else None)

@@ -196,6 +196,7 @@ class PlanetManager:
             # Update absolute position
             planet.position = array([new_x, new_y])
 
-            #if rel_x < 0 and new_x >= 0:
-                #insert sound playing here
+            # if rel_x < 0 and new_x >= 0:
+            #     #insert sound playing here
+            #     planet.sound.play()
                 

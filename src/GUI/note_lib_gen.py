@@ -37,19 +37,22 @@ def find_semitone_shift(fs,x):
     semitone_shift = closest_note - librosa.hz_to_midi(original_pitch)
     return closest_note, semitone_shift
 
-
-def gen_note_library(wav_file, library_folder):
+#Generate a library of notes pitched to midi scale based on input wavfile
+def gen_note_library(wav_file, library_folder, name=None):
     fs,x = wav.read(os.path.join("./AI",wav_file))
     closest_note, semitone_shift = find_semitone_shift(fs,x)
 
     if not os.path.isdir(os.path.join(library_folder, wav_file[:-4])):
         os.mkdir(os.path.join(library_folder, wav_file[:-4]))
 
+    if name == None:
+        name = wav_file[:-4]
+
     for step in range(128):
         x_n = librosa.effects.pitch_shift(y=x.astype(float), sr=fs, n_steps=semitone_shift + (step-closest_note))
-        out_f = f"{wav_file[:-4]}_{step}.wav"
+        out_f = f"{name}_{step}.wav"
         rounded_x_n = np.round(x_n).astype(np.int16)
-        wav.write(os.path.join(library_folder,wav_file[:-4],out_f), fs, rounded_x_n)
+        wav.write(os.path.join(library_folder,name,out_f), fs, rounded_x_n)
 
 
 wav_file = "out_test.wav"
