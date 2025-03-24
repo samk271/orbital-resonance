@@ -39,15 +39,17 @@ class StateManger:
         performs an undo action and removes it from the undo list. additionally adds a redo action
         """
 
-        action = self.undo_actions.pop()
-        action["undo"][0](*action["undo"][1:])
-        self.redo_actions.append(action)
+        if len(self.undo_actions) != 0:
+            action = self.undo_actions.pop()
+            action["undo"][0](*action["undo"][1:])
+            self.redo_actions.append(action)
 
     def redo(self):
         """
         performs a redo action and removes it from the redo list. additionally adds an undo action
         """
 
-        action = self.redo_actions.pop()
-        action["redo"][0](*action["redo"][1:])
-        self.undo_actions.append(action)
+        if len(self.redo_actions) != 0:
+            action = self.redo_actions.pop()
+            action["redo"][0](*action["redo"][1:])
+            self.undo_actions.append(action)

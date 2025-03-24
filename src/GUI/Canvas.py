@@ -548,7 +548,7 @@ class Canvas(CTkCanvas):
         text_id = self.create_text(center_x, center_y - 3, **kwargs)
         return text_id
 
-    def button_click_animation(self, tag: str, hold: bool = False) -> tuple:
+    def button_click_animation(self, tag: str, hold: tuple = ()) -> tuple:
         """
         updates attributes of the navigation button so that it looks like it was clicked
             --> changes the color if the button for 100 ms
@@ -556,16 +556,27 @@ class Canvas(CTkCanvas):
             --> uses class properties to determine fill and offset values
 
         :param tag: a string representing the tag of the navigation button that was clicked
-        :param hold: determines if the button is being held
+        :param hold: the actions to cancel to keep the button held
 
         :return the queued actions to reset the button state (they will be canceled if the button is held)
         """
+
+        # cancels animation if there are not undo/redo actions
+        undo = (tag == "↩" and len(self.planet_manager.state_manager.undo_actions) == 0)
+        redo = (tag == "↪" and len(self.planet_manager.state_manager.redo_actions) == 0)
+        if undo or redo:
+            return
 
         # updates the button to the clicked state
         if not hold:
             self.itemconfig("center" + tag, **Canvas.NAV_BUTTON_CLICKED)
             self.move(tag, Canvas.NAV_BUTTON_CLICK_OFFSET, Canvas.NAV_BUTTON_CLICK_OFFSET)
             self.update_idletasks()
+
+        # handles holding the button
+        else:
+            self.after_cancel(hold[0])
+            self.after_cancel(hold[1])
 
         # queues actions to release the button
         return (
@@ -592,7 +603,6 @@ class Canvas(CTkCanvas):
                 until user has released the button)
             """
 
-            [self.after_cancel(event) for event in after_click]
             after_click = self.button_click_animation(tag, hold=after_click)
             self.after_click = self.after(Canvas.NAV_BUTTON_REPEAT, lambda: repeat(after_click))
             function()
