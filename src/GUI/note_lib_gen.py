@@ -53,7 +53,3 @@ def gen_note_library(wav_file, library_folder, name=None):
         out_f = f"{name}_{step}.wav"
         rounded_x_n = np.round(x_n).astype(np.int16)
         wav.write(os.path.join(library_folder,name,out_f), fs, rounded_x_n)
-
-
-wav_file = "out_test.wav"
-print(gen_note_library(wav_file, os.path.join(f"./AUDIO/")))
