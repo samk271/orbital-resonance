@@ -14,7 +14,7 @@ class Planet:
         feel free to add more attributes/functions as needed for physics
     """
 
-    def __init__(self, period: float, radius: float, color: str, sound_path=None):
+    def __init__(self, period: float, radius: float, color: str, sound_path: str = None):
         """
         creates the planet with the given attributes
 
@@ -32,7 +32,7 @@ class Planet:
         self._color = color
 
         # UI fields
-        self.tag = None
+        self.tag = None  # will be assigned by canvas
         self.update = False
         self.state_manager: StateManger = None  # will be assigned when added by to a planet manager
 
@@ -49,6 +49,7 @@ class Planet:
 
         state = self.__dict__.copy()
         del state["sound"]
+        del state["state_manager"]
         return state
 
     def __setstate__(self, state):

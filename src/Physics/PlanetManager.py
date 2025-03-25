@@ -50,11 +50,16 @@ class PlanetManager:
             a sun will be generated automatically
         """
 
+        # sets planet attributes
         self.planets = planets if planets else [Planet(0, 50, "yellow")]  # todo adjust default sun settings when min/max values are determined
         self.removed_buffer = []
         self.added_buffer = self.planets.copy()
-        self.save_path = None
+        self.save_path: str = None
         self.state_manager = StateManger()
+
+        # ensures planets have access to state manager
+        for planet in self.planets:
+            planet.state_manager = self.state_manager
 
     def save(self, path: str = None):
         """
@@ -83,8 +88,7 @@ class PlanetManager:
 
         # saves data and updates save path
         self.save_path = path if path else self.save_path
-        copy = PlanetManager(self.planets)
-        data = compress(dumps(copy))
+        data = compress(dumps(self.planets))
         with open(self.save_path, "wb") as file:
             file.write(data)
         return True
@@ -109,7 +113,7 @@ class PlanetManager:
 
         # loads the file
         with open(path, "rb") as file:
-            planet_manager = loads(decompress(file.read()))
+            planet_manager = PlanetManager(loads(decompress(file.read())))
         planet_manager.save_path = path
         return planet_manager
 
