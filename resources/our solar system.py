@@ -1,6 +1,5 @@
-import sys
-import os
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "src")))
+from os import chdir
+chdir("../src")
 from GUI import *  # needed so physics imports properly
 from Physics import *
 

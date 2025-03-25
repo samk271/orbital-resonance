@@ -49,6 +49,7 @@ class Canvas(CTkCanvas):
     FOCUS_DRAG_THRESHOLD = 10
     CHUNK_SIZE = 200
     STARS_PER_CHUNK = 3
+    TRIGGER_SIZE = .25
 
     def __init__(self, *args, **kwargs):
         """
@@ -242,13 +243,27 @@ class Canvas(CTkCanvas):
 
         # deletes planets in delete buffer
         for planet in self.planet_manager.get_removed_buffer():
-            self.delete(planet.tag)
+            self.delete(planet.tag, f"path {planet.tag}")
 
         # adds newly added planets to the display
         added_buffer = self.planet_manager.get_added_buffer()
         for planet in added_buffer:
-            kwargs = {"tags": "planets", "fill": planet.color}
-            planet.tag = self.create_oval(0, 0, *([-planet.radius * 2 * self.zoom[0, 0]] * 2), **kwargs)
+            planet.tag = uuid1()
+
+            # draws orbit path todo optimize (dont draw over if path already is drawn), also handle update planet radius
+            if planet != self.planet_manager.get_sun():
+                corner1 = self.space_to_canvas(array([planet.orbital_radius] * 2))[0]
+                corner2 = self.space_to_canvas(array([- planet.orbital_radius] * 2))[0]
+                self.create_oval(*corner1, *corner2, outline="gray", width=1, tags=("planets", f"path {planet.tag}"))
+
+                # draws sound trigger
+                y1 = self.space_to_canvas(array([0, -planet.orbital_radius + (planet.radius * Canvas.TRIGGER_SIZE)]))[0]
+                y2 = self.space_to_canvas(array([0, -planet.orbital_radius - (planet.radius * Canvas.TRIGGER_SIZE)]))[0]
+                self.create_line(*y1, *y2, fill="gray", width=1, tags=("planets", f"path {planet.tag}"))
+
+            # draws planet
+            kwargs = {"tags": ("planets", planet.tag), "fill": planet.color}
+            self.create_oval(0, 0, *([-planet.radius * 2 * self.zoom[0, 0]] * 2), **kwargs)
             self.tag_bind(planet.tag, "<ButtonRelease-1>", lambda e, p=planet: self.set_focus(
                 p) if self.drag_amt < Canvas.FOCUS_DRAG_THRESHOLD else None)
 
@@ -451,6 +466,7 @@ class Canvas(CTkCanvas):
         # handles updating position and star rendering
         amount = vstack((amount, amount * Canvas.STAR_POS_FACTOR))
         self.space_position += (amount / self.zoom)
+        self.move("planets", *-amount[0])
         self.move("stars", *-amount[1])
 
         # ensures infinite recursion does not occur when called from update planets
