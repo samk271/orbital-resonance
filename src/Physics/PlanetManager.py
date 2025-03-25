@@ -199,7 +199,7 @@ class PlanetManager:
         Called when new planet is added to keep everything in sync
         """
         for planet in self.planets:
-            planet.position = array([0.0, -round(planet.orbital_radius)])
+            planet.position = planet.original_position
 
 
     def update_planet_physics(self, dt):
