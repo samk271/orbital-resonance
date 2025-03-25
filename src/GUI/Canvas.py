@@ -47,7 +47,7 @@ class Canvas(CTkCanvas):
     FPS = 60
     FOCUS_FRAMES = 30
     FOCUS_DRAG_THRESHOLD = 10
-    CHUNK_SIZE = 300
+    CHUNK_SIZE = 200
     STARS_PER_CHUNK = 3
 
     def __init__(self, *args, **kwargs):
