@@ -119,20 +119,21 @@ class AISettings(CTkFrame):
         self.planet_canvas.tag_bind(self.planet_preview_tag, "<ButtonRelease-1>", lambda e: self.select_color())
 
         #create option menu for planet pitch
-        self.note_menu_label = CTkLabel(self, height=10, text="Select a note")
+        self.note_menu_label = CTkLabel(self, height=10, text="Select an offset")
         self.note_menu_label.grid(row=1,column=6, sticky="n",padx=10)
-        note_list = [librosa.midi_to_note(midi) for midi in range(30,61)]
-        self.planet_note = tk.StringVar(self)
-        self.planet_note.set("Select Note")
-        self.note_menu = tk.OptionMenu(self, self.planet_note, *note_list)
-        self.note_menu.grid(row=1,column=6, sticky="n", padx=10,pady=40)
+        #note_list = [librosa.midi_to_note(midi) for midi in range(30,61)]
+        offset_list = [0, 1, 2 ,3]
+        self.planet_offset = tk.DoubleVar(self)
+        self.planet_offset.set(0)
+        self.offset_menu = tk.OptionMenu(self, self.planet_offset, *offset_list)
+        self.offset_menu.grid(row=1,column=6, sticky="n", padx=10,pady=40)
 
         #create optiom menu for note duration
         self.note_menu_label = CTkLabel(self, height=10, text="Select a duration")
         self.note_menu_label.grid(row=1,column=7,sticky="n", padx=10)
         self.duration_list = [8,4,2,1,0.5]
         self.planet_duration = tk.DoubleVar(self)
-        self.planet_duration.set("Select Duration")
+        self.planet_duration.set(1)
         self.duration_menu = tk.OptionMenu(self, self.planet_duration, *self.duration_list)
         self.duration_menu.grid(row=1,column=7,sticky="n",padx=10,pady=40)
 
@@ -233,7 +234,8 @@ class AISettings(CTkFrame):
 
         planet= Planet(period=self.planet_duration.get()
                        ,radius=20, color=self.planet_color, 
-                       sound_path=f"./AUDIO/planets/{planet_name}/{planet_name}.wav")
+                       sound_path=f"./AUDIO/planets/{planet_name}/{planet_name}.wav"
+                       ,offset=self.planet_offset.get())
 
         self.planet_manager.add_planet(planet)
 

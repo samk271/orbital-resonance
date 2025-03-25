@@ -2,6 +2,7 @@ from numpy import array
 from GUI.StateManager import StateManger
 from functools import partial
 from pygame.mixer import Sound
+from math import cos, sin, pi, atan2
 
 
 class Planet:
@@ -27,8 +28,15 @@ class Planet:
         # physics fields
         self.period = period
         self.offset = offset
+
         self.orbital_radius = (period**(2/3)) * 500
-        self.position = array([0.0, -round(self.orbital_radius)])
+
+        orig_x = self.orbital_radius * cos(pi/2 * (offset + 1))
+        orig_y = self.orbital_radius * -sin(pi/2 * (offset + 1))
+
+        self.original_position = array([orig_x,orig_y])
+
+        self.position = array([orig_x,orig_y])
         self._radius = radius
         self._color = color
 
