@@ -152,10 +152,6 @@ class Canvas(CTkCanvas):
             self, "unsaved", False if self.planet_manager.save() else self.unsaved)))
 
         # user movement actions
-        self.bind("<w>", lambda e: self.position_event(array([0, -Canvas.POS_AMT]), event=e))
-        self.bind("<a>", lambda e: self.position_event(array([-Canvas.POS_AMT, 0]), event=e))
-        self.bind("<s>", lambda e: self.position_event(array([0, Canvas.POS_AMT]), event=e))
-        self.bind("<d>", lambda e: self.position_event(array([Canvas.POS_AMT, 0]), event=e))
         self.bind("<Up>", lambda e: self.position_event(array([0, -Canvas.POS_AMT]), event=e))
         self.bind("<Left>", lambda e: self.position_event(array([-Canvas.POS_AMT, 0]), event=e))
         self.bind("<Down>", lambda e: self.position_event(array([0, Canvas.POS_AMT]), event=e))
