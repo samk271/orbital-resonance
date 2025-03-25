@@ -209,6 +209,7 @@ class PlanetManager:
         :param dt: the change in time since the last physics update in seconds
         """
 
+        triggered_planets = []
         for planet in self.planets:
 
             # if planet is the sun, skip it
@@ -233,3 +234,6 @@ class PlanetManager:
             if rel_x < 0 and new_x >= 0:
                 #insert sound playing here
                 planet.sound.play() if planet.sound else None
+                triggered_planets.append(planet)
+
+        return triggered_planets

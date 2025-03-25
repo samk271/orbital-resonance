@@ -237,7 +237,7 @@ class Canvas(CTkCanvas):
         # updates physics and focus
         dt = perf_counter()
         old_pos = self.focused_planet.position.copy() if self.focused_planet else None
-        self.planet_manager.update_planet_physics((dt - self.dt) * self.speed)
+        triggered = self.planet_manager.update_planet_physics((dt - self.dt) * self.speed)
         self.dt = dt
         self.maintain_focus(old_pos)
 
@@ -287,6 +287,11 @@ class Canvas(CTkCanvas):
             if planet.update:
                 self.itemconfig(planet.tag, fill=planet.color)
                 planet.update = False
+
+        # updates color of triggered planets
+        for planet in triggered:
+            self.itemconfig(planet.tag, fill="white")
+            self.after(100, lambda p=planet: self.itemconfig(p.tag, fill=p.color))
 
         # ensures proper leveling of canvas items
         if added_buffer:
