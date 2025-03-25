@@ -1,10 +1,11 @@
 from GUI import *
 from Physics import PlanetManager
-import pygame
+from pygame.mixer import init, set_num_channels
 from sys import argv
 
 # initializes pygame audio mixer
-pygame.mixer.init()
+init()
+set_num_channels(1000)  # adjust as needed
 
 # creates the screen and its widgets
 root = PlanetManager.SAVE_OPTIONS["parent"]

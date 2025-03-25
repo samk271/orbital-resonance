@@ -2,7 +2,7 @@ from numpy import array
 from GUI.StateManager import StateManger
 from functools import partial
 from pygame.mixer import Sound
-from math import cos, sin, pi, atan2
+from math import cos, sin, pi
 
 
 class Planet:

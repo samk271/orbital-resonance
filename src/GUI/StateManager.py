@@ -4,7 +4,6 @@ from GUI import Canvas
 class StateManger:
     """
     keeps track of any updates the user makes to any planets so that undo and redo can be applied
-    todo disable undo/redo buttons as needed
     """
 
     MAX_STATES = 1000
