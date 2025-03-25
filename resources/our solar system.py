@@ -1,7 +1,7 @@
 import sys
 import os
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "src")))
-from GUI import *
+from GUI import *  # needed so physics imports properly
 from Physics import *
 
 # generates our solar system.orbres save file
@@ -15,4 +15,4 @@ PlanetManager([
     Planet(90.0, 600, "#f5d76e"),
     Planet(180.0, 700, "#6db7c6"),
     Planet(300.0, 800, "#3457d5")
-]).save("..\\src\\saves\\our solar system.orbres")
+]).save("../src/saves/our solar system.orbres")

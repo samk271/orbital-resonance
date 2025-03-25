@@ -37,9 +37,9 @@ class Canvas(CTkCanvas):
     NAV_BUTTON_REPEAT = 30  # ms
 
     # properties for how much class fields should update when state is updated
-    ZOOM_AMT = array([[1.1], [1.005]])  # planet amt, star amt
+    ZOOM_AMT = array([[1.1], [1.003]])  # planet amt, star amt
     POS_AMT = 10
-    STAR_POS_FACTOR = .095
+    STAR_POS_FACTOR = .05
     SPEED_FACTOR = 1.1
     DEFAULT_ZOOM_PADDING = 2
 
@@ -47,7 +47,7 @@ class Canvas(CTkCanvas):
     FPS = 60
     FOCUS_FRAMES = 30
     FOCUS_DRAG_THRESHOLD = 10
-    CHUNK_SIZE = 100
+    CHUNK_SIZE = 300
     STARS_PER_CHUNK = 3
 
     def __init__(self, *args, **kwargs):

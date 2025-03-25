@@ -45,4 +45,4 @@ root.bind_all("<Control-Shift-underscore>", lambda e: setattr(canvas, "speed", c
 planet_settings.grid(row=0, column=1, sticky="nsew")
 AI_settings.grid(row=1, column=0, columnspan=2, sticky="nsew")
 canvas.grid(row=0, column=0, sticky="nsew")
-root.mainloop()
+root.mainloop() if __name__ == "__main__" else None  # can import project from other scripts to run
