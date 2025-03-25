@@ -1,5 +1,6 @@
 from numpy import array
 from GUI.StateManager import StateManger
+from functools import partial
 from pygame.mixer import Sound
 
 
@@ -23,16 +24,22 @@ class Planet:
         :param sound_path: the file path of to the sound to play
         """
 
+        # physics fields
         self.period = period
         self.offset = offset
         self.orbital_radius = (period**(2/3)) * 500
         self.position = array([0.0, -round(self.orbital_radius)])
         self._radius = radius
         self._color = color
-        self.tag = None
+
+        # UI fields
+        self.tag = None  # will be assigned by canvas
+        self.update = False
+        self.state_manager: StateManger = None  # will be assigned when added by to a planet manager
+
+        # music generation fields
         self.sound_path = sound_path
         self.sound = Sound(sound_path) if sound_path else None
-        self.state_manager: StateManger = None  # will be assigned when added by to a planet manager
 
     def __getstate__(self):
         """
@@ -43,81 +50,48 @@ class Planet:
 
         state = self.__dict__.copy()
         del state["sound"]
+        del state["state_manager"]
         return state
 
-    @staticmethod
-    def set_value_generator(attribute: str):
+    def __setstate__(self, state):
         """
-        generates a set value function for a given attribute
+        restore the state of the planet after loading from file with the sound attribute
 
+        :param state: the state without the sound attribute
+        """
+
+        self.__dict__.update(state)
+        self.sound = Sound(self.sound_path) if self.sound_path else None
+
+    def set_value(self, value, attribute: str, update: bool = True, add_state: bool = True):
+        """
+        handles when the user updates a value
+            --> adds the state update to the state manager
+            --> updates the value in the class
+
+        ** PASSED BY PROPERTY **
+        :param self: the instance of the class to update
+        :param value: the value of the class to update
+
+        ** PASSED BY PARTIAL **
         :param attribute: the attribute of the class to update
+        :param update: determines if the ui will need to update after the attribute change default is true
 
-        :return: the function used to update that attribute
+        ** PASSED BY RECURSION **
+        :param add_state: determines if the action should be added to the state manager
+
+        :return the function to redo the action
         """
 
-        def set_value(self, value):
-            """
-            handles when the user updates a value
-                --> updates the value in the class
-                --> adds the state update to the state manager
+        # adds state
+        undo = (self.set_value, getattr(self, attribute), attribute, update, False)
+        redo = (self.set_value, value, attribute, update, False)
+        self.state_manager.add_state({"undo": undo, "redo": redo}) if add_state else None
 
-            :param self: the instance of the class to update
-            :param value: the value of the class to update
-
-            :return the function to redo the action
-            """
-
-            def state_undo(old=getattr(self, attribute)):
-                """
-                the function to handle the undo action
-
-                :param old: the old value of the attribute
-
-                :return: the function for the redo action
-                """
-
-                setattr(self, attribute, old)
-                return lambda: setattr(self, attribute, value)
-
-            self.state_manager.add_undo(state_undo)
-            setattr(self, attribute, value)
-
-        return set_value
-
-    @staticmethod
-    def get_value_generator(attribute: str):
-        """
-        generates a get value function for a given attribute
-
-        :param attribute: the attribute of the class to get
-
-        :return: the function used to get that attribute
-        """
-
-        def get_value(self):
-            """
-            gets a value of the class
-
-            :param self: the instance of the class to get the value of
-
-            :return: the value of the class specified by the generator function
-            """
-
-            return getattr(self, attribute)
-
-        return get_value
+        # updates planet
+        setattr(self, attribute, value)
+        self.update = update
 
     # sets class attributes to properties so state can be stored in state manager  todo add distance from sun update
-    color = property(get_value_generator("_color"), set_value_generator("_color"))
-    radius = property(get_value_generator("_radius"), set_value_generator("_radius"))
-
-
-# p = Planet(1, 1, "green")
-# p.state_manager = StateManger()
-# print(p.color)
-# p.color = "orange"
-# print(p.color)
-# p.state_manager.undo()
-# print(p.color)
-# p.state_manager.redo()
-# print(p.color)
+    color = property(lambda self: getattr(self, "_color"), partial(set_value, attribute="_color"))
+    radius = property(lambda self: getattr(self, "_radius"), partial(set_value, attribute="_radius"))

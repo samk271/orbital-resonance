@@ -23,8 +23,6 @@ class Canvas(CTkCanvas):
         --> star generation properties
     todo update planet settings when a planet is selected
     todo draw planet orbit paths?
-    todo undo/redo functionality
-    todo change unsaved value when changes are made
     todo add tooltips when hovering over buttons
     """
 
@@ -69,6 +67,7 @@ class Canvas(CTkCanvas):
         # gets kwargs
         if "planet_settings" and "AI_settings" and "planet_manager" in kwargs:
             self.planet_manager: PlanetManager = kwargs.pop("planet_manager")
+            self.planet_manager.state_manager.canvas = self
             self.menu_visibility = {"planet": {"menu": kwargs.pop("planet_settings"), "visible": True},
                                     "AI": {"menu": kwargs.pop("AI_settings"), "visible": True}}
         else:
@@ -152,51 +151,21 @@ class Canvas(CTkCanvas):
         self.tag_repeat_action("💾", lambda: self.after(0, lambda: setattr(
             self, "unsaved", False if self.planet_manager.save() else self.unsaved)))
 
-        # binds hotkeys to file functions
-        self.bind("<Control-n>", lambda e: self.file_buttons("🆕", e))
-        self.bind("<Control-o>", lambda e: self.file_buttons("📂", e))
-        self.bind("<Control-Shift-S>", lambda e: self.file_buttons("📑", e))
-        self.bind("<Control-s>", lambda e: self.planet_manager.save())
-        self.bind("<Control-z>", lambda e: self.planet_manager.state_manager.undo())
-        self.bind("<Control-y>", lambda e: self.planet_manager.state_manager.redo())
-
         # user movement actions
-        self.bind("<w>", lambda e: self.position_event(array([0, -Canvas.POS_AMT]), event=e))
-        self.bind("<a>", lambda e: self.position_event(array([-Canvas.POS_AMT, 0]), event=e))
-        self.bind("<s>", lambda e: self.position_event(array([0, Canvas.POS_AMT]), event=e))
-        self.bind("<d>", lambda e: self.position_event(array([Canvas.POS_AMT, 0]), event=e))
         self.bind("<Up>", lambda e: self.position_event(array([0, -Canvas.POS_AMT]), event=e))
         self.bind("<Left>", lambda e: self.position_event(array([-Canvas.POS_AMT, 0]), event=e))
         self.bind("<Down>", lambda e: self.position_event(array([0, Canvas.POS_AMT]), event=e))
         self.bind("<Right>", lambda e: self.position_event(array([Canvas.POS_AMT, 0]), event=e))
 
-        # user zoom actions
-        self.bind("<Control-plus>", lambda e: self.zoom_event(Canvas.ZOOM_AMT, e))
-        self.bind("<Control-minus>", lambda e: self.zoom_event(1 / Canvas.ZOOM_AMT, e))
-        self.bind("<Control-equal>", lambda e: self.zoom_event(Canvas.ZOOM_AMT, e))
-        self.bind("<Control-underscore>", lambda e: self.zoom_event(1 / Canvas.ZOOM_AMT, e))
+        # misc actions
         self.bind("<MouseWheel>", lambda e: self.zoom_event(Canvas.ZOOM_AMT if e.delta > 0 else 1 / Canvas.ZOOM_AMT, e))
-
-        # user speed control actions
-        self.bind("<Control-Shift-plus>", lambda e: setattr(self, "speed", self.speed * Canvas.SPEED_FACTOR))
-        self.bind("<Control-Shift-minus>", lambda e: setattr(self, "speed", self.speed / Canvas.SPEED_FACTOR))
-        self.bind("<Control-Shift-equal>", lambda e: setattr(self, "speed", self.speed * Canvas.SPEED_FACTOR))
-        self.bind("<Control-Shift-underscore>", lambda e: setattr(self, "speed", self.speed / Canvas.SPEED_FACTOR))
-
-        # user speed actions
-        self.bind("<Control-Shift-plus>", lambda e: setattr(self, "speed", self.speed * Canvas.SPEED_FACTOR))
-        self.bind("<Control-Shift-minus>", lambda e: setattr(self, "speed", self.speed / Canvas.SPEED_FACTOR))
-        self.bind("<Control-Shift-equal>", lambda e: setattr(self, "speed", self.speed * Canvas.SPEED_FACTOR))
-        self.bind("<Control-Shift-underscore>", lambda e: setattr(self, "speed", self.speed / Canvas.SPEED_FACTOR))
-
-        # focus, resize and click and drag actions
         self.bind("<Button-1>", lambda e: self.focus_set())  # todo do this for planet settings
         self.bind("<Configure>", lambda e: self.resize_event(array([e.width, e.height])))
         self.bind("<Button-1>", lambda e: setattr(self, "drag_event", array([e.x, e.y])), add="+")
         self.bind("<Button-1>", lambda e: setattr(self, "drag_amt", 0), add="+")
         self.bind("<B1-Motion>", lambda e: self.position_event(self.drag_event - array([e.x, e.y]), event=e))
         self.bind("<Button-1>", lambda e: setattr(self, "focused_planet", None if (not e.widget.find_withtag(
-                "current")) or "stars" in self.gettags(e.widget.find_withtag("current")) else self.focused_planet),
+            "current")) or "stars" in self.gettags(e.widget.find_withtag("current")) else self.focused_planet),
                   add="+")
 
     # ================================================ PLANET FUNCTIONS ================================================
@@ -288,16 +257,21 @@ class Canvas(CTkCanvas):
             bbox = self.bbox(planet.tag)
 
             # moves planet when it is rendered
-            if bbox:
+            if bbox and (not planet.update):
                 bbox = array([bbox[2] - bbox[0], bbox[3] - bbox[1]]) / 2
                 pos = floor(self.space_to_canvas(planet.position)[0] - bbox)
                 self.moveto(planet.tag, pos[0], pos[1])
 
-            # resets bbox if it is removed after large zoom/position events (can happen when home button is clicked)
+            # resets bbox if it is glitched or planet state changes
             else:
                 pos = self.space_to_canvas(planet.position)[0]
                 radius = planet.radius * self.zoom[0, 0]
                 self.coords(planet.tag, *(pos - radius), *(pos + radius))
+
+            # handles planet state change
+            if planet.update:
+                self.itemconfig(planet.tag, fill=planet.color)
+                planet.update = False
 
         # ensures proper leveling of canvas items
         if added_buffer:
@@ -367,7 +341,6 @@ class Canvas(CTkCanvas):
                     # prepares seed for chunk so every time it is rendered it renders the same star pattern
                     seed(hash((self.star_seed, chunk_x, chunk_y)))
                     for star in range(Canvas.STARS_PER_CHUNK):
-
                         # generates stars in the chunk
                         x = uniform(chunk_x, chunk_x + Canvas.CHUNK_SIZE)
                         y = uniform(chunk_y, chunk_y + Canvas.CHUNK_SIZE)
@@ -432,10 +405,6 @@ class Canvas(CTkCanvas):
         :param event: the keyboard/mouse event that triggered the state update
         :param render: determines if the event should re-render stars and planets
         """
-
-        # check if the event happened within the canvas bounds
-        if event and event.widget != self:
-            return
 
         # gets the position of zoom event
         mouse = self.canvas_size / 2
@@ -575,7 +544,7 @@ class Canvas(CTkCanvas):
         text_id = self.create_text(center_x, center_y - 3, **kwargs)
         return text_id
 
-    def button_click_animation(self, tag: str, hold: bool = False) -> tuple:
+    def button_click_animation(self, tag: str, hold: tuple = ()) -> tuple:
         """
         updates attributes of the navigation button so that it looks like it was clicked
             --> changes the color if the button for 100 ms
@@ -583,16 +552,27 @@ class Canvas(CTkCanvas):
             --> uses class properties to determine fill and offset values
 
         :param tag: a string representing the tag of the navigation button that was clicked
-        :param hold: determines if the button is being held
+        :param hold: the actions to cancel to keep the button held
 
         :return the queued actions to reset the button state (they will be canceled if the button is held)
         """
+
+        # cancels animation if there are not undo/redo actions
+        undo = (tag == "↩" and len(self.planet_manager.state_manager.undo_actions) == 0)
+        redo = (tag == "↪" and len(self.planet_manager.state_manager.redo_actions) == 0)
+        if undo or redo:
+            return
 
         # updates the button to the clicked state
         if not hold:
             self.itemconfig("center" + tag, **Canvas.NAV_BUTTON_CLICKED)
             self.move(tag, Canvas.NAV_BUTTON_CLICK_OFFSET, Canvas.NAV_BUTTON_CLICK_OFFSET)
             self.update_idletasks()
+
+        # handles holding the button
+        else:
+            self.after_cancel(hold[0])
+            self.after_cancel(hold[1])
 
         # queues actions to release the button
         return (
@@ -619,7 +599,6 @@ class Canvas(CTkCanvas):
                 until user has released the button)
             """
 
-            [self.after_cancel(event) for event in after_click]
             after_click = self.button_click_animation(tag, hold=after_click)
             self.after_click = self.after(Canvas.NAV_BUTTON_REPEAT, lambda: repeat(after_click))
             function()
@@ -680,19 +659,24 @@ class Canvas(CTkCanvas):
         :param event: the event that triggered the function
         """
 
-        # warns the user they might lose progress if they perform the action without saving
+        # sets text for warning
         self.button_click_animation(tag) if not event else None
         args = "Save Project", "You have unsaved changes that will be lost without saving. Continue?"
-        if tag in ("🆕", "📂", "exit") and self.unsaved and (not askokcancel(*args)):
-            return "cancel"
+        args = ("Exit", "You are are about to exit. Continue?") if tag == "exit" and (not self.unsaved) else args
+        args = ("Start New Project", "You are about to start a new project. Continue?") if \
+            tag == "🆕" and (not self.unsaved) else args
+
+        # warns user they will lose progress if loading when not saved
+        if tag == "📂" and self.unsaved and (not askokcancel(*args)):
+            return
 
         # asks user if they are sure they want to start a new project
-        elif tag == "🆕" and (not askokcancel("Start New Project", "You are about to start a new project. Continue?")):
+        elif tag == "🆕" and (not askokcancel(*args)):
             return
 
         # asks user if they are sure they want to exit
-        elif tag == "exit" and (not askokcancel("Exit", "Are you sure you want to exit?")):
-            return "cancel"
+        elif tag == "exit" and askokcancel(*args):
+            return "exit"
 
         # changes file manager if new or load are clicked
         manager = PlanetManager() if tag == "🆕" else None
@@ -701,7 +685,9 @@ class Canvas(CTkCanvas):
 
         # updates planet manager and ui if user selected a file to load
         if manager:
+            manager.state_manager.canvas = self
             self.planet_manager = manager
+            self.speed = 1
             self.menu_visibility["AI"]["menu"].planet_manager = manager
             self.delete("planets")
             self.set_focus(self.planet_manager.get_sun(), True, False)

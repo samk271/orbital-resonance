@@ -8,7 +8,6 @@ from tkinter.filedialog import asksaveasfilename, askopenfilename
 from pathlib import Path
 from re import findall
 from GUI.StateManager import StateManger
-from pygame.mixer import Sound
 
 
 class PlanetManager:
@@ -51,11 +50,16 @@ class PlanetManager:
             a sun will be generated automatically
         """
 
+        # sets planet attributes
         self.planets = planets if planets else [Planet(0, 50, "yellow")]  # todo adjust default sun settings when min/max values are determined
         self.removed_buffer = []
         self.added_buffer = self.planets.copy()
-        self.save_path = None
+        self.save_path: str = None
         self.state_manager = StateManger()
+
+        # ensures planets have access to state manager
+        for planet in self.planets:
+            planet.state_manager = self.state_manager
 
     def save(self, path: str = None):
         """
@@ -84,8 +88,7 @@ class PlanetManager:
 
         # saves data and updates save path
         self.save_path = path if path else self.save_path
-        copy = PlanetManager(self.planets)
-        data = compress(dumps(copy))
+        data = compress(dumps(self.planets))
         with open(self.save_path, "wb") as file:
             file.write(data)
         return True
@@ -110,12 +113,8 @@ class PlanetManager:
 
         # loads the file
         with open(path, "rb") as file:
-            planet_manager = loads(decompress(file.read()))
+            planet_manager = PlanetManager(loads(decompress(file.read())))
         planet_manager.save_path = path
-
-        # loads all of sound files and returns
-        for planet in planet_manager.planets:
-            planet.sound = Sound(planet.sound_path) if planet.sound_path else None
         return planet_manager
 
     def get_sun(self) -> Planet:
@@ -125,7 +124,7 @@ class PlanetManager:
 
         return self.planets[0]
 
-    def add_planet(self, planet: Planet, add_undo: bool = True):
+    def add_planet(self, planet: Planet, add_state: bool = True):
         """
         adds a planet to the list of planets that exist in the program
             ** note: planet class must be created externally and passed as a parameter **
@@ -136,26 +135,20 @@ class PlanetManager:
         additionally adds the remove planet action to the undo buffer
 
         :param planet: the planet that has been created that should be added to the planets list
-        :param add_undo: determines if the action should be added to the undo buffer
+        :param add_state: determines if the action should be added to the state manager
         """
 
-        def state_undo():
-            """
-            the function to handle the undo action
+        # adds state updates to state manager
+        state = {"undo": (self.remove_planet, planet, False), "redo": (self.add_planet, planet, False)}
+        self.state_manager.add_state(state) if add_state else None
 
-            :return: the function for the redo action
-            """
-
-            self.remove_planet(planet, False)
-            return lambda: self.add_planet(planet, False)
-
-        self.state_manager.add_undo(state_undo) if add_undo else None
+        # adds planet to solar system
         planet.state_manager = self.state_manager
         self.planets.append(planet)
         self.added_buffer.append(planet)
         self.reset_planet_positions()
 
-    def remove_planet(self, planet: Planet, add_undo: bool = True):
+    def remove_planet(self, planet: Planet, add_state: bool = True):
         """
         removes a planet from the list of planets that exist in the program
             ** note: this planet must have already been added to the list with add_planet and passed again to remove **
@@ -166,20 +159,14 @@ class PlanetManager:
         additionally adds the add planet action to the undo buffer
 
         :param planet: the planet to remove from the planets list
-        :param add_undo: determines if the action should be added to the undo buffer
+        :param add_state: determines if the action should be added to the state manager
         """
 
-        def state_undo():
-            """
-            the function to handle the undo action
+        # adds state to state manager
+        state = {"undo": lambda: self.add_planet(planet, False), "redo": lambda: self.remove_planet(planet, False)}
+        self.state_manager.add_state(state) if add_state else None
 
-            :return: the function for the redo action
-            """
-
-            self.add_planet(planet)
-            return lambda: self.remove_planet(planet)
-
-        self.state_manager.add_undo(state_undo) if add_undo else None
+        # removes planet
         self.planets.remove(planet)
         self.removed_buffer.append(planet)
 
@@ -246,4 +233,3 @@ class PlanetManager:
             if rel_x < 0 and new_x >= 0:
                 #insert sound playing here
                 planet.sound.play() if planet.sound else None
-                
