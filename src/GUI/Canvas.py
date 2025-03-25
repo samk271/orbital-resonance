@@ -687,6 +687,7 @@ class Canvas(CTkCanvas):
         if manager:
             manager.state_manager.canvas = self
             self.planet_manager = manager
+            self.speed = 1
             self.menu_visibility["AI"]["menu"].planet_manager = manager
             self.delete("planets")
             self.set_focus(self.planet_manager.get_sun(), True, False)
