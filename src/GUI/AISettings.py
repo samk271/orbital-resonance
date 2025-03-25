@@ -137,8 +137,6 @@ class AISettings(CTkFrame):
         self.duration_menu = tk.OptionMenu(self, self.planet_duration, *self.duration_list)
         self.duration_menu.grid(row=1,column=7,sticky="n",padx=10,pady=40)
 
-
-
         # sets column weights for dynamic resizing
         self.columnconfigure(0, weight=1)
         self.columnconfigure(7, weight=1)
@@ -169,7 +167,8 @@ class AISettings(CTkFrame):
         
 
         #average stereo wav signal
-        x = np.average(x, axis=1)
+        if (len(x.shape) > 1):
+            x = np.average(x, axis=1)
 
         plot.cla()
         
@@ -187,7 +186,10 @@ class AISettings(CTkFrame):
 
     def update_sound(self,plot):
 
-        x= np.average(self.signal, axis=1)
+        if (len(self.signal.shape) > 1):
+            x= np.average(self.signal, axis=1)
+        else:
+            x=self.signal
 
         #Update plot
         plot.cla()
