@@ -153,6 +153,7 @@ class PlanetManager:
         planet.state_manager = self.state_manager
         self.planets.append(planet)
         self.added_buffer.append(planet)
+        self.reset_planet_positions()
 
     def remove_planet(self, planet: Planet, add_undo: bool = True):
         """
@@ -203,6 +204,16 @@ class PlanetManager:
         buffer = self.removed_buffer.copy()
         self.removed_buffer.clear()
         return buffer
+
+    def reset_planet_positions(self):
+        """
+        Resets the position of each planet
+
+        Called when new planet is added to keep everything in sync
+        """
+        for planet in self.planets:
+            planet.position = array([0.0, -round(planet.orbital_radius)])
+
 
     def update_planet_physics(self, dt):
         """

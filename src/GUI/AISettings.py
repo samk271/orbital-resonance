@@ -1,4 +1,5 @@
 import os
+import shutil
 import tkinter as tk
 from tkinter.colorchooser import askcolor
 from customtkinter import CTkFrame, CTkLabel, CTkTextbox, CTkButton, CTkCanvas
@@ -72,7 +73,7 @@ class AISettings(CTkFrame):
 
         self.select_button = CTkButton(self, text="Select Sound")
         self.select_button.configure(command=lambda: self.select_sound(
-            wav_dir="./AUDIO/temp_samples", plot=plot1, color=generate_button.cget("fg_color")))
+            wav_dir="./AUDIO/temp_samples", plot=plot1))
         self.select_button.grid(row=2, column=0, pady=5)
 
         # create slider under graph
@@ -100,12 +101,12 @@ class AISettings(CTkFrame):
         self.planet_name_input.insert(index=tk.END,text ="Planet")
 
         #Generate sound library button
-        generate_button = CTkButton(self, text="Use Sample")
-        generate_button.configure(command=lambda: self.generate_library())
-        generate_button.grid(row=1, column=3, sticky="n", pady=(20, 0))
+        self.generate_button = CTkButton(self, text="Use Sample",  fg_color="gray25", state="disabled")
+        self.generate_button.configure(command=lambda: self.generate_library())
+        self.generate_button.grid(row=1, column=3, sticky="n", pady=(20, 0))
 
         # creates add button todo add function
-        self.add_button = CTkButton(self, text="Add to Solar System", fg_color="gray25")
+        self.add_button = CTkButton(self, text="Add to Solar System", fg_color="gray25", state="disabled")
         self.add_button.configure(command=lambda: self.add_planet_to_ss())
         self.add_button.grid(row=2, column=3, sticky="s", pady=(0, 20))
 
@@ -129,10 +130,10 @@ class AISettings(CTkFrame):
         #create optiom menu for note duration
         self.note_menu_label = CTkLabel(self, height=10, text="Select a duration")
         self.note_menu_label.grid(row=1,column=7,sticky="n", padx=10)
-        duration_list = ["Whole","Half","Quarter","Eigth","Sixteenth"]
-        self.planet_duration = tk.StringVar(self)
+        self.duration_list = [8,4,2,1,0.5]
+        self.planet_duration = tk.DoubleVar(self)
         self.planet_duration.set("Select Duration")
-        self.duration_menu = tk.OptionMenu(self, self.planet_duration, *duration_list)
+        self.duration_menu = tk.OptionMenu(self, self.planet_duration, *self.duration_list)
         self.duration_menu.grid(row=1,column=7,sticky="n",padx=10,pady=40)
 
 
@@ -154,7 +155,7 @@ class AISettings(CTkFrame):
             new_tag = self.planet_canvas.create_oval(0, 0, 60, 60, fill=self.planet_color)
             self.planet_canvas.tag_bind(new_tag, "<ButtonRelease-1>", lambda e: self.select_color())
 
-    def select_sound(self, wav_dir, plot, color: str):
+    def select_sound(self, wav_dir, plot):
         wav_file = self.listbox.get()
         fs, x = wav.read(os.path.join(wav_dir,wav_file))
 
@@ -178,9 +179,10 @@ class AISettings(CTkFrame):
         self.sound_graph.draw()
 
         # enabled the buttons
-        self.play_button.configure(state="normal", fg_color=color)
-        self.add_button.configure(state="normal", fg_color=color)
-        self.update_sound_button.configure(state="normal", fg_color=color)
+        self.play_button.configure(state="normal", fg_color=self.select_button.cget("fg_color"))
+        self.update_sound_button.configure(state="normal", fg_color=self.select_button.cget("fg_color"))
+        self.generate_button.configure(state="normal", fg_color=self.select_button.cget("fg_color"))
+        
 
     def update_sound(self,plot):
 
@@ -212,19 +214,26 @@ class AISettings(CTkFrame):
 
     def generate_library(self):
         """
-        generates a library of notes for the selected sample
-
-        activates the dialog to select pitch for the planet
+        stores cropped sample to dedicated planet wav file
         """
 
-        planet_name = self.planet_name_input.get()
-        #nlg.gen_note_library(wav_file="./AUDIO/temp_wav.wav",library_folder=f"./AUDIO/{planet_name}", name=planet_name)
+        planet_name = self.planet_name_input.get("1.0",'end-1c')
+
+        if not (os.path.isdir(f"./AUDIO/planets/{planet_name}")):
+            os.mkdir(f"./AUDIO/planets/{planet_name}")
+
+        shutil.copy("./AUDIO/temp_wav.wav", f"./AUDIO/planets/{planet_name}/{planet_name}.wav")
+        self.add_button.configure(state="normal", fg_color=self.select_button.cget("fg_color"))
 
         
     #Add planet to solar system
     def add_planet_to_ss(self):
 
-        planet= Planet(period=1,radius=20, color=self.planet_color, sound_path="./AUDIO/temp_wav.wav")
+        planet_name = self.planet_name_input.get("1.0",'end-1c')
+
+        planet= Planet(period=self.planet_duration.get()
+                       ,radius=20, color=self.planet_color, 
+                       sound_path=f"./AUDIO/planets/{planet_name}/{planet_name}.wav")
 
         self.planet_manager.add_planet(planet)
 

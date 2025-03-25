@@ -13,7 +13,7 @@ class Planet:
         feel free to add more attributes/functions as needed for physics
     """
 
-    def __init__(self, period: float, radius: float, color: str, sound_path=None):
+    def __init__(self, period: float, radius: float, color: str, sound_path=None, offset=0):
         """
         creates the planet with the given attributes
 
@@ -24,6 +24,7 @@ class Planet:
         """
 
         self.period = period
+        self.offset = offset
         self.orbital_radius = (period**(2/3)) * 500
         self.position = array([0.0, -round(self.orbital_radius)])
         self._radius = radius
