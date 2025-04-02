@@ -22,8 +22,10 @@ class Canvas(CTkCanvas):
         --> state properties
         --> star generation properties
     todo update planet settings when a planet is selected
-    todo draw planet orbit paths?
     todo add tooltips when hovering over buttons
+    todo change zoom frames to zoom time so not affected by frame drops
+    todo dont update planets after every event, just move them?
+    todo re-render planet paths on large zoom events
     """
 
     # properties for how navigation buttons should look and function
@@ -291,7 +293,7 @@ class Canvas(CTkCanvas):
         # updates color of triggered planets
         for planet in triggered:
             self.itemconfig(planet.tag, fill="white")
-            self.after(100, lambda p=planet: self.itemconfig(p.tag, fill=p.color))
+            self.after(Canvas.NAV_BUTTON_CLICK_TIME, lambda p=planet: self.itemconfig(p.tag, fill=p.color))
 
         # ensures proper leveling of canvas items
         if added_buffer:
