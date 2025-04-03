@@ -253,16 +253,16 @@ class Canvas(CTkCanvas):
         for planet in added_buffer:
             planet.tag = uuid1()
 
-            # draws orbit path todo handle update planet orbital radius
+            # draws orbit path
             if planet != self.planet_manager.get_sun():
-                corner1 = self.space_to_canvas(array([planet.orbital_radius] * 2))[0]
-                corner2 = self.space_to_canvas(array([- planet.orbital_radius] * 2))[0]
-                self.create_oval(*corner1, *corner2, outline="gray", width=1, tags=("planets", f"path {planet.tag}"))
+                p1 = self.space_to_canvas(array([planet.orbital_radius] * 2))[0]
+                p2 = self.space_to_canvas(array([- planet.orbital_radius] * 2))[0]
+                self.create_oval(*p1, *p2, outline="gray", width=1, tags=("planets", f"path {planet.tag}"))
 
                 # draws sound trigger
-                y1 = self.space_to_canvas(array([0, -planet.orbital_radius + (planet.radius * Canvas.TRIGGER_SIZE)]))[0]
-                y2 = self.space_to_canvas(array([0, -planet.orbital_radius - (planet.radius * Canvas.TRIGGER_SIZE)]))[0]
-                self.create_line(*y1, *y2, fill="gray", width=1, tags=("planets", f"trigger {planet.tag}"))
+                p1 = self.space_to_canvas(array([0, -planet.orbital_radius + (planet.radius * Canvas.TRIGGER_SIZE)]))[0]
+                p2 = self.space_to_canvas(array([0, -planet.orbital_radius - (planet.radius * Canvas.TRIGGER_SIZE)]))[0]
+                self.create_line(*p1, *p2, fill="gray", width=1, tags=("planets", f"trigger {planet.tag}"))
 
             # draws planet
             kwargs = {"tags": ("planets", planet.tag), "fill": planet.color}
@@ -279,10 +279,25 @@ class Canvas(CTkCanvas):
             pos = floor(self.space_to_canvas(planet.position)[0] - bbox)
             self.moveto(planet.tag, pos[0], pos[1])
 
-            # handles planet state change todo update planet radius change
+            # handles planet state change
             if planet.update:
                 self.itemconfig(planet.tag, fill=planet.color)
                 planet.update = False
+
+                # updates radius
+                p1 = self.space_to_canvas(planet.position - planet.radius)[0]
+                p2 = self.space_to_canvas(planet.position + planet.radius)[0]
+                self.coords(planet.tag, *p1, *p2)
+
+                # updates path
+                p1 = self.space_to_canvas(array([planet.orbital_radius] * 2))[0]
+                p2 = self.space_to_canvas(array([- planet.orbital_radius] * 2))[0]
+                self.coords(f"path {planet.tag}", *p1, *p2)
+
+                # updates trigger
+                p1 = self.space_to_canvas(array([0, -planet.orbital_radius + (planet.radius * Canvas.TRIGGER_SIZE)]))[0]
+                p2 = self.space_to_canvas(array([0, -planet.orbital_radius - (planet.radius * Canvas.TRIGGER_SIZE)]))[0]
+                self.coords(f"trigger {planet.tag}", *p1, *p2)
 
         # updates color of triggered planets
         for planet in triggered:
@@ -452,7 +467,8 @@ class Canvas(CTkCanvas):
         """
 
         # check if the event happened outside the canvas bounds or happened over a navigation button
-        if event and (event.widget != self or "buttons" in self.gettags(event.widget.find_withtag("current"))):
+        if event and (event.widget != self or (event.type != "2" and "buttons" in self.gettags(
+                event.widget.find_withtag("current")))):
             return
 
         # handles click and drag events
