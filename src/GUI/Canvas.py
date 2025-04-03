@@ -22,10 +22,6 @@ class Canvas(CTkCanvas):
         --> state properties
         --> star generation properties
     todo update planet settings when a planet is selected
-    todo change zoom frames to zoom time so not affected by frame drops
-    todo dont update planets after every event, just move them?
-    todo re-render planet paths on large zoom events
-    todo large home events glitched, floating point error?
     """
 
     # properties for how navigation buttons should look and function
@@ -204,7 +200,6 @@ class Canvas(CTkCanvas):
         end_planet_zoom = 1 / max((planet.radius / self.canvas_size) * (Canvas.DEFAULT_ZOOM_PADDING + 1) * 2)
         end_zoom = array([[end_planet_zoom], [Canvas.ZOOM_AMT[1, 0]]])
         self.focus_step["zoom"] = (end_zoom / self.zoom) ** (1 / frames) if zoom else array([[1], [1]])
-        self.update_planets()
 
     def maintain_focus(self, old_space_pos: array):
         """
@@ -251,14 +246,14 @@ class Canvas(CTkCanvas):
 
         # deletes planets in delete buffer
         for planet in self.planet_manager.get_removed_buffer():
-            self.delete(planet.tag, f"path {planet.tag}")
+            self.delete(planet.tag, f"path {planet.tag}", f"trigger {planet.tag}")
 
         # adds newly added planets to the display
         added_buffer = self.planet_manager.get_added_buffer()
         for planet in added_buffer:
             planet.tag = uuid1()
 
-            # draws orbit path todo optimize (dont draw over if path already is drawn), also handle update planet radius
+            # draws orbit path todo handle update planet orbital radius
             if planet != self.planet_manager.get_sun():
                 corner1 = self.space_to_canvas(array([planet.orbital_radius] * 2))[0]
                 corner2 = self.space_to_canvas(array([- planet.orbital_radius] * 2))[0]
@@ -267,7 +262,7 @@ class Canvas(CTkCanvas):
                 # draws sound trigger
                 y1 = self.space_to_canvas(array([0, -planet.orbital_radius + (planet.radius * Canvas.TRIGGER_SIZE)]))[0]
                 y2 = self.space_to_canvas(array([0, -planet.orbital_radius - (planet.radius * Canvas.TRIGGER_SIZE)]))[0]
-                self.create_line(*y1, *y2, fill="gray", width=1, tags=("planets", f"path {planet.tag}"))
+                self.create_line(*y1, *y2, fill="gray", width=1, tags=("planets", f"trigger {planet.tag}"))
 
             # draws planet
             kwargs = {"tags": ("planets", planet.tag), "fill": planet.color}
@@ -278,20 +273,13 @@ class Canvas(CTkCanvas):
         # updates position of all planets
         for planet in self.planet_manager.planets:
             bbox = self.bbox(planet.tag)
+            bbox = array([bbox[2] - bbox[0], bbox[3] - bbox[1]]) / 2
 
             # moves planet when it is rendered
-            if bbox and (not planet.update):
-                bbox = array([bbox[2] - bbox[0], bbox[3] - bbox[1]]) / 2
-                pos = floor(self.space_to_canvas(planet.position)[0] - bbox)
-                self.moveto(planet.tag, pos[0], pos[1])
+            pos = floor(self.space_to_canvas(planet.position)[0] - bbox)
+            self.moveto(planet.tag, pos[0], pos[1])
 
-            # resets bbox if it is glitched or planet state changes
-            else:
-                pos = self.space_to_canvas(planet.position)[0]
-                radius = planet.radius * self.zoom[0, 0]
-                self.coords(planet.tag, *(pos - radius), *(pos + radius))
-
-            # handles planet state change
+            # handles planet state change todo update planet radius change
             if planet.update:
                 self.itemconfig(planet.tag, fill=planet.color)
                 planet.update = False
@@ -448,11 +436,7 @@ class Canvas(CTkCanvas):
         # handles star/planet rendering
         self.scale("planets", mouse[0], mouse[1], amount[0, 0], amount[0, 0])
         self.scale("stars", mouse[0], mouse[1], amount[1, 0], amount[1, 0])
-
-        # ensures infinite recursion does not occur when called from update planets
-        if render:
-            self.draw_stars() if not self.focused_planet else None
-            self.update_planets()
+        self.draw_stars() if render else None
 
     def position_event(self, amount: array, event=None, unfocus: bool = True):
         """
@@ -482,11 +466,10 @@ class Canvas(CTkCanvas):
         self.move("planets", *-amount[0])
         self.move("stars", *-amount[1])
 
-        # ensures infinite recursion does not occur when called from update planets
+        # handles call is not from update planets
         if unfocus:
             self.focused_planet = None
-            self.draw_stars() if not self.focused_planet else None
-            self.update_planets()
+            self.draw_stars()
 
     def resize_event(self, size: array):
         """
@@ -508,8 +491,7 @@ class Canvas(CTkCanvas):
         self.move("planet_settings", difference[0], 0)
         self.move("AI_settings", 0, difference[1])
         self.position_event(-difference / 2, unfocus=False)
-        self.draw_stars() if not self.focused_planet else None
-        self.update_planets()
+        self.draw_stars()
 
         # handles initial resize event
         if not self.initialized:

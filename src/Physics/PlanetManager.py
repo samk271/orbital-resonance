@@ -201,7 +201,6 @@ class PlanetManager:
         for planet in self.planets:
             planet.position = planet.original_position
 
-
     def update_planet_physics(self, dt):
         """
         runs the physics engine on each of the planets within the application
