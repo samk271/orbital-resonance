@@ -22,10 +22,10 @@ class Canvas(CTkCanvas):
         --> state properties
         --> star generation properties
     todo update planet settings when a planet is selected
-    todo add tooltips when hovering over buttons
     todo change zoom frames to zoom time so not affected by frame drops
     todo dont update planets after every event, just move them?
     todo re-render planet paths on large zoom events
+    todo large home events glitched, floating point error?
     """
 
     # properties for how navigation buttons should look and function
@@ -37,6 +37,10 @@ class Canvas(CTkCanvas):
     NAV_BUTTON_CLICK_TIME = 100  # ms
     NAV_BUTTON_REPEAT_DELAY = 600  # ms
     NAV_BUTTON_REPEAT = 30  # ms
+
+    # properties for how tooltips should look and function
+    TOOLTIP_FILL = {"fill": "gray50", "outline": "black"}
+    TOOLTIP_HOVER_TIME = 750
 
     # properties for how much class fields should update when state is updated
     ZOOM_AMT = array([[1.1], [1.003]])  # planet amt, star amt
@@ -83,6 +87,7 @@ class Canvas(CTkCanvas):
         self.unsaved = False
         self.after_update_planets = self.after(int(1000 / Canvas.FPS), self.update_planets)
         self.after_click = self.after(0, lambda: None)
+        self.after_tooltip = self.after(0, lambda: None)
 
         # sets event fields
         self.space_position = array([[0.0, 0.0], [0.0, 0.0]])  # planet pos, star pos
@@ -105,15 +110,15 @@ class Canvas(CTkCanvas):
 
         # creates navigation buttons
         width, height = self.canvas_size
-        self.create_button((width - 80, height - 120, width - 43, height - 83), "↑", "navigation")
-        self.create_button((width - 80, height - 40, width - 43, height - 3), "↓", "navigation")
-        self.create_button((width - 120, height - 80, width - 83, height - 43), "←", "navigation")
-        self.create_button((width - 40, height - 80, width - 3, height - 43), "→", "navigation")
-        self.create_button((width - 40, height - 120, width - 3, height - 83), "⊕", "navigation", (0, -2, 1))
-        self.create_button((width - 40, height - 40, width - 3, height - 3), "⊖", "navigation", (0, -2, 1))
-        self.create_button((width - 120, height - 120, width - 83, height - 83), "🐇", "navigation")
-        self.create_button((width - 120, height - 40, width - 83, height - 3), "🐢", "navigation")
-        self.create_button((width - 80, height - 80, width - 43, height - 43), "🏠", "navigation")
+        self.create_button((width - 80, height - 120, width - 43, height - 83), "↑", "navigation", "Up")
+        self.create_button((width - 80, height - 40, width - 43, height - 3), "↓", "navigation", "Down")
+        self.create_button((width - 120, height - 80, width - 83, height - 43), "←", "navigation", "Left")
+        self.create_button((width - 40, height - 80, width - 3, height - 43), "→", "navigation", "Right")
+        self.create_button((width - 40, height - 120, width - 3, height - 83), "⊕", "navigation", "Zoom In", (0, -2, 1))
+        self.create_button((width - 40, height - 40, width - 3, height - 3), "⊖", "navigation", "Zoom Out", (0, -2, 1))
+        self.create_button((width - 120, height - 120, width - 83, height - 83), "🐇", "navigation", "Speed Up")
+        self.create_button((width - 120, height - 40, width - 83, height - 3), "🐢", "navigation", "Slow Down")
+        self.create_button((width - 80, height - 80, width - 43, height - 43), "🏠", "navigation", "Home")
 
         # sets event handlers for clicking navigation buttons
         self.tag_repeat_action("↑", lambda: self.position_event(array([0, -Canvas.POS_AMT])))
@@ -124,31 +129,32 @@ class Canvas(CTkCanvas):
         self.tag_repeat_action("⊖", lambda: self.zoom_event(1 / Canvas.ZOOM_AMT))
         self.tag_repeat_action("🐇", lambda: setattr(self, "speed", self.speed * Canvas.SPEED_FACTOR))
         self.tag_repeat_action("🐢", lambda: setattr(self, "speed", self.speed / Canvas.SPEED_FACTOR))
-        self.tag_bind("🏠", "<Button-1>", lambda e: self.button_click_animation("🏠"))
+        self.tag_bind("🏠", "<Button-1>", lambda e: self.button_click_animation("🏠"), add="+")
         self.tag_bind("🏠", "<Button-1>", lambda e: self.set_focus(self.planet_manager.get_sun(), True), add="+")
 
         # creates buttons to close and reopen settings menus and binds their functions
-        planet_settings = self.create_button((width - 25, 10, width + 17, 47), ">", "planet_settings", (-9, -2, 1))
-        AI_settings = self.create_button((10, height - 20, 47, height + 17), "carrot", "AI_settings")
-        self.itemconfig(AI_settings, angle=180)
-        self.move(AI_settings, 0, -10)
-        self.tag_bind(">", "<Button-1>", lambda e: self.button_click_animation(">"))
-        self.tag_bind("carrot", "<Button-1>", lambda e: self.button_click_animation("carrot"))
-        self.tag_bind(">", "<Button-1>", lambda e: self.menu_visibility_buttons(planet_settings), add="+")
-        self.tag_bind("carrot", "<Button-1>", lambda e: self.menu_visibility_buttons(AI_settings), add="+")
+        right_menu = self.create_button((width - 25, 10, width + 17, 47), ">", "planet_settings", "Hide", (-9, -2, 1))
+        bottom_menu = self.create_button((10, height - 20, 47, height + 17), "carrot", "AI_settings", "Hide")
+        self.itemconfig(bottom_menu, angle=180)
+        self.move(bottom_menu, 0, -10)
+        self.tag_bind(">", "<Button-1>", lambda e: self.button_click_animation(">"), add="+")
+        self.tag_bind("carrot", "<Button-1>", lambda e: self.button_click_animation("carrot"), add="+")
+        self.tag_bind(">", "<Button-1>", lambda e: self.menu_visibility_buttons(right_menu), add="+")
+        self.tag_bind("carrot", "<Button-1>", lambda e: self.menu_visibility_buttons(bottom_menu), add="+")
 
         # creates file menu buttons
-        self.create_button((3, 3, 36, 36), "🆕", "File", (0, 0, .75))
-        self.create_button((36, 3, 69, 36), "📂", "File", (0, 0, .75))
-        self.create_button((69, 3, 102, 36), "💾", "File", (0, 0, .75))
-        self.create_button((102, 3, 135, 36), "📑", "File", (0, 0, .75))
-        self.create_button((135, 3, 168, 36), "↩", "File", (0, -5, 1.3))
-        self.create_button((168, 3, 201, 36), "↪", "File", (0, -5, 1.3))
+        self.create_button((3, 3, 36, 36), "🆕", "File", "New", (0, 0, .75))
+        self.create_button((36, 3, 69, 36), "📂", "File", "Load", (0, 0, .75))
+        self.create_button((69, 3, 102, 36), "💾", "File", "Save", (0, 0, .75))
+        self.create_button((102, 3, 135, 36), "📑", "File", "Save As", (0, 0, .75))
+        self.create_button((135, 3, 168, 36), "↩", "File", "Undo", (0, -5, 1.3))
+        self.create_button((168, 3, 201, 36), "↪", "File", "Redo", (0, -5, 1.3))
+        self.tag_raise("tooltips")
 
         # sets event handlers for clicking file menu buttons
-        self.tag_bind("🆕", "<Button-1>", lambda e: self.after(0, lambda: self.file_buttons("🆕")))
-        self.tag_bind("📂", "<Button-1>", lambda e: self.after(0, lambda: self.file_buttons("📂")))
-        self.tag_bind("📑", "<Button-1>", lambda e: self.after(0, lambda: self.file_buttons("📑")))
+        self.tag_bind("🆕", "<Button-1>", lambda e: self.after(0, lambda: self.file_buttons("🆕")), add="+")
+        self.tag_bind("📂", "<Button-1>", lambda e: self.after(0, lambda: self.file_buttons("📂")), add="+")
+        self.tag_bind("📑", "<Button-1>", lambda e: self.after(0, lambda: self.file_buttons("📑")), add="+")
         self.tag_repeat_action("↩", lambda: self.planet_manager.state_manager.undo())
         self.tag_repeat_action("↪", lambda: self.planet_manager.state_manager.redo())
         self.tag_repeat_action("💾", lambda: self.after(0, lambda: setattr(
@@ -512,7 +518,7 @@ class Canvas(CTkCanvas):
 
     # ==================================================== BUTTONS =====================================================
 
-    def create_button(self, corners: tuple, text: str, tag: str, shift: tuple = (0, 0, 1)) -> int:
+    def create_button(self, corners: tuple, text: str, tag: str, tooltip: str, shift: tuple = (0, 0, 1)) -> int:
         """
         creates a button on the canvas with the given parameters
             --> rectangle with rounded edges
@@ -523,6 +529,7 @@ class Canvas(CTkCanvas):
             (x1, y1, x2, y2)
         :param text: the text to add to the button
         :param tag: the tag to associate with the navigation button (used in resize events)
+        :param tooltip: the message to be displayed when the user hovers over the button
         :param shift: the offset value to apply to the string so that it is slightly off center and scale in the form
             (dx, dy, scale)
 
@@ -537,6 +544,7 @@ class Canvas(CTkCanvas):
         center_y = ((y1 + y2) / 2) - shift[1]
         center_tag = (text, "buttons", tag, f"center{text}")
         edge_tag = (text, "buttons", tag)
+        tooltip_tag = (text, "buttons", "tooltips", f"{text} tooltip")
 
         # draws the rounded corners
         self.create_oval(x1, y1, x1 + radius * 2, y1 + radius * 2, **Canvas.NAV_BUTTON_FILL, tags=center_tag)
@@ -560,6 +568,51 @@ class Canvas(CTkCanvas):
         self.create_line(x1 + radius, y2, x2 - radius, y2, **Canvas.NAV_BUTTON_BORDER, tags=edge_tag)
         self.create_line(x1, y1 + radius, x1, y2 - radius, **Canvas.NAV_BUTTON_BORDER, tags=edge_tag)
         self.create_line(x2, y1 + radius, x2, y2 - radius, **Canvas.NAV_BUTTON_BORDER, tags=edge_tag)
+
+        # creates tooltip
+        tooltip = self.create_text(0, 0, text=tooltip, font=("Arial", 10), fill="black", tags=tooltip_tag)
+        padding = array([-3, -3, 3, 3])
+        bg = self.create_rectangle(*(array(self.bbox(tooltip)) + padding[:]), **Canvas.TOOLTIP_FILL, tags=tooltip_tag)
+        self.tag_raise(tooltip)
+        self.itemconfig(f"{text} tooltip", state="hidden")
+
+        def place_tooltip(event):
+            """
+            moves the tooltip to the mouse position and makes it visible
+
+            :param event: the enter event that triggered the function
+            """
+
+            # handles when the tooltip has already been made visible
+            if text not in self.gettags(event.widget.find_withtag("current")):
+                return
+
+            # makes the tooltip visible and gets its bbox
+            self.itemconfig(f"{text} tooltip", state="normal")
+            bbox = self.bbox(tooltip)
+            dx, dy = ((bbox[2] - bbox[0]) / 2) + padding[2], ((bbox[3] - bbox[1]) / 2) + padding[3]
+
+            # finds position where tooltip will be visible
+            if event.x - (dx * 2) < 0:
+                event.x += dx + 8
+            else:
+                event.x -= dx
+            if event.y - (dy * 2) < 0:
+                event.y += dy + 8
+            else:
+                event.y -= dy
+
+            # set position of tooltip
+            self.coords(tooltip, event.x, event.y)
+            self.coords(bg, *(array(self.bbox(tooltip)) + padding[:]))
+
+        # binds events to handle tooltip functionality
+        self.tag_bind(text, "<Button-1>", lambda e: self.after_cancel(self.after_tooltip))
+        self.tag_bind(text, "<Button-1>", lambda e: self.itemconfig(f"{text} tooltip", state="hidden"), add="+")
+        self.tag_bind(text, "<Motion>", lambda e: self.after_cancel(self.after_tooltip))
+        self.tag_bind(text, "<Motion>", lambda e: self.itemconfig(f"{text} tooltip", state="hidden"), add="+")
+        self.tag_bind(text, "<Motion>", lambda e: setattr(self, "after_tooltip", self.after(
+            Canvas.TOOLTIP_HOVER_TIME, lambda: place_tooltip(e))), add="+")
 
         # draws text and sets click event handler
         char = text if text != "carrot" else "^"
@@ -638,9 +691,9 @@ class Canvas(CTkCanvas):
             function()
 
         # binds functions to tags
-        self.tag_bind(tag, "<Button-1>", lambda e: first_click())
+        self.tag_bind(tag, "<Button-1>", lambda e: first_click(), add="+")
         self.tag_bind(tag, "<ButtonRelease-1>", lambda e: self.after_cancel(self.after_click))
-        self.tag_bind(tag, "<Leave>", lambda e: self.after_cancel(self.after_click))
+        self.tag_bind(tag, "<Leave>", lambda e: self.after_cancel(self.after_click), add="+")
 
     def menu_visibility_buttons(self, text_id: int):
         """
