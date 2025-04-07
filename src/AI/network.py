@@ -1,110 +1,117 @@
 import torch
-import numpy as np
-import torch.nn as nn
-import torch.nn.functional as F
-from sentence_transformers import SentenceTransformer
+from torch import nn
+from torch.utils.data import DataLoader
+from diffusers import UNet2DConditionModel, DDPMScheduler
+from tqdm.auto import tqdm
+import os
 
-"""
-VAE Network for spectrogram generation.
 
-Text embeddings come from Sentence Transformer as part of MiniLM
-"""
+class SpectrogramDiffusionTrainer:
+    def __init__(
+        self,
+        image_shape=(2, 129, 861),  # (C, H, W)
+        text_embedding_dim=384,
+        learning_rate=1e-4,
+        device="cuda" if torch.cuda.is_available() else "cpu"
+    ):
+        self.device = device
 
-class GenerativeCVAE(nn.Module):
-    def __init__(self, latent_dim=256, text_embedding_dim=128):
-        super(GenerativeCVAE, self).__init__()
+        print(device)
 
-        self.latent_dim = latent_dim
-        self.text_embedding_dim = text_embedding_dim
+        # Initialize UNet model
+        self.model = UNet2DConditionModel(
+            sample_size=image_shape[1:],  # (H, W)
+            in_channels=image_shape[0],
+            out_channels=image_shape[0],
+            layers_per_block=2,
+            block_out_channels=(128, 256, 512, 512),
+            down_block_types=(
+                "DownBlock2D", "DownBlock2D", "DownBlock2D", "DownBlock2D"
+            ),
+            up_block_types=(
+                "UpBlock2D", "UpBlock2D", "UpBlock2D", "UpBlock2D"
+            ),
+            cross_attention_dim=text_embedding_dim,
+        ).to(self.device)
 
-        # Text encoder (SBERT)
-        self.text_encoder = SentenceTransformer("sentence-transformers/all-MiniLM-L6-v2")  
+        # Diffusion noise scheduler
+        self.noise_scheduler = DDPMScheduler(num_train_timesteps=1000)
 
-        # Encoder
-        self.encoder = nn.Sequential(
-            nn.Conv2d(2, 32, kernel_size=(3, 9), stride=(1, 2), padding=(1, 4)),  # (2, 129, 1722) → (32, 129, 861)
-            nn.ReLU(),
-            nn.Conv2d(32, 64, kernel_size=(3, 7), stride=(2, 2), padding=(1, 3)),  # (64, 65, 431)
-            nn.ReLU(),
-            nn.Conv2d(64, 128, kernel_size=(3, 5), stride=(2, 2), padding=(1, 2)),  # (128, 33, 216)
-            nn.ReLU(),
-            nn.Conv2d(128, 256, kernel_size=(3, 3), stride=(2, 2), padding=(1, 1)),  # (256, 17, 108)
-            nn.ReLU(),
-            nn.Conv2d(256, 512, kernel_size=(3, 3), stride=(2, 2), padding=(1, 1)),  # (512, 9, 54)
-            nn.ReLU(),
-        )
+        # Optimizer
+        self.optimizer = torch.optim.AdamW(self.model.parameters(), lr=learning_rate)
 
-        self.feature_map_size = 512 * 9 * 54
+        # Loss function
+        self.loss_fn = nn.MSELoss()
 
-        # Fully connected layers for latent space
-        self.fc_mu = nn.Linear(self.feature_map_size + text_embedding_dim, latent_dim)
-        self.fc_logvar = nn.Linear(self.feature_map_size + text_embedding_dim, latent_dim)
+    def train(self, dataset, batch_size=4, epochs=10, save_path=None):
+        dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=True)
 
-        # Decoder
-        self.fc_decode = nn.Linear(latent_dim + text_embedding_dim, self.feature_map_size)
+        self.model.train()
+        for epoch in range(epochs):
+            pbar = tqdm(dataloader, desc=f"Epoch {epoch+1}/{epochs}")
+            count = 0
+            for batch in pbar:
+                spectrograms = batch["spectrogram"].to(self.device)  # shape: (B, 2, 129, 861)
+                text_embeddings = batch["text_embedding"].to(self.device)  # shape: (B, 384)
 
-        self.decoder = nn.Sequential(
-            nn.ConvTranspose2d(512, 256, kernel_size=(3, 3), stride=(2, 2), padding=(1, 1), output_padding=(1, 1)),  # (256, 17, 108)
-            nn.ReLU(),
-            nn.ConvTranspose2d(256, 128, kernel_size=(3, 3), stride=(2, 2), padding=(1, 1), output_padding=(1, 1)),  # (128, 33, 216)
-            nn.ReLU(),
-            nn.ConvTranspose2d(128, 64, kernel_size=(3, 5), stride=(2, 2), padding=(1, 2), output_padding=(1, 1)),  # (64, 65, 431)
-            nn.ReLU(),
-            nn.ConvTranspose2d(64, 32, kernel_size=(3, 7), stride=(2, 2), padding=(1, 3), output_padding=(1, 1)),  # (32, 129, 861)
-            nn.ReLU(),
-            nn.ConvTranspose2d(32, 2, kernel_size=(3, 9), stride=(1, 2), padding=(1, 4), output_padding=(0, 1)),  # (2, 129, 1722)
-            nn.Sigmoid(),  # Normalize output to [0,1]
-        )
+                # Sample random noise and timesteps
+                noise = torch.randn_like(spectrograms)
+                timesteps = torch.randint(0, self.noise_scheduler.config.num_train_timesteps, (spectrograms.shape[0],), device=self.device).long()
 
-    def encode_text(self, text):
-        """Encodes text prompt into a fixed-size embedding."""
-        with torch.no_grad():
-            text_embedding = self.text_encoder.encode([text], convert_to_tensor=True)
-        return text_embedding
+                # Add noise to spectrograms
+                noisy_spectrograms = self.noise_scheduler.add_noise(spectrograms, noise, timesteps)
 
-    def reparameterize(self, mu, logvar):
-        std = torch.exp(0.5 * logvar)
-        eps = torch.randn_like(std)
-        return mu + eps * std
+                # Predict the noise
+                # Reshape embeddings to (B, 1, 384)
 
-    def encode(self, x, text_embedding):
-        x = self.encoder(x)
-        x = torch.flatten(x, start_dim=1)
-        x = torch.cat([x, text_embedding], dim=1)  
-        mu = self.fc_mu(x)
-        logvar = self.fc_logvar(x)
-        return mu, logvar
+                try:
+                    text_embeddings = text_embeddings.unsqueeze(1)
+                    noise_pred = self.model(sample = noisy_spectrograms, timestep = timesteps, encoder_hidden_states=text_embeddings).sample
 
-    def decode(self, z, text_embedding):
-        z = torch.cat([z, text_embedding], dim=1)  
-        x = self.fc_decode(z)
-        x = x.view(-1, 512, 9, 54)
-        x = self.decoder(x)
-        return x
+                except RuntimeError as e:
+                    if "CUDA out of memory" in str(e):
+                        print("💥 CUDA OOM! Try reducing batch size.")
+                    else:
+                        raise
 
-    def forward(self, x=None, text=None, generate=False):
-        text_embedding = self.encode_text(text)  
+                # Compute loss
+                loss = self.loss_fn(noise_pred, noise)
 
-        if generate:
-            # Sampling a random latent vector for generation
-            z = torch.randn(1, self.latent_dim).to(text_embedding.device)
-        else:
-            # Standard VAE forward pass
-            mu, logvar = self.encode(x, text_embedding)
-            z = self.reparameterize(mu, logvar)
+                # Backpropagation
+                self.optimizer.zero_grad(set_to_none=True)
+                loss.backward()
+                self.optimizer.step()
+                pbar.set_postfix(loss=loss.item())
 
-        recon = self.decode(z, text_embedding)
-        return recon, mu if not generate else None, logvar if not generate else None
+                if (count % 100 == 0):
+                    if save_path:
+                        os.makedirs(save_path, exist_ok=True)
+                        torch.save(self.model.state_dict(), os.path.join(save_path, f"unet_epoch_{epoch+1}_{count}.pt"))
 
-    def loss_function(self, recon_x, x, mu, logvar):
-        recon_loss = F.mse_loss(recon_x, x, reduction='sum')
-        kl_div = -0.5 * torch.sum(1 + logvar - mu.pow(2) - logvar.exp())
-        return recon_loss + kl_div, recon_loss, kl_div
+            # Save model after each epoch if path is provided
+            if save_path:
+                os.makedirs(save_path, exist_ok=True)
+                torch.save(self.model.state_dict(), os.path.join(save_path, f"unet_epoch_{epoch+1}.pt"))
 
-# # Example: Generate a spectrogram based on a text prompt
-# model = GenerativeCVAE(latent_dim=256, text_embedding_dim=128)
+    @torch.no_grad()
+    def predict(self, text_embedding, num_inference_steps=50):
+        self.model.eval()
+        text_embedding = text_embedding.to(self.device).unsqueeze(0)  # Add batch dimension
 
-# text_prompt = "A deep bass sound with a smooth ambient background"
-# generated_spectrogram, _, _ = model(text=text_prompt, generate=True)
+        # Start from pure noise
+        shape = (1, 2, 129, 861)
+        sample = torch.randn(shape).to(self.device)
 
-# print(generated_spectrogram.shape)  # Output shape should be (1, 2, 129, 1722)
+        for t in self.noise_scheduler.timesteps[:num_inference_steps]:
+            # Predict the noise
+            noise_pred = self.model(sample, t, encoder_hidden_states=text_embedding).sample
+
+            # Remove noise according to the scheduler
+            sample = self.noise_scheduler.step(noise_pred, t, sample).prev_sample
+
+        return sample.squeeze(0).cpu()  # Remove batch dimension
+
+    def load_model(self, checkpoint_path):
+        self.model.load_state_dict(torch.load(checkpoint_path, map_location=self.device))
+        self.model.to(self.device)
+        self.model.eval()
