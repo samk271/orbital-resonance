@@ -1,5 +1,6 @@
 from customtkinter import CTkFrame, CTkLabel, CTkSlider, CTkButton, CTkTabview, CTkComboBox
 from tkinter import Canvas 
+from tkinter.colorchooser import askcolor
 
 
 class PlanetSettings(CTkFrame):
@@ -7,7 +8,7 @@ class PlanetSettings(CTkFrame):
     The class that will handle the settings menu that controls the planet settings
     """
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, planet_manager=None, **kwargs):
         """
         creates the settings window
 
@@ -16,6 +17,7 @@ class PlanetSettings(CTkFrame):
         """
 
         super().__init__(*args, **kwargs)
+        self.planet_manager = planet_manager
         self.tabview = CTkTabview(self)
         self.tabview.pack(fill="both" , expand= True, padx=10, pady= 10)
 
@@ -42,9 +44,10 @@ class PlanetSettings(CTkFrame):
         #select shape
         self.shape = CTkLabel(parent,text="Shape:")
         self.shape.pack(pady=(10, 0))
-        self.shape_options = CTkComboBox (parent, values=["cloud", "circle","square", 
-                                                          "Triangle", "Rectangle"])
+        self.shape_options = CTkComboBox (parent, values=["circle","cloud", "square", 
+                                                          "triangle", "rectangle"])
         self.shape_options.pack()
+        self.shape_options.bind("<<ComboboxSelected>>", lambda e: self.change_sun_shape(self.shape_options.get()))
 
 
         #choose color
@@ -54,15 +57,27 @@ class PlanetSettings(CTkFrame):
         #Color choices
         self.color_frame =CTkFrame(parent, fg_color= "transparent")
         self.color_frame.pack(pady=5)
-        self.colors = ["Yellow", "Green", "Blue", "Orange", "Purple","Red"]
+        self.colors = ["Yellow", "Green", "Blue", "Orange", "Purple","Red", "Custom"]
 
         self.color_buttons = {}      
 
         for color in self.colors:
+
+            if color == "Custom":
+                button = CTkButton(self.color_frame, text="Choose Color", 
+                                   command= lambda: self.open_color_dialog())
+                button.pack(side="left", padx=5)
+                continue
+
+            # Create a button for each color
             button = Canvas(self.color_frame, width=30, height=30, bg=color,highlightthickness=0)
-            button.bind("<Button-1>", lambda e, c=color: self.change_sun_color(c))  
-            button.bind("<Enter>", lambda e, b=button: b.config(width=35, height=35))
-            button.bind("<Leave>", lambda e, b=button: b.config(width=30, height=30)) 
+            button.bind("<Button-1>", lambda e, c=color: self.change_sun_color(c)) 
+            # change cursor on hover
+            button.bind("<Enter>", lambda e, b=button: b.config(cursor="hand2"))
+            # change cursor back to default when not hovering
+            button.bind("<Leave>", lambda e, b=button: b.config(cursor="")) 
+            # button.bind("<Enter>", lambda e, b=button: b.config(width=35, height=35))
+            # button.bind("<Leave>", lambda e, b=button: b.config(width=30, height=30)) 
             button.pack(side="left", padx=5)
             self.color_buttons[color] = button
 
@@ -80,14 +95,63 @@ class PlanetSettings(CTkFrame):
         self.save_button = CTkButton(parent, text="Save",command=self.save_settings)
         self.save_button.pack(pady=10)
 
-    def change_sun_color(self):
-        "will be implemented later"
+    def open_color_dialog(self):
+        """
+        Opens the color chooser dialog and applies the selected color.
+        """
+        color = askcolor()[1]  # Get the selected color in hex format
+        if color:  # If a color is selected (not canceled)
+            self.change_sun_color(color)
+
+    def change_sun_color(self, color):
+
+        if hasattr(self, "planet_manager") and self.planet_manager:
+            sun = self.planet_manager.get_sun()
+            sun.color = color
+            sun.update = True  # Mark the sun for UI update
+            self.selected_color = color
     
+    def change_sun_shape(self, shape):
+        """
+        Changes the sun's shape to the selected shape.
+
+        :param shape: The selected shape for the sun.
+        """
+        if hasattr(self, "planet_manager") and self.planet_manager:
+            sun = self.planet_manager.get_sun()
+            sun.shape = shape  # Store the shape in the sun object
+            sun.update = True  # Mark the sun for UI update
+
     def save_settings(self):
-        "will be implemented later"
+        """
+        Saves the current sun settings (size, shape, and color) to the PlanetManager.
+        """
+        if hasattr(self, "planet_manager") and self.planet_manager:
+            sun = self.planet_manager.get_sun()
+            sun.radius = self.size_slider.get()
+            sun.shape = self.shape_options.get()  # Save the selected shape
+            sun.update = True  # Mark the sun for UI update
 
     def apply_settings(self):
-        "will be implemented later"
+        """
+        Applies the current settings to the sun immediately.
+        """
+        self.save_settings()  # Save the settings to the PlanetManager
+        self.planet_manager.state_manager.add_state({
+            "undo": (self.reset_settings,),  # Allow undoing the changes
+            "redo": (self.apply_settings,)
+        })
 
     def reset_settings(self):
-        "will be implemented later"
+        """
+        Resets the sun settings to their default values.
+        """
+        if hasattr(self, "planet_manager") and self.planet_manager:
+            sun = self.planet_manager.get_sun()
+            self.size_slider.set(50)  # Reset size to default (example value)
+            self.shape_options.set("circle")  # Reset shape to default
+            self.selected_color = "Yellow"  # Reset color to default
+            sun.radius = 50
+            sun.color = "Yellow"
+            sun.shape = "circle"  # Reset shape to default
+            sun.update = True  # Mark the sun for UI update
