@@ -8,7 +8,7 @@ class PlanetSettings(CTkFrame):
     The class that will handle the settings menu that controls the planet settings
     """
 
-    def __init__(self, *args, planet_manager=None, **kwargs):
+    def __init__(self, *args, **kwargs):
         """
         creates the settings window
 
@@ -16,8 +16,8 @@ class PlanetSettings(CTkFrame):
         :param kwargs: the key word arguments to be passed to the super class
         """
 
+        self.planet_manager = kwargs.pop("planet_manager")
         super().__init__(*args, **kwargs)
-        self.planet_manager = planet_manager
         self.tabview = CTkTabview(self)
         self.tabview.pack(fill="both" , expand= True, padx=10, pady= 10)
 
@@ -38,6 +38,7 @@ class PlanetSettings(CTkFrame):
         self.size_label = CTkLabel(parent, text="Size:")
         self.size_label.pack(pady=(10,2))
         self.size_slider = CTkSlider(parent, from_=0, to=100)
+        self.size_slider.bind("<ButtonRelease-1>", lambda e: self.change_sun_size())
         self.size_slider.pack(pady=2, padx=10, fill="x")
 
 
@@ -45,9 +46,8 @@ class PlanetSettings(CTkFrame):
         self.shape = CTkLabel(parent,text="Shape:")
         self.shape.pack(pady=(10, 0))
         self.shape_options = CTkComboBox (parent, values=["circle","cloud", "square", 
-                                                          "triangle", "rectangle"])
+                                                          "triangle", "rectangle"], command=lambda e: self.change_sun_shape(e))
         self.shape_options.pack()
-        self.shape_options.bind("<<ComboboxSelected>>", lambda e: self.change_sun_shape(self.shape_options.get()))
 
 
         #choose color
@@ -81,19 +81,19 @@ class PlanetSettings(CTkFrame):
             button.pack(side="left", padx=5)
             self.color_buttons[color] = button
 
-        # apply button
-        self.apply_button = CTkButton(self, text=" Apply Sun changes", 
-                                      command=self.apply_settings)
-        self.apply_button.pack(pady=10)
+        # apply button todo redundant
+        # self.apply_button = CTkButton(self, text=" Apply Sun changes",
+        #                               command=self.apply_settings)
+        # self.apply_button.pack(pady=10)
 
         #reset button 
         self.reset_button = CTkButton(parent, text="Reset to Default", fg_color="gray", 
                                       command=self.reset_settings)
         self.reset_button.pack(pady=5)
 
-        #save button
-        self.save_button = CTkButton(parent, text="Save",command=self.save_settings)
-        self.save_button.pack(pady=10)
+        # #save button todo redundant
+        # self.save_button = CTkButton(parent, text="Save",command=self.save_settings)
+        # self.save_button.pack(pady=10)
 
     def open_color_dialog(self):
         """
@@ -103,13 +103,16 @@ class PlanetSettings(CTkFrame):
         if color:  # If a color is selected (not canceled)
             self.change_sun_color(color)
 
+    def change_sun_size(self):
+        self.planet_manager.get_sun().radius = self.size_slider.get()
+
     def change_sun_color(self, color):
 
-        if hasattr(self, "planet_manager") and self.planet_manager:
-            sun = self.planet_manager.get_sun()
-            sun.color = color
-            sun.update = True  # Mark the sun for UI update
-            self.selected_color = color
+        # if hasattr(self, "planet_manager") and self.planet_manager: todo redundant
+        sun = self.planet_manager.get_sun()
+        sun.color = color
+        # sun.update = True  # Mark the sun for UI update todo already handled by planet class
+        self.selected_color = color
     
     def change_sun_shape(self, shape):
         """
@@ -117,41 +120,41 @@ class PlanetSettings(CTkFrame):
 
         :param shape: The selected shape for the sun.
         """
-        if hasattr(self, "planet_manager") and self.planet_manager:
-            sun = self.planet_manager.get_sun()
-            sun.shape = shape  # Store the shape in the sun object
-            sun.update = True  # Mark the sun for UI update
+        # if hasattr(self, "planet_manager") and self.planet_manager: todo redundant
+        sun = self.planet_manager.get_sun()
+        sun.shape = shape  # Store the shape in the sun object
+        # sun.update = True  # Mark the sun for UI update todo already handled by planet class
 
-    def save_settings(self):
-        """
-        Saves the current sun settings (size, shape, and color) to the PlanetManager.
-        """
-        if hasattr(self, "planet_manager") and self.planet_manager:
-            sun = self.planet_manager.get_sun()
-            sun.radius = self.size_slider.get()
-            sun.shape = self.shape_options.get()  # Save the selected shape
-            sun.update = True  # Mark the sun for UI update
-
-    def apply_settings(self):
-        """
-        Applies the current settings to the sun immediately.
-        """
-        self.save_settings()  # Save the settings to the PlanetManager
-        self.planet_manager.state_manager.add_state({
-            "undo": (self.reset_settings,),  # Allow undoing the changes
-            "redo": (self.apply_settings,)
-        })
+    # def save_settings(self): todo redundant
+    #     """
+    #     Saves the current sun settings (size, shape, and color) to the PlanetManager.
+    #     """
+    #     if hasattr(self, "planet_manager") and self.planet_manager:
+    #         sun = self.planet_manager.get_sun()
+    #         sun.radius = self.size_slider.get()
+    #         sun.shape = self.shape_options.get()  # Save the selected shape
+    #         sun.update = True  # Mark the sun for UI update
+    #
+    # def apply_settings(self): todo redundant
+    #     """
+    #     Applies the current settings to the sun immediately.
+    #     """
+    #     self.save_settings()  # Save the settings to the PlanetManager
+    #     self.planet_manager.state_manager.add_state({
+    #         "undo": (self.reset_settings,),  # Allow undoing the changes
+    #         "redo": (self.apply_settings,)
+    #     })
 
     def reset_settings(self):
         """
         Resets the sun settings to their default values.
         """
-        if hasattr(self, "planet_manager") and self.planet_manager:
-            sun = self.planet_manager.get_sun()
-            self.size_slider.set(50)  # Reset size to default (example value)
-            self.shape_options.set("circle")  # Reset shape to default
-            self.selected_color = "Yellow"  # Reset color to default
-            sun.radius = 50
-            sun.color = "Yellow"
-            sun.shape = "circle"  # Reset shape to default
-            sun.update = True  # Mark the sun for UI update
+        # if hasattr(self, "planet_manager") and self.planet_manager: todo redundant
+        sun = self.planet_manager.get_sun()
+        self.size_slider.set(50)  # Reset size to default (example value)
+        self.shape_options.set("circle")  # Reset shape to default
+        self.selected_color = "Yellow"  # Reset color to default
+        sun.radius = 50
+        sun.color = "Yellow"
+        sun.shape = "circle"  # Reset shape to default
+        # sun.update = True  # Mark the sun for UI update todo already handled by planet class

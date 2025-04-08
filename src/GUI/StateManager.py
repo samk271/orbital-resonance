@@ -17,24 +17,31 @@ class StateManger:
         self.redo_actions = []
         self.canvas: Canvas = None  # set by canvas
 
-    def add_state(self, functions: dict):
+    def add_state(self, functions: dict, modify: bool = False):
         """
         adds an undo action to the state manager. additionally clears the redo action list
 
         :param functions: the functions to perform when updating the state in the form:
-            {"undo": (def, *args), "redo": (def, *args)}
+            {"undo": [(def, *args)], "redo": [(def, *args)]}
+        :param modify: determines if the functions should be added to the previous state rather than adding a new state
         """
 
-        # handles when max states has not been reached
-        self.canvas.unsaved = True
-        if len(self.undo_actions) < StateManger.MAX_STATES:
-            self.undo_actions.append(functions)
-            self.redo_actions.clear()
-
         # handles when max states has been reached
-        else:
+        self.canvas.unsaved = True
+        if len(self.undo_actions) >= StateManger.MAX_STATES:
             self.undo_actions.pop(0)
             self.add_state(functions)
+            return
+
+        # handles modifying previous state
+        if modify:
+            self.undo_actions[-1]["undo"].extend(functions["undo"])
+            self.undo_actions[-1]["redo"].extend(functions["redo"])
+
+        # handles creating new state
+        else:
+            self.undo_actions.append(functions)
+            self.redo_actions.clear()
 
     def undo(self):
         """
@@ -43,8 +50,8 @@ class StateManger:
 
         if len(self.undo_actions) != 0:
             action = self.undo_actions.pop()
-            action["undo"][0](*action["undo"][1:])
             self.redo_actions.append(action)
+            [func[0](*func[1:]) for func in action["undo"]]
 
     def redo(self):
         """
@@ -53,5 +60,5 @@ class StateManger:
 
         if len(self.redo_actions) != 0:
             action = self.redo_actions.pop()
-            action["redo"][0](*action["redo"][1:])
             self.undo_actions.append(action)
+            [func[0](*func[1:]) for func in action["redo"]]
