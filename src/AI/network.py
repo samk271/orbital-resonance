@@ -87,6 +87,7 @@ class SpectrogramDiffusionTrainer:
                     if save_path:
                         os.makedirs(save_path, exist_ok=True)
                         torch.save(self.model.state_dict(), os.path.join(save_path, f"unet_epoch_{epoch+1}_{count}.pt"))
+                count += 1
 
             # Save model after each epoch if path is provided
             if save_path:
