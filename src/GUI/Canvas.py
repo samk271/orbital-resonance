@@ -299,6 +299,30 @@ class Canvas(CTkCanvas):
                 p2 = self.space_to_canvas(array([0, -planet.orbital_radius - (planet.radius * Canvas.TRIGGER_SIZE)]))[0]
                 self.coords(f"trigger {planet.tag}", *p1, *p2)
 
+                # handles updating planet shape
+                self.delete(planet.tag)
+                pos = self.space_to_canvas(planet.position)[0]
+                radius = planet.radius * self.zoom[0, 0]
+                if planet.shape == "circle":
+                    self.create_oval(pos[0] - radius, pos[1] - radius, pos[0] + radius, pos[1] + radius,
+                                     fill=planet.color, tags=("planets", planet.tag))
+                elif planet.shape == "square":
+                    self.create_rectangle(pos[0] - radius, pos[1] - radius, pos[0] + radius, pos[1] + radius,
+                                          fill=planet.color, tags=("planets", planet.tag))
+                elif planet.shape == "triangle":
+                    self.create_polygon(pos[0], pos[1] - radius, pos[0] - radius, pos[1] + radius, pos[0] + radius,
+                                        pos[1] + radius, fill=planet.color, tags=("planets", planet.tag))
+                elif planet.shape == "rectangle":
+                    self.create_rectangle(pos[0] - radius, pos[1] - radius / 2, pos[0] + radius, pos[1] + radius / 2,
+                                          fill=planet.color, tags=("planets", planet.tag))
+                elif planet.shape == "cloud":
+                    self.create_oval(pos[0], pos[1] - 0.25 * radius, pos[0] + 2.25 * radius, pos[1] + radius,
+                                     fill=planet.color, tags=("planets", planet.tag))
+                    self.create_oval(pos[0] - 2.25 * radius, pos[1] - 0.25 * radius, pos[0] + 0.5 * radius,
+                                     pos[1] + radius, fill=planet.color, tags=("planets", planet.tag))
+                    self.create_oval(pos[0] - radius, pos[1] - radius, pos[0] + radius, pos[1] + radius,
+                                     fill=planet.color, tags=("planets", planet.tag))
+
         # updates color of triggered planets
         for planet in triggered:
             self.itemconfig(planet.tag, fill="white")
@@ -763,6 +787,7 @@ class Canvas(CTkCanvas):
             self.planet_manager = manager
             self.speed = 1
             self.menu_visibility["AI"]["menu"].planet_manager = manager
+            self.menu_visibility["planet"]["menu"].planet_manager = manager
             self.delete("planets")
             self.set_focus(self.planet_manager.get_sun(), True, False)
             self.unsaved = False

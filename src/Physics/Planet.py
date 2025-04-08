@@ -26,6 +26,7 @@ class Planet:
         self._period = period
         self._radius = radius
         self._color = color
+        self._shape = "circle"
 
         # physics fields
         self.offset = offset
@@ -72,7 +73,6 @@ class Planet:
             --> updates the value in the class
 
         ** PASSED BY PROPERTY **
-        :param self: the instance of the class to update
         :param value: the value of the class to update
 
         ** PASSED BY PARTIAL **
@@ -80,14 +80,12 @@ class Planet:
 
         ** PASSED BY RECURSION **
         :param add_state: determines if the action should be added to the state manager
-
-        :return the function to redo the action
         """
 
         # adds state
         undo = (self.set_value, getattr(self, attribute), attribute, False)
         redo = (self.set_value, value, attribute, False)
-        self.state_manager.add_state({"undo": undo, "redo": redo}) if add_state else None
+        self.state_manager.add_state({"undo": [undo], "redo": [redo]}, self.update) if add_state else None
 
         # updates planet
         setattr(self, attribute, value)
@@ -97,4 +95,5 @@ class Planet:
     color = property(lambda self: getattr(self, "_color"), partial(set_value, attribute="_color"))
     radius = property(lambda self: getattr(self, "_radius"), partial(set_value, attribute="_radius"))
     period = property(lambda self: getattr(self, "_period"), partial(set_value, attribute="_period"))
+    shape = property(lambda self: getattr(self, "_shape"), partial(set_value, attribute="_shape"))
     orbital_radius = property(lambda self: (self.period ** (2 / 3)) * 500)  # read only, calculated with period
