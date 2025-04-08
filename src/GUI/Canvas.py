@@ -315,13 +315,6 @@ class Canvas(CTkCanvas):
                 elif planet.shape == "rectangle":
                     self.create_rectangle(pos[0] - radius, pos[1] - radius / 2, pos[0] + radius, pos[1] + radius / 2,
                                           fill=planet.color, tags=("planets", planet.tag))
-                elif planet.shape == "cloud":
-                    self.create_oval(pos[0], pos[1] - 0.25 * radius, pos[0] + 2.25 * radius, pos[1] + radius,
-                                     fill=planet.color, tags=("planets", planet.tag))
-                    self.create_oval(pos[0] - 2.25 * radius, pos[1] - 0.25 * radius, pos[0] + 0.5 * radius,
-                                     pos[1] + radius, fill=planet.color, tags=("planets", planet.tag))
-                    self.create_oval(pos[0] - radius, pos[1] - radius, pos[0] + radius, pos[1] + radius,
-                                     fill=planet.color, tags=("planets", planet.tag))
 
         # updates color of triggered planets
         for planet in triggered:

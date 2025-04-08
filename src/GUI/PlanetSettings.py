@@ -45,8 +45,8 @@ class PlanetSettings(CTkFrame):
         #select shape
         self.shape = CTkLabel(parent,text="Shape:")
         self.shape.pack(pady=(10, 0))
-        self.shape_options = CTkComboBox (parent, values=["circle","cloud", "square", 
-                                                          "triangle", "rectangle"], command=lambda e: self.change_sun_shape(e))
+        self.shape_options = CTkComboBox (parent, values=["Circle", "Square", 
+                                                          "Triangle", "Rectangle"], command=lambda e: self.change_sun_shape(e))
         self.shape_options.pack()
 
 
@@ -69,17 +69,6 @@ class PlanetSettings(CTkFrame):
                 button.pack(side="left", padx=5)
                 continue
 
-            # Create a button for each color
-            button = Canvas(self.color_frame, width=30, height=30, bg=color,highlightthickness=0)
-            button.bind("<Button-1>", lambda e, c=color: self.change_sun_color(c)) 
-            # change cursor on hover
-            button.bind("<Enter>", lambda e, b=button: b.config(cursor="hand2"))
-            # change cursor back to default when not hovering
-            button.bind("<Leave>", lambda e, b=button: b.config(cursor="")) 
-            # button.bind("<Enter>", lambda e, b=button: b.config(width=35, height=35))
-            # button.bind("<Leave>", lambda e, b=button: b.config(width=30, height=30)) 
-            button.pack(side="left", padx=5)
-            self.color_buttons[color] = button
 
         # apply button todo redundant
         # self.apply_button = CTkButton(self, text=" Apply Sun changes",
