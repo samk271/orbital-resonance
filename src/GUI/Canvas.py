@@ -281,13 +281,9 @@ class Canvas(CTkCanvas):
 
             # handles planet state change
             if planet.update:
+                added_buffer = True
                 self.itemconfig(planet.tag, fill=planet.color)
                 planet.update = False
-
-                # updates radius
-                p1 = self.space_to_canvas(planet.position - planet.radius)[0]
-                p2 = self.space_to_canvas(planet.position + planet.radius)[0]
-                self.coords(planet.tag, *p1, *p2)
 
                 # updates path
                 p1 = self.space_to_canvas(array([planet.orbital_radius] * 2))[0]
