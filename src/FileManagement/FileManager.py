@@ -75,9 +75,10 @@ class FileManager:
         data = compress(dumps(canvas.planet_manager.planets))
         with open(self.save_path, "wb") as file:
             file.write(data)
+        canvas.planet_manager.state_manager.unsaved = False
         return True
 
-    def load(self, canvas: Canvas, path: str = None, new: bool = False) -> object:
+    def load(self, canvas: Canvas = None, path: str = None, new: bool = False) -> object:
         """
         decompresses and loads a file
 
@@ -89,32 +90,28 @@ class FileManager:
         """
 
         # asks user what file they want to load when no path is given
-        if (not path) and (not new):
+        if canvas and (not path) and (not new):
             path = askopenfilename(**FileManager.LOAD_OPTIONS)
 
         # does nothing if user did not pick a load path
-        if (not path) and (not new):
+        if canvas and (not path) and (not new):
             return
 
         # handles creating new file
         if new:
             self.save_path = None
-            data = PlanetManager()
+            planet_manager = canvas.planet_manager.__init__() if canvas else PlanetManager()
 
         # reads the file
         else:
             with open(path, "rb") as file:
-                data = PlanetManager(loads(decompress(file.read())))
+                data = loads(decompress(file.read()))
+                planet_manager = canvas.planet_manager.__init__(data) if canvas else PlanetManager(data)
             self.save_path = path
 
         # loads the data into the program
         if canvas:
-            data.state_manager.canvas = canvas
-            canvas.planet_manager = data
             canvas.speed = 1
-            canvas.menu_visibility["AI"]["menu"].planet_manager = data
-            canvas.menu_visibility["planet"]["menu"].planet_manager = data
             canvas.delete("planets")
-            canvas.set_focus(data.get_sun(), True, False)
-            canvas.unsaved = False
-        return data
+            canvas.set_focus(canvas.planet_manager.get_sun(), True, False)
+        return planet_manager

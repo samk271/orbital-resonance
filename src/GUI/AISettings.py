@@ -13,7 +13,8 @@ import librosa
 import pygame
 from random import randint
 # from GUI import note_lib_gen as nlg
-from Physics import *
+from Physics.PlanetManager import PlanetManager
+from Physics.Planet import Planet
 
 
 class AISettings(CTkFrame):

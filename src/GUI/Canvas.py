@@ -82,7 +82,6 @@ class Canvas(CTkCanvas):
         super().__init__(*args, **kwargs)
         self.canvas_size = array([self.winfo_width(), self.winfo_height()])
         self.initialized = False
-        self.unsaved = False
         self.after_update_planets = self.after(int(1000 / Canvas.FPS), self.update_planets)
         self.after_click = self.after(0, lambda: None)
         self.after_tooltip = self.after(0, lambda: None)
@@ -155,8 +154,7 @@ class Canvas(CTkCanvas):
         self.tag_bind("📑", "<Button-1>", lambda e: self.after(0, lambda: self.file_buttons("📑")), add="+")
         self.tag_repeat_action("↩", lambda: self.planet_manager.state_manager.undo())
         self.tag_repeat_action("↪", lambda: self.planet_manager.state_manager.redo())
-        self.tag_repeat_action("💾", lambda: self.after(0, lambda: setattr(
-            self, "unsaved", False if self.file_manager.save(self) else self.unsaved)))
+        self.tag_repeat_action("💾", lambda: self.after(0, lambda: self.file_manager.save(self)))
 
         # user movement actions
         self.bind("<Up>", lambda e: self.position_event(array([0, -Canvas.POS_AMT]), event=e))
@@ -277,10 +275,6 @@ class Canvas(CTkCanvas):
             bbox = self.bbox(planet.tag)
             bbox = array([bbox[2] - bbox[0], bbox[3] - bbox[1]]) / 2
 
-            # moves planet when it is rendered
-            pos = floor(self.space_to_canvas(planet.position)[0] - bbox)
-            self.moveto(planet.tag, pos[0], pos[1])
-
             # handles planet state change
             if planet.update:
                 added_buffer = True
@@ -301,18 +295,22 @@ class Canvas(CTkCanvas):
                 self.delete(planet.tag)
                 pos = self.space_to_canvas(planet.position)[0]
                 radius = planet.radius * self.zoom[0, 0]
-                if planet.shape == "circle":
+                if planet.shape == "Circle":
                     self.create_oval(pos[0] - radius, pos[1] - radius, pos[0] + radius, pos[1] + radius,
                                      fill=planet.color, tags=("planets", planet.tag))
-                elif planet.shape == "square":
+                elif planet.shape == "Square":
                     self.create_rectangle(pos[0] - radius, pos[1] - radius, pos[0] + radius, pos[1] + radius,
                                           fill=planet.color, tags=("planets", planet.tag))
-                elif planet.shape == "triangle":
+                elif planet.shape == "Triangle":
                     self.create_polygon(pos[0], pos[1] - radius, pos[0] - radius, pos[1] + radius, pos[0] + radius,
                                         pos[1] + radius, fill=planet.color, tags=("planets", planet.tag))
-                elif planet.shape == "rectangle":
+                elif planet.shape == "Rectangle":
                     self.create_rectangle(pos[0] - radius, pos[1] - radius / 2, pos[0] + radius, pos[1] + radius / 2,
                                           fill=planet.color, tags=("planets", planet.tag))
+
+            # moves planet
+            pos = floor(self.space_to_canvas(planet.position)[0] - bbox)
+            self.moveto(planet.tag, pos[0], pos[1])
 
         # updates color of triggered planets
         for planet in triggered:
@@ -751,12 +749,13 @@ class Canvas(CTkCanvas):
         # sets text for warning
         self.button_click_animation(tag) if not event else None
         args = "Save Project", "You have unsaved changes that will be lost without saving. Continue?"
-        args = ("Exit", "You are are about to exit. Continue?") if tag == "exit" and (not self.unsaved) else args
+        args = ("Exit", "You are are about to exit. Continue?") if tag == "exit" and (
+            not self.planet_manager.state_manager.unsaved) else args
         args = ("Start New Project", "You are about to start a new project. Continue?") if \
-            tag == "🆕" and (not self.unsaved) else args
+            tag == "🆕" and (not self.planet_manager.state_manager.unsaved) else args
 
         # warns user they will lose progress if loading when not saved
-        if tag == "📂" and self.unsaved and (not askokcancel(*args)):
+        if tag == "📂" and self.planet_manager.state_manager.unsaved and (not askokcancel(*args)):
             return
 
         # asks user if they are sure they want to start a new project
@@ -775,5 +774,5 @@ class Canvas(CTkCanvas):
         if tag == "📑":
             old_path = self.file_manager.save_path
             self.file_manager.save_path = None
-            self.unsaved = False if self.file_manager.save(self) else self.unsaved
+            self.file_manager.save(self)
             self.file_manager.save_path = old_path if not self.file_manager.save_path else self.file_manager.save_path
