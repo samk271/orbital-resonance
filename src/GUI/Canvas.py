@@ -156,7 +156,7 @@ class Canvas(CTkCanvas):
         self.tag_repeat_action("↩", lambda: self.planet_manager.state_manager.undo())
         self.tag_repeat_action("↪", lambda: self.planet_manager.state_manager.redo())
         self.tag_repeat_action("💾", lambda: self.after(0, lambda: setattr(
-            self, "unsaved", False if self.file_manager.save(self.planet_manager) else self.unsaved)))
+            self, "unsaved", False if self.file_manager.save(self) else self.unsaved)))
 
         # user movement actions
         self.bind("<Up>", lambda e: self.position_event(array([0, -Canvas.POS_AMT]), event=e))
@@ -767,25 +767,13 @@ class Canvas(CTkCanvas):
         elif tag == "exit" and askokcancel(*args):
             return "exit"
 
-        # changes file manager if new or load are clicked
-        manager = PlanetManager() if tag == "🆕" else None
-        if tag == "📂":
-            manager = self.file_manager.load()
-
-        # updates planet manager and ui if user selected a file to load
-        if manager:
-            manager.state_manager.canvas = self
-            self.planet_manager = manager
-            self.speed = 1
-            self.menu_visibility["AI"]["menu"].planet_manager = manager
-            self.menu_visibility["planet"]["menu"].planet_manager = manager
-            self.delete("planets")
-            self.set_focus(self.planet_manager.get_sun(), True, False)
-            self.unsaved = False
+        # handles if new or load are clicked
+        if tag == "📂" or tag == "🆕":
+            self.file_manager.load(self, new=(tag == "🆕"))
 
         # handles when user clicks save as
         if tag == "📑":
             old_path = self.file_manager.save_path
             self.file_manager.save_path = None
-            self.unsaved = False if self.file_manager.save(self.planet_manager) else self.unsaved
+            self.unsaved = False if self.file_manager.save(self) else self.unsaved
             self.file_manager.save_path = old_path if not self.file_manager.save_path else self.file_manager.save_path
