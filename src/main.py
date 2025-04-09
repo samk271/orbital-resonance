@@ -1,5 +1,8 @@
-from GUI import *
-from Physics import PlanetManager
+from Physics.PlanetManager import PlanetManager
+from FileManagement.FileManager import FileManager
+from GUI.PlanetSettings import PlanetSettings
+from GUI.AISettings import AISettings
+from GUI.Canvas import Canvas
 from pygame.mixer import init, set_num_channels
 from sys import argv
 
@@ -8,14 +11,15 @@ init()
 set_num_channels(1000)  # adjust as needed
 
 # creates the screen and its widgets
-root = PlanetManager.SAVE_OPTIONS["parent"]
+root = FileManager.SAVE_OPTIONS["parent"]
 root.title("Orbital Resonance")
 root.geometry("800x600")
-planet_manager = PlanetManager.load(argv[1]) if len(argv) == 2 else PlanetManager()
+file_manager = FileManager()
+planet_manager = file_manager.load(argv[1]) if len(argv) == 2 else PlanetManager()
 planet_settings = PlanetSettings(root, border_width=2, planet_manager=planet_manager)
 AI_settings = AISettings(root, border_width=2, planet_manager=planet_manager)
 canvas = Canvas(root, bg="black", highlightthickness=1, planet_settings=planet_settings, AI_settings=AI_settings,
-                planet_manager=planet_manager)
+                planet_manager=planet_manager, file_manager=file_manager)
 
 # configures grid for dynamic resizing and close function
 root.protocol("WM_DELETE_WINDOW", lambda: root.destroy() if canvas.file_buttons("exit") else None)
@@ -26,7 +30,7 @@ root.columnconfigure(0, weight=1)
 root.bind_all("<Control-n>", lambda e: canvas.file_buttons("🆕", e))
 root.bind_all("<Control-o>", lambda e: canvas.file_buttons("📂", e))
 root.bind_all("<Control-Shift-S>", lambda e: canvas.file_buttons("📑", e))
-root.bind_all("<Control-s>", lambda e: canvas.planet_manager.save())
+root.bind_all("<Control-s>", lambda e: file_manager.save(canvas.planet_manager))
 root.bind_all("<Control-z>", lambda e: canvas.planet_manager.state_manager.undo())
 root.bind_all("<Control-y>", lambda e: canvas.planet_manager.state_manager.redo())
 

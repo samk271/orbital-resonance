@@ -1,6 +1,3 @@
-from GUI import Canvas
-
-
 class StateManger:
     """
     keeps track of any updates the user makes to any planets so that undo and redo can be applied
@@ -15,7 +12,7 @@ class StateManger:
 
         self.undo_actions = []
         self.redo_actions = []
-        self.canvas: Canvas = None  # set by canvas
+        self.canvas = None  # set by canvas
 
     def add_state(self, functions: dict, modify: bool = False):
         """

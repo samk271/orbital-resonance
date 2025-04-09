@@ -1,9 +1,10 @@
+from Physics.Planet import Planet
+from Physics.PlanetManager import PlanetManager
 from customtkinter import CTkCanvas
 from tkinter.messagebox import askokcancel
 from random import uniform, seed
 from numpy import array, floor, ceil, sort, vstack
 from numpy.linalg import norm
-from Physics import *
 from time import perf_counter
 from uuid import uuid1
 
@@ -59,7 +60,7 @@ class Canvas(CTkCanvas):
             --> creates navigation buttons
             --> binds navigation buttons to position/zoom event handler functions
             --> binds wasd and arrow keys to position event handler function
-            --> binds mouse wheel and +- keys to zoom handler functions
+            --> binds mouse wheel to zoom handler functions
             --> binds click and drag to position handler functions
             --> binds resize and focus event functions
 
@@ -68,7 +69,8 @@ class Canvas(CTkCanvas):
         """
 
         # gets kwargs
-        if "planet_settings" and "AI_settings" and "planet_manager" in kwargs:
+        if "planet_settings" and "AI_settings" and "planet_manager" and "file_manager" in kwargs:
+            self.file_manager = kwargs.pop("file_manager")
             self.planet_manager: PlanetManager = kwargs.pop("planet_manager")
             self.planet_manager.state_manager.canvas = self
             self.menu_visibility = {"planet": {"menu": kwargs.pop("planet_settings"), "visible": True},
@@ -154,7 +156,7 @@ class Canvas(CTkCanvas):
         self.tag_repeat_action("↩", lambda: self.planet_manager.state_manager.undo())
         self.tag_repeat_action("↪", lambda: self.planet_manager.state_manager.redo())
         self.tag_repeat_action("💾", lambda: self.after(0, lambda: setattr(
-            self, "unsaved", False if self.planet_manager.save() else self.unsaved)))
+            self, "unsaved", False if self.file_manager.save(self.planet_manager) else self.unsaved)))
 
         # user movement actions
         self.bind("<Up>", lambda e: self.position_event(array([0, -Canvas.POS_AMT]), event=e))
@@ -768,7 +770,7 @@ class Canvas(CTkCanvas):
         # changes file manager if new or load are clicked
         manager = PlanetManager() if tag == "🆕" else None
         if tag == "📂":
-            manager = PlanetManager.load()
+            manager = self.file_manager.load()
 
         # updates planet manager and ui if user selected a file to load
         if manager:
@@ -782,9 +784,8 @@ class Canvas(CTkCanvas):
             self.unsaved = False
 
         # handles when user clicks save as
-        manager = self.planet_manager
         if tag == "📑":
-            old_path = manager.save_path
-            manager.save_path = None
-            self.unsaved = False if manager.save() else self.unsaved
-            manager.save_path = old_path if not manager.save_path else manager.save_path
+            old_path = self.file_manager.save_path
+            self.file_manager.save_path = None
+            self.unsaved = False if self.file_manager.save(self.planet_manager) else self.unsaved
+            self.file_manager.save_path = old_path if not self.file_manager.save_path else self.file_manager.save_path
