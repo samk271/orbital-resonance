@@ -7,5 +7,11 @@ number of columns in the editor determines the period
 number of rows determines the number of moons available for the planet
 each instance of a midi editor determines a different sample sound
 
+AI menu:
+AI prompt to generate a sample with sample editor
+button to add sample to project - stores byte data of audio file in planetmanager.samples
+
 planet editor (change to sample editor):
 a list of all the samples
+option to clone/delete a sample and a volume slider
+default sample that all projects contain is Default (No Sound) cant be removed from project

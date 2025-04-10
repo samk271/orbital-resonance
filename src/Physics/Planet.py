@@ -2,6 +2,7 @@ from numpy import array
 from functools import partial
 from pygame.mixer import Sound
 from math import cos, sin, pi
+from uuid import uuid1
 
 
 class Planet:
@@ -35,9 +36,9 @@ class Planet:
         self.position = array([orig_x, orig_y])
 
         # UI fields
-        self.tag = None  # will be assigned by canvas
-        self.update = False
-        self.state_manager = None  # will be assigned when added by to a planet manager
+        self.tag = self.tag if hasattr(self, "tag") else uuid1()
+        self.update = True
+        self.state_manager = self.state_manager if hasattr(self, "state_manager") else None  # added by planet manager
 
         # music generation fields
         self.sound_path = sound_path
@@ -64,6 +65,7 @@ class Planet:
 
         self.__dict__.update(state)
         self.sound = Sound(self.sound_path) if self.sound_path else None
+        self.update = True
 
     def set_value(self, value, attribute: str, add_state: bool = True):
         """

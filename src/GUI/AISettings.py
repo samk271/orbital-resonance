@@ -148,8 +148,8 @@ class AISettings(CTkFrame):
         for child in self.winfo_children():
             child.bind("<Button-1>", lambda event: self.focus_set())
 
-        midi = MidiEditor(self, planet_manager=self.planet_manager, fg_color=self.cget("fg_color"))
-        midi.grid(row=0, column=8)
+        self.midi = MidiEditor(self, planet_manager=self.planet_manager, fg_color=self.cget("fg_color"))
+        self.midi.grid(row=0, column=8)
 
     def select_color(self):
         temp_planet_color = askcolor(color=self.planet_color)[1]

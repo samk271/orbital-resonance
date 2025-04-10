@@ -249,7 +249,6 @@ class Canvas(CTkCanvas):
         # adds newly added planets to the display
         added_buffer = self.planet_manager.get_added_buffer()
         for planet in added_buffer:
-            planet.tag = planet.tag if planet.tag else uuid1()
 
             # draws orbit path
             if planet != self.planet_manager.get_sun():
@@ -262,18 +261,12 @@ class Canvas(CTkCanvas):
                 p2 = self.space_to_canvas(array([0, -planet.orbital_radius - (planet.radius * Canvas.TRIGGER_SIZE)]))[0]
                 self.create_line(*p1, *p2, fill="gray", width=1, tags=("triggers", f"trigger {planet.tag}"))
 
-            # draws planet
-            kwargs = {"tags": ("planets", planet.tag), "fill": planet.color}
-            self.create_oval(0, 0, *([-planet.radius * 2 * self.zoom[0, 0]] * 2), **kwargs)
+            # binds click function to planet
             self.tag_bind(planet.tag, "<ButtonRelease-1>", lambda e, p=planet: self.set_focus(
                 p) if self.drag_amt < Canvas.FOCUS_DRAG_THRESHOLD else None)
 
-        # updates position of all planets
+        # updates planet state
         for planet in self.planet_manager.planets:
-            bbox = self.bbox(planet.tag)
-            bbox = array([bbox[2] - bbox[0], bbox[3] - bbox[1]]) / 2
-
-            # handles planet state change
             if planet.update:
                 added_buffer = True
                 self.itemconfig(planet.tag, fill=planet.color)
@@ -289,24 +282,34 @@ class Canvas(CTkCanvas):
                 p2 = self.space_to_canvas(array([0, -planet.orbital_radius - (planet.radius * Canvas.TRIGGER_SIZE)]))[0]
                 self.coords(f"trigger {planet.tag}", *p1, *p2)
 
-                # handles updating planet shape
+                # handles drawing planet shape
                 self.delete(planet.tag)
                 pos = self.space_to_canvas(planet.position)[0]
                 radius = planet.radius * self.zoom[0, 0]
+
+                # circle shape
                 if planet.shape == "Circle":
-                    self.create_oval(pos[0] - radius, pos[1] - radius, pos[0] + radius, pos[1] + radius,
-                                     fill=planet.color, tags=("planets", planet.tag))
+                    args = (pos[0] - radius, pos[1] - radius, pos[0] + radius, pos[1] + radius)
+                    self.create_oval(*args, fill=planet.color, tags=("planets", planet.tag))
+
+                # square shape
                 elif planet.shape == "Square":
-                    self.create_rectangle(pos[0] - radius, pos[1] - radius, pos[0] + radius, pos[1] + radius,
-                                          fill=planet.color, tags=("planets", planet.tag))
+                    args = (pos[0] - radius, pos[1] - radius, pos[0] + radius, pos[1] + radius)
+                    self.create_rectangle(*args, fill=planet.color, tags=("planets", planet.tag))
+
+                # triangle shape
                 elif planet.shape == "Triangle":
-                    self.create_polygon(pos[0], pos[1] - radius, pos[0] - radius, pos[1] + radius, pos[0] + radius,
-                                        pos[1] + radius, fill=planet.color, tags=("planets", planet.tag))
+                    args = (pos[0], pos[1] - radius, pos[0] - radius, pos[1] + radius, pos[0] + radius, pos[1] + radius)
+                    self.create_polygon(*args, fill=planet.color, tags=("planets", planet.tag))
+
+                # rectangle shape
                 elif planet.shape == "Rectangle":
-                    self.create_rectangle(pos[0] - radius, pos[1] - radius / 2, pos[0] + radius, pos[1] + radius / 2,
-                                          fill=planet.color, tags=("planets", planet.tag))
+                    args = (pos[0] - radius, pos[1] - radius / 2, pos[0] + radius, pos[1] + radius / 2)
+                    self.create_rectangle(*args, fill=planet.color, tags=("planets", planet.tag))
 
             # moves planet
+            bbox = self.bbox(planet.tag)
+            bbox = array([bbox[2] - bbox[0], bbox[3] - bbox[1]]) / 2
             pos = floor(self.space_to_canvas(planet.position)[0] - bbox)
             self.moveto(planet.tag, pos[0], pos[1])
 

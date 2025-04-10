@@ -115,4 +115,5 @@ class FileManager:
             canvas.speed = 1
             canvas.delete("planets")
             canvas.set_focus(canvas.planet_manager.get_sun(), True, False)
+            canvas.menu_visibility["AI"]["menu"].midi.load_sample(canvas.planet_manager.samples.keys()[0])
         return data

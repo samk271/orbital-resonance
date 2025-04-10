@@ -33,7 +33,7 @@ class MidiEditor(CTkFrame):
         # initializes superclass and canvas fields
         self.planet_manager = kwargs.pop("planet_manager")
         super().__init__(*args, **kwargs)
-        self.sample: array = None
+        self.sample = "Default (No Audio)"
 
         # creates buttons
         add_column = CTkButton(self, text="Add Column", command=lambda: self.modify_editor(1, "add"))
@@ -71,54 +71,58 @@ class MidiEditor(CTkFrame):
 
         # removes planet when a selected bar is clicked
         tag = f"[{row}, {col}]"
-        if self.sample[row, col] and (not right):
-            state = [(self.click, (row, col, right, self.sample[row, col]), {})]
-            self.planet_manager.remove_planet(self.sample[row, col]) if not planet else None
+        sample = self.planet_manager.samples[self.sample]
+        if sample[row, col] and (not right):
+            state = [(self.click, (row, col, right, sample[row, col]), {})]
+            self.planet_manager.remove_planet(sample[row, col]) if not planet else None
 
             # updates state and midi editor
             self.planet_manager.state_manager.add_state({"undo": state, "redo": state}, True) if not planet else None
             self.canvas.itemconfig(tag, fill=self.canvas.cget("bg"))
-            self.sample[row, col] = None
+            sample[row, col] = None
 
         # updates planet color when a selected bar is right clicked
-        elif self.sample[row, col] and (color := askcolor()[1]):
-            undo = [(self.canvas.itemconfig, (tag, ), {"fill": self.sample[row, col].color})]
-            self.sample[row, col].color = color
-            redo = [(self.canvas.itemconfig, (tag,), {"fill": self.sample[row, col].color})]
+        elif sample[row, col] and (color := askcolor()[1]):
+            undo = [(self.canvas.itemconfig, (tag, ), {"fill": sample[row, col].color})]
+            sample[row, col].color = color
+            redo = [(self.canvas.itemconfig, (tag,), {"fill": sample[row, col].color})]
 
             # adds state update and updates color of midi editor
             self.planet_manager.state_manager.add_state({"undo": undo, "redo": redo}, True)
-            self.canvas.itemconfig(tag, fill=self.sample[row, col].color)
+            self.canvas.itemconfig(tag, fill=sample[row, col].color)
 
         # creates planet when non selected bar is clicked todo add sound and add support for moons
-        elif (not self.sample[row, col]) and (not right):
+        elif (not sample[row, col]) and (not right):
             # todo adjust radius based on min max size
-            r, color, offset = 50 + (row * 10), "#{:06x}".format(randint(0, 0xFFFFFF)), col / len(self.sample[0])
-            self.sample[row, col] = planet if planet else Planet(len(self.sample[0]), r, color, None, offset)
+            r, color, offset = 50 + (row * 10), "#{:06x}".format(randint(0, 0xFFFFFF)), col / len(sample[0])
+            sample[row, col] = planet if planet else Planet(len(sample[0]), r, color, None, offset)
 
             # updates midi color, adds state and planet
-            self.canvas.itemconfig(tag, fill=self.sample[row, col].color)
-            state = [(self.click, (row, col, right, self.sample[row, col]), {})]
-            self.planet_manager.add_planet(self.sample[row, col]) if not planet else None
+            self.canvas.itemconfig(tag, fill=sample[row, col].color)
+            state = [(self.click, (row, col, right, sample[row, col]), {})]
+            self.planet_manager.add_planet(sample[row, col]) if not planet else None
             self.planet_manager.state_manager.add_state({"undo": state, "redo": state}, True) if not planet else None
 
-    def load_sample(self, sample: array):
+    def load_sample(self, sample: str):
         """
         loads a sample into the midi editor
 
         :param sample: the sample to load
-
-        :return the old sample
         """
+
+        # handles when sample has not been created yet
+        if sample not in self.planet_manager.samples.keys():
+            self.planet_manager.samples[sample] = self.DEFAULT_EDITOR
 
         # loads the sample
         self.canvas.delete("all")
-        self.sample = sample if sample is not None else self.DEFAULT_EDITOR
-        row_step = (self.canvas.winfo_height() - 1) / len(self.sample)
-        column_step = (self.canvas.winfo_width() - 1) / len(self.sample[0])
+        self.sample = sample
+        sample = self.planet_manager.samples[self.sample]
+        row_step = (self.canvas.winfo_height() - 1) / len(sample)
+        column_step = (self.canvas.winfo_width() - 1) / len(sample[0])
 
         # draws the blank editor
-        for row_num, row in enumerate(self.sample):
+        for row_num, row in enumerate(sample):
             self.canvas.create_line(0, row_num * row_step, self.winfo_width(), row_num * row_step)
             for col_num, bar in enumerate(row):
                 if row_num == 0:
@@ -141,28 +145,28 @@ class MidiEditor(CTkFrame):
 
         # handles adding to the editor
         if mode == "add":
-            old_sample = self.sample
-            arr = full((len(self.sample), 1), None) if axis == 1 else full((1, len(self.sample[0])), None)
-            self.sample = append(self.sample, arr, axis=axis)
+            old_sample = self.planet_manager.samples[self.sample]
+            arr = full((len(old_sample), 1), None) if axis == 1 else full((1, len(old_sample[0])), None)
+            self.planet_manager.samples[self.sample] = append(old_sample, arr, axis=axis)
 
             # adds midi state to state manager
             undo = [(setattr, (self, "sample", old_sample), {})]
-            redo = [(setattr, (self, "sample", self.sample), {})]
+            redo = [(setattr, (self, "sample", self.planet_manager.samples[self.sample]), {})]
             self.planet_manager.state_manager.add_state({"undo": undo, "redo": redo})
             undo = [(self.load_sample, (old_sample,), {})]
-            redo = [(self.load_sample, (self.sample,), {})]
+            redo = [(self.load_sample, (self.planet_manager.samples[self.sample],), {})]
             self.planet_manager.state_manager.add_state({"undo": undo, "redo": redo}, True)
 
         # handles removing from the editor
         else:
-            pop = self.sample[:, -1] if axis == 1 else self.sample[-1]
-            sample = delete(self.sample, len(self.sample[0]) - 1 if axis == 1 else len(self.sample) - 1, axis=axis)
+            old_sample = self.planet_manager.samples[self.sample]
+            pop = old_sample[:, -1] if axis == 1 else old_sample[-1]
+            sample = delete(old_sample, len(old_sample[0]) - 1 if axis == 1 else len(old_sample) - 1, axis=axis)
             if sample.size == 0:
                 return self.load_sample(self.sample)
 
             # handles when array is big enough to remove elements
-            old_sample = self.sample
-            self.sample = sample
+            self.planet_manager.samples[self.sample] = sample
             pop = [elem for elem in pop if elem is not None]
 
             # adds midi state to state manager
@@ -186,7 +190,7 @@ class MidiEditor(CTkFrame):
 
         # reloads planets
         self.load_sample(self.sample)
-        for row_num, row in enumerate(self.sample):
+        for row_num, row in enumerate(self.planet_manager.samples[self.sample]):
             for col_num, planet in enumerate(row):
                 if not planet:
                     continue
@@ -194,20 +198,11 @@ class MidiEditor(CTkFrame):
                 # gets args
                 old_args = (planet.period, planet.radius, planet.color, planet.sound_path, planet.offset)
                 # todo adjust radius based on min max size
-                new_args = (len(self.sample[0]), 50 + (row_num * 10), planet.color, planet.sound_path,
-                            (col_num / len(self.sample[0])))
+                new_args = (len(self.planet_manager.samples[self.sample][0]), 50 + (row_num * 10), planet.color,
+                            planet.sound_path, (col_num / len(self.planet_manager.samples[self.sample][0])))
 
                 # updates the planet
                 tag, state_manager = planet.tag, planet.state_manager
                 planet.__init__(*new_args)
-                planet.update, planet.tag, planet.state_manager = True, tag, state_manager
-
-                # adds state
                 state = {"undo": [(planet.__init__, old_args, {})], "redo": [(planet.__init__, new_args, {})]}
                 self.planet_manager.state_manager.add_state(state, True)
-                state = [(setattr, (planet, "update", True), {})]
-                self.planet_manager.state_manager.add_state({"undo": state, "redo": state}, True)
-                state = [(setattr, (planet, "tag", tag), {})]
-                self.planet_manager.state_manager.add_state({"undo": state, "redo": state}, True)
-                state = [(setattr, (planet, "state_manager", state_manager), {})]
-                self.planet_manager.state_manager.add_state({"undo": state, "redo": state}, True)

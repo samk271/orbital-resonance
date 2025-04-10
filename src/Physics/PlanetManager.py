@@ -32,7 +32,6 @@ class PlanetManager:
 
         # ensures planets have access to state manager
         for planet in self.planets:
-            planet.position = copy(planet.original_position)
             planet.state_manager = self.state_manager
 
     def get_sun(self) -> Planet:
