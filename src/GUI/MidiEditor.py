@@ -3,6 +3,7 @@ from customtkinter import CTkCanvas, CTkFrame, CTkButton
 from tkinter.colorchooser import askcolor
 from numpy import full, append, delete
 from random import randint
+from math import floor
 
 
 class MidiEditor(CTkFrame):
@@ -30,6 +31,7 @@ class MidiEditor(CTkFrame):
         # initializes superclass and canvas fields
         self.planet_manager = kwargs.pop("planet_manager")
         super().__init__(*args, **kwargs)
+        self.playback_col = 0
         self.sample = "Default (No Audio)"
 
         # creates buttons
@@ -138,6 +140,9 @@ class MidiEditor(CTkFrame):
                 self.canvas.tag_bind(tag, "<Button-1>", lambda e, i=row_num, j=col_num: self.click(i, j))
                 self.canvas.tag_bind(tag, "<Button-3>", lambda e, i=row_num, j=col_num: self.click(i, j, True))
 
+        # draws playback line
+        self.canvas.create_line(0, 0, 0, self.canvas.winfo_height(), tags="playback")
+
     def modify_editor(self, axis: str, mode: str):
         """
         modifies the dimensions of the editor
@@ -204,3 +209,31 @@ class MidiEditor(CTkFrame):
                 planet.__init__(*new_args)
                 state = {"undo": [(planet.__init__, old_args)], "redo": [(planet.__init__, new_args)]}
                 self.planet_manager.state_manager.add_state(state, True)
+
+    def playback(self, t: int):
+        """
+        moves the playback line across the editor based on how much time has elapsed in the current orbit
+
+        :param t: the amount of time that the bar should be lit up
+        """
+
+        # handles when editor has not been loaded yet
+        if self.sample not in self.planet_manager.samples.keys():
+            return
+
+        # moves the slider
+        period = self.planet_manager.time_elapsed % len(self.planet_manager.samples[self.sample][0])
+        x = self.canvas.winfo_width() * (period / len(self.planet_manager.samples[self.sample][0]))
+        self.canvas.coords("playback", x, 0, x, self.canvas.winfo_height())
+
+        # handles when bars have already ben lit up this cycle
+        if (period >= self.playback_col) and (floor(self.playback_col) == floor(period)):
+            self.playback_col = period
+            return
+
+        # lights up any bars it passes
+        self.playback_col = period
+        for row in range(len(self.planet_manager.samples[self.sample])):
+            if planet := self.planet_manager.samples[self.sample][row, floor(period)]:
+                self.canvas.itemconfig(f"[{row}, {floor(period)}]", fill="white")
+                self.after(t, lambda r=row, p=planet: self.canvas.itemconfig(f"[{r}, {floor(period)}]", fill=p.color))

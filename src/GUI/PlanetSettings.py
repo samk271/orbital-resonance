@@ -141,9 +141,9 @@ class PlanetSettings(CTkFrame):
         # if hasattr(self, "planet_manager") and self.planet_manager: todo redundant
         sun = self.planet_manager.get_sun()
         self.size_slider.set(50)  # Reset size to default (example value)
-        self.shape_options.set("circle")  # Reset shape to default
+        self.shape_options.set("Circle")  # Reset shape to default
         self.selected_color = "Yellow"  # Reset color to default
         sun.radius = 50
         sun.color = "Yellow"
-        sun.shape = "circle"  # Reset shape to default
+        sun.shape = "Circle"  # Reset shape to default
         # sun.update = True  # Mark the sun for UI update todo already handled by planet class

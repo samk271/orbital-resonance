@@ -79,9 +79,9 @@ class Canvas(CTkCanvas):
         super().__init__(*args, **kwargs)
         self.canvas_size = array([self.winfo_width(), self.winfo_height()])
         self.initialized = False
-        self.after_update_planets = self.after(int(1000 / Canvas.FPS), self.update_planets)
         self.after_click = self.after(0, lambda: None)
         self.after_tooltip = self.after(0, lambda: None)
+        self.after(int(1000 / Canvas.FPS), self.update_planets)
 
         # sets event fields
         self.space_position = array([[0.0, 0.0], [0.0, 0.0]])  # planet pos, star pos
@@ -231,9 +231,9 @@ class Canvas(CTkCanvas):
             --> updates the positioning of the remaining planets
         """
 
-        # cancels the queued update event and schedules the next one
-        self.after_cancel(self.after_update_planets)
-        self.after_update_planets = self.after(int(1000 / Canvas.FPS), self.update_planets)
+        # schedules the next frame and updates the midi editor
+        self.after(int(1000 / Canvas.FPS), self.update_planets)
+        self.menu_visibility["AI"]["menu"].midi.playback(Canvas.NAV_BUTTON_CLICK_TIME)
 
         # updates physics and focus
         dt = perf_counter()
