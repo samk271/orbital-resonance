@@ -1,5 +1,5 @@
 from Physics.Planet import Planet
-from numpy import array
+from numpy import array, copy
 from math import cos, sin, pi, atan2
 from FileManagement.StateManager import StateManger
 
@@ -12,22 +12,27 @@ class PlanetManager:
         --> can get the list of plants
     """
 
-    def __init__(self, planets: list[Planet] = None):
+    def __init__(self, planets: list[Planet] = None, samples: dict = None):
         """
         creates the planet manager class with the list of planets given by the user
 
         :param planets: a list of planets created by the user, must have at least 1 element the sun. if none is given
             a sun will be generated automatically
+        :param samples: a dict containing all of the configurations of sample midi editors
         """
 
         # sets planet attributes
         self.planets = planets if planets else [Planet(0, 50, "yellow")]  # todo adjust default sun settings when min/max values are determined
+        self.samples = samples if samples else {}
+        self.time_elapsed = 0
+        self.focused_planet = None
         self.removed_buffer = []
         self.added_buffer = self.planets.copy()
         self.state_manager = StateManger()
 
         # ensures planets have access to state manager
         for planet in self.planets:
+            planet.position = copy(planet.original_position)
             planet.state_manager = self.state_manager
 
     def get_sun(self) -> Planet:
@@ -52,14 +57,14 @@ class PlanetManager:
         """
 
         # adds state updates to state manager
-        state = {"undo": (self.remove_planet, planet, False), "redo": (self.add_planet, planet, False)}
+        state = {"undo": [(self.remove_planet, (planet, False), {})], "redo": [(self.add_planet, (planet, False), {})]}
         self.state_manager.add_state(state) if add_state else None
 
         # adds planet to solar system
         planet.state_manager = self.state_manager
         self.planets.append(planet)
         self.added_buffer.append(planet)
-        self.reset_planet_positions()
+        planet.update = True
 
     def remove_planet(self, planet: Planet, add_state: bool = True):
         """
@@ -76,7 +81,7 @@ class PlanetManager:
         """
 
         # adds state to state manager
-        state = {"undo": lambda: self.add_planet(planet, False), "redo": lambda: self.remove_planet(planet, False)}
+        state = {"undo": [(self.add_planet, (planet, False), {})], "redo": [(self.remove_planet, (planet, False), {})]}
         self.state_manager.add_state(state) if add_state else None
 
         # removes planet
@@ -105,14 +110,34 @@ class PlanetManager:
         self.removed_buffer.clear()
         return buffer
 
-    def reset_planet_positions(self):
+    def set_planet_position(self, planet: Planet, dt: int):
         """
-        Resets the position of each planet
+        sets the position of a given planet based on how much time has passed
 
-        Called when new planet is added to keep everything in sync
+        :param planet the planet to set the position of
+        :param dt: the time that has passed since last update
+
+        :return true if the planet should play a sound
         """
-        for planet in self.planets:
-            planet.position = planet.original_position
+
+        # gets the position
+        dt = dt if not planet.update else self.time_elapsed
+        planet.position = planet.position if not planet.update else copy(planet.original_position)
+        rel_x = planet.position[0]
+        rel_y = planet.position[1]
+
+        # Apply rotation matrix and use polar coordinates
+        angular_speed = 2 * pi / planet.period
+        rel_angle = atan2(rel_y, rel_x)
+        new_angle = rel_angle + angular_speed * dt
+
+        # switch back to rectangular coordinates
+        new_x = planet.orbital_radius * cos(new_angle)
+        new_y = planet.orbital_radius * sin(new_angle)
+
+        # Update absolute position
+        planet.position = array([new_x, new_y])
+        return rel_x < 0 and new_x >= 0 and (not planet.update)
 
     def update_planet_physics(self, dt):
         """
@@ -121,30 +146,13 @@ class PlanetManager:
         :param dt: the change in time since the last physics update in seconds
         """
 
+        # updates planet manager state
+        self.time_elapsed += dt
         triggered_planets = []
-        for planet in self.planets:
+        for planet in self.planets[1:]:
 
-            # if planet is the sun, skip it
-            if planet.period == 0:
-                continue
-
-            rel_x = planet.position[0]
-            rel_y = planet.position[1]
-
-            # Apply rotation matrix and use polar coordinates
-            angular_speed = 2 * pi/planet.period
-            rel_angle = atan2(rel_y, rel_x)
-            new_angle = rel_angle + angular_speed * dt
-
-            # switch back to rectangular coordinates
-            new_x = planet.orbital_radius * cos(new_angle)
-            new_y = planet.orbital_radius * sin(new_angle)
-
-            # Update absolute position
-            planet.position = array([new_x, new_y])
-
-            if rel_x < 0 and new_x >= 0:
-                #insert sound playing here
+            # updates each planets position
+            if self.set_planet_position(planet, dt):
                 planet.sound.play() if planet.sound else None
                 triggered_planets.append(planet)
 

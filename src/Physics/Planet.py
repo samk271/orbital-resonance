@@ -25,12 +25,12 @@ class Planet:
         self._period = period
         self._radius = radius
         self._color = color
-        self._shape = "circle"
+        self._shape = "Circle"
 
         # physics fields
         self.offset = offset
-        orig_x = self.orbital_radius * cos(pi / 2 * (offset + 1))
-        orig_y = self.orbital_radius * -sin(pi / 2 * (offset + 1))
+        orig_x = self.orbital_radius * cos(2 * pi * (self.offset + .25))
+        orig_y = self.orbital_radius * -sin(2 * pi * (self.offset + .25))
         self.original_position = array([orig_x, orig_y])
         self.position = array([orig_x, orig_y])
 
@@ -82,8 +82,8 @@ class Planet:
         """
 
         # adds state
-        undo = (self.set_value, getattr(self, attribute), attribute, False)
-        redo = (self.set_value, value, attribute, False)
+        undo = (self.set_value, (getattr(self, attribute), attribute, False), {})
+        redo = (self.set_value, (value, attribute, False), {})
         self.state_manager.add_state({"undo": [undo], "redo": [redo]}, self.update) if add_state else None
 
         # updates planet

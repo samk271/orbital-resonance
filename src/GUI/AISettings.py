@@ -15,6 +15,7 @@ from random import randint
 # from GUI import note_lib_gen as nlg
 from Physics.PlanetManager import PlanetManager
 from Physics.Planet import Planet
+from GUI.MidiEditor import MidiEditor
 
 
 class AISettings(CTkFrame):
@@ -123,7 +124,7 @@ class AISettings(CTkFrame):
         self.note_menu_label = CTkLabel(self, height=10, text="Select an offset")
         self.note_menu_label.grid(row=1,column=6, sticky="n",padx=10)
         #note_list = [librosa.midi_to_note(midi) for midi in range(30,61)]
-        offset_list = [0, 1, 2 ,3]
+        offset_list = [0, .25, .5, .75, 1]
         self.planet_offset = tk.DoubleVar(self)
         self.planet_offset.set(0)
         self.offset_menu = tk.OptionMenu(self, self.planet_offset, *offset_list)
@@ -146,6 +147,9 @@ class AISettings(CTkFrame):
         self.bind("<Button-1>", lambda event: self.focus_set())
         for child in self.winfo_children():
             child.bind("<Button-1>", lambda event: self.focus_set())
+
+        midi = MidiEditor(self, planet_manager=self.planet_manager, fg_color=self.cget("fg_color"))
+        midi.grid(row=0, column=8)
 
     def select_color(self):
         temp_planet_color = askcolor(color=self.planet_color)[1]

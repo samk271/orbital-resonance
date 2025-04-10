@@ -72,7 +72,8 @@ class FileManager:
 
         # saves data and updates save path
         self.save_path = path if path else self.save_path
-        data = compress(dumps(canvas.planet_manager.planets))
+        data = {"planets": canvas.planet_manager.planets, "samples": canvas.planet_manager.samples}
+        data = compress(dumps(data))
         with open(self.save_path, "wb") as file:
             file.write(data)
         canvas.planet_manager.state_manager.unsaved = False
@@ -100,13 +101,13 @@ class FileManager:
         # handles creating new file
         if new:
             self.save_path = None
-            planet_manager = canvas.planet_manager.__init__() if canvas else PlanetManager()
+            data = canvas.planet_manager.__init__() if canvas else PlanetManager()
 
         # reads the file
         else:
             with open(path, "rb") as file:
                 data = loads(decompress(file.read()))
-                planet_manager = canvas.planet_manager.__init__(data) if canvas else PlanetManager(data)
+                data = canvas.planet_manager.__init__(**data) if canvas else PlanetManager(**data)
             self.save_path = path
 
         # loads the data into the program
@@ -114,4 +115,4 @@ class FileManager:
             canvas.speed = 1
             canvas.delete("planets")
             canvas.set_focus(canvas.planet_manager.get_sun(), True, False)
-        return planet_manager
+        return data
