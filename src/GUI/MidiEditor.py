@@ -192,10 +192,6 @@ class MidiEditor(CTkFrame):
             for planet in pop:
                 self.planet_manager.remove_planet(planet, False)
 
-                # handles updating planet focus
-                if planet == self.planet_manager.focused_planet:
-                    self.planet_manager.focused_planet = None
-
         # reloads planets
         self.load_sample(self.sample)
         for row_num, row in enumerate(self.planet_manager.samples[self.sample]):

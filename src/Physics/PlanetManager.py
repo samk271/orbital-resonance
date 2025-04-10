@@ -94,6 +94,10 @@ class PlanetManager:
         self.planets.remove(planet)
         self.removed_buffer.append(planet)
 
+        # ensures focused planet is reset if needed
+        if planet == self.focused_planet:
+            self.focused_planet = None
+
     def get_added_buffer(self) -> list[Planet]:
         """
         gets the list of planets that have been queued to add to the UI and clears the queue
