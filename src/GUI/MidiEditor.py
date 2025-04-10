@@ -139,9 +139,9 @@ class MidiEditor(CTkFrame):
                 tag = self.canvas.create_rectangle(*pos, fill=fill, tags=(f"[{row_num}, {col_num}]", ))
                 self.canvas.tag_bind(tag, "<Button-3>", lambda e, i=row_num, j=col_num: self.click(i, j, True))
                 self.canvas.tag_bind(tag, "<Button-1>", lambda e, i=row_num, j=col_num: self.click(
-                    i, j) if e.state == 8 else None)
+                    i, j) if not (e.state & (0x0001 | 0x0004 | 0x0008)) else None)
                 self.canvas.tag_bind(tag, "<Button-1>", lambda e, i=row_num, j=col_num: self.planet_manager.canvas.
-                                     set_focus(sample[i, j], e.state == 12) if e.state == 9 or e.state == 12 else None,
+                                     set_focus(sample[i, j], e.state & 0x0004) if e.state & 0x0001 or e.state & 0x0004 else None,
                                      add="+")
 
         # draws playback line

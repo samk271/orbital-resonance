@@ -160,7 +160,7 @@ class Canvas(CTkCanvas):
         # misc actions
         self.bind("<MouseWheel>", lambda e: self.zoom_event(Canvas.ZOOM_AMT if e.delta > 0 else 1 / Canvas.ZOOM_AMT, e))
         self.bind("<Configure>", lambda e: self.resize_event(array([e.width, e.height])))
-        self.bind("<Button-1>", lambda e: setattr(self, "drag_event", array([e.x, e.y])), add="+")
+        self.bind("<Button-1>", lambda e: setattr(self, "drag_event", array([e.x, e.y])))
         self.bind("<Button-1>", lambda e: setattr(self, "drag_amt", 0), add="+")
         self.bind("<B1-Motion>", lambda e: self.position_event(self.drag_event - array([e.x, e.y]), event=e))
 
@@ -262,7 +262,7 @@ class Canvas(CTkCanvas):
 
             # binds click function to planet
             self.tag_bind(planet.tag, "<ButtonRelease-1>", lambda e, p=planet: self.set_focus(
-                p, e.state == 268) if self.drag_amt < Canvas.FOCUS_DRAG_THRESHOLD else None)
+                p, e.state & 0x0004) if self.drag_amt < Canvas.FOCUS_DRAG_THRESHOLD else None)
 
         # updates planet state
         for planet in self.planet_manager.planets:
