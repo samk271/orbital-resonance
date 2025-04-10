@@ -56,7 +56,7 @@ class PlanetManager:
         """
 
         # adds state updates to state manager
-        state = {"undo": [(self.remove_planet, (planet, False), {})], "redo": [(self.add_planet, (planet, False), {})]}
+        state = {"undo": [(self.remove_planet, (planet, False))], "redo": [(self.add_planet, (planet, False))]}
         self.state_manager.add_state(state) if add_state else None
 
         # adds planet to solar system
@@ -80,7 +80,7 @@ class PlanetManager:
         """
 
         # adds state to state manager
-        state = {"undo": [(self.add_planet, (planet, False), {})], "redo": [(self.remove_planet, (planet, False), {})]}
+        state = {"undo": [(self.add_planet, (planet, False))], "redo": [(self.remove_planet, (planet, False))]}
         self.state_manager.add_state(state) if add_state else None
 
         # removes planet

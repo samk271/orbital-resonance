@@ -20,6 +20,8 @@ class StateManger:
 
         :param functions: the functions to perform when updating the state in the form:
             {"undo": [(def, (*args), {**kwargs})], "redo": [(def, (*args), {**kwargs})]}
+            ** note: kwargs do not need to be passed but args are needed so if no args are to be passed an empty tuple
+                should be given like so: (def, (, ))
         :param modify: determines if the functions should be added to the previous state rather than adding a new state
         """
 
@@ -48,7 +50,7 @@ class StateManger:
         if len(self.undo_actions) != 0:
             action = self.undo_actions.pop()
             self.redo_actions.append(action)
-            [func[0](*func[1], **func[2]) for func in action["undo"]]
+            [func[0](*(func[1]), **func[2]) if len(func) == 3 else func[0](*(func[1])) for func in action["undo"]]
 
     def redo(self):
         """
@@ -58,4 +60,4 @@ class StateManger:
         if len(self.redo_actions) != 0:
             action = self.redo_actions.pop()
             self.undo_actions.append(action)
-            [func[0](*(func[1]), **func[2]) for func in action["redo"]]
+            [func[0](*(func[1]), **func[2]) if len(func) == 3 else func[0](*(func[1])) for func in action["redo"]]

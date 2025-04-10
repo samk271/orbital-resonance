@@ -114,6 +114,8 @@ class FileManager:
         if canvas:
             canvas.speed = 1
             canvas.delete("planets")
+            canvas.delete("paths")
+            canvas.delete("triggers")
             canvas.set_focus(canvas.planet_manager.get_sun(), True, False)
-            canvas.menu_visibility["AI"]["menu"].midi.load_sample(canvas.planet_manager.samples.keys()[0])
+            canvas.menu_visibility["AI"]["menu"].midi.load_sample("Default (No Audio)")
         return data

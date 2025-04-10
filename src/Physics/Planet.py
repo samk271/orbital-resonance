@@ -84,8 +84,8 @@ class Planet:
         """
 
         # adds state
-        undo = (self.set_value, (getattr(self, attribute), attribute, False), {})
-        redo = (self.set_value, (value, attribute, False), {})
+        undo = (self.set_value, (getattr(self, attribute), attribute, False))
+        redo = (self.set_value, (value, attribute, False))
         self.state_manager.add_state({"undo": [undo], "redo": [redo]}, self.update) if add_state else None
 
         # updates planet
