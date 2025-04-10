@@ -137,8 +137,12 @@ class MidiEditor(CTkFrame):
                 pos = col_num * column_step, row_num * row_step, (col_num + 1) * column_step, (row_num + 1) * row_step
                 fill = bar.color if bar else self.canvas.cget("bg")
                 tag = self.canvas.create_rectangle(*pos, fill=fill, tags=(f"[{row_num}, {col_num}]", ))
-                self.canvas.tag_bind(tag, "<Button-1>", lambda e, i=row_num, j=col_num: self.click(i, j))
                 self.canvas.tag_bind(tag, "<Button-3>", lambda e, i=row_num, j=col_num: self.click(i, j, True))
+                self.canvas.tag_bind(tag, "<Button-1>", lambda e, i=row_num, j=col_num: self.click(
+                    i, j) if e.state == 8 else None)
+                self.canvas.tag_bind(tag, "<Button-1>", lambda e, i=row_num, j=col_num: self.planet_manager.canvas.
+                                     set_focus(sample[i, j], e.state == 12) if e.state == 9 or e.state == 12 else None,
+                                     add="+")
 
         # draws playback line
         self.canvas.create_line(0, 0, 0, self.canvas.winfo_height(), tags="playback")
@@ -209,6 +213,9 @@ class MidiEditor(CTkFrame):
                 planet.__init__(*new_args)
                 state = {"undo": [(planet.__init__, old_args)], "redo": [(planet.__init__, new_args)]}
                 self.planet_manager.state_manager.add_state(state, True)
+
+        # reapplies focus
+        self.planet_manager.canvas.set_focus(self.planet_manager.focused_planet, False, False)
 
     def playback(self, t: int):
         """

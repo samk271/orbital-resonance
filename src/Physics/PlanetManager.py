@@ -4,6 +4,7 @@ from math import cos, sin, pi, atan2
 from FileManagement.StateManager import StateManger
 
 
+# noinspection PyPropertyDefinition
 class PlanetManager:
     """
     a class to manage all of the planets that the user has created within the GUI
@@ -11,6 +12,9 @@ class PlanetManager:
         --> can destroy planets
         --> can get the list of plants
     """
+
+    # gui will automatically update by setting focused_planet
+    focused_planet = property(lambda self: self._focused_planet, lambda self, value: self.canvas.set_focus(value))
 
     def __init__(self, planets: list[Planet] = None, samples: dict = None):
         """
@@ -21,14 +25,17 @@ class PlanetManager:
         :param samples: a dict containing all of the configurations of sample midi editors
         """
 
-        # sets planet attributes
+        # sets attributes
         self.planets = planets if planets else [Planet(0, 50, "yellow")]  # todo adjust default sun settings when min/max values are determined
         self.samples = samples if samples else {}
         self.time_elapsed = 0
-        self.focused_planet = None
         self.removed_buffer = []
         self.added_buffer = self.planets.copy()
         self.state_manager = StateManger()
+
+        # sets values that will be controlled by the canvas
+        self._focused_planet = None
+        self.canvas = None  # will be assigned
 
         # ensures planets have access to state manager
         for planet in self.planets:
@@ -136,7 +143,7 @@ class PlanetManager:
 
         # Update absolute position
         planet.position = array([new_x, new_y])
-        return rel_x < 0 and new_x >= 0 and (not planet.update)
+        return rel_x < 0 <= new_x and (not planet.update)
 
     def update_planet_physics(self, dt):
         """

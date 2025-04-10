@@ -20,10 +20,11 @@ AI_settings = AISettings(root, border_width=2, planet_manager=planet_manager)
 canvas = Canvas(root, bg="black", highlightthickness=1, planet_settings=planet_settings, AI_settings=AI_settings,
                 planet_manager=planet_manager, file_manager=file_manager)
 
-# configures grid for dynamic resizing and close function
+# configures grid close and click functions
 root.protocol("WM_DELETE_WINDOW", lambda: root.destroy() if canvas.file_buttons("exit") else None)
 root.rowconfigure(0, weight=1)
 root.columnconfigure(0, weight=1)
+root.bind_all("<Button-1>", lambda e: e.widget.focus_set())
 
 # binds hotkeys to file functions
 root.bind_all("<Control-n>", lambda e: canvas.file_buttons("🆕", e))

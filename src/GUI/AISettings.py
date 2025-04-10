@@ -143,11 +143,6 @@ class AISettings(CTkFrame):
         self.columnconfigure(0, weight=1)
         self.columnconfigure(7, weight=1)
 
-        # handles menu focus
-        self.bind("<Button-1>", lambda event: self.focus_set())
-        for child in self.winfo_children():
-            child.bind("<Button-1>", lambda event: self.focus_set())
-
         self.midi = MidiEditor(self, planet_manager=self.planet_manager, fg_color=self.cget("fg_color"))
         self.midi.grid(row=0, column=8)
 

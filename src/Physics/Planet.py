@@ -93,8 +93,8 @@ class Planet:
         self.update = True
 
     # sets class attributes to properties so state can be stored in state manager
-    color = property(lambda self: getattr(self, "_color"), partial(set_value, attribute="_color"))
-    radius = property(lambda self: getattr(self, "_radius"), partial(set_value, attribute="_radius"))
-    period = property(lambda self: getattr(self, "_period"), partial(set_value, attribute="_period"))
-    shape = property(lambda self: getattr(self, "_shape"), partial(set_value, attribute="_shape"))
+    color = property(lambda self: self._color, partial(set_value, attribute="_color"))
+    radius = property(lambda self: self._radius, partial(set_value, attribute="_radius"))
+    period = property(lambda self: self._period, partial(set_value, attribute="_period"))
+    shape = property(lambda self: self._shape, partial(set_value, attribute="_shape"))
     orbital_radius = property(lambda self: (self.period ** (2 / 3)) * 500)  # read only, calculated with period

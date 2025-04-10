@@ -1,4 +1,4 @@
-import customtkinter
+from customtkinter import set_appearance_mode, set_default_color_theme
 
-customtkinter.set_appearance_mode("dark")
-customtkinter.set_default_color_theme("blue")
+set_appearance_mode("dark")
+set_default_color_theme("blue")

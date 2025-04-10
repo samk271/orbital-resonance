@@ -22,7 +22,6 @@ class Canvas(CTkCanvas):
         --> navigation button properties
         --> state properties
         --> star generation properties
-    todo update planet settings when a planet is selected
     """
 
     # properties for how navigation buttons should look and function
@@ -48,6 +47,7 @@ class Canvas(CTkCanvas):
 
     # misc properties for timing and chunk loading
     FPS = 60
+    FPS = int(1000 / FPS) if int(1000 / FPS) != 0 else 1  # calculated ms between frames don't change this value
     FOCUS_FRAMES = 30
     FOCUS_DRAG_THRESHOLD = 10
     CHUNK_SIZE = 200
@@ -71,7 +71,7 @@ class Canvas(CTkCanvas):
         # gets kwargs
         self.file_manager = kwargs.pop("file_manager")
         self.planet_manager: PlanetManager = kwargs.pop("planet_manager")
-        self.planet_manager.state_manager.canvas = self
+        self.planet_manager.canvas = self
         self.menu_visibility = {"planet": {"menu": kwargs.pop("planet_settings"), "visible": True},
                                 "AI": {"menu": kwargs.pop("AI_settings"), "visible": True}}
 
@@ -81,7 +81,6 @@ class Canvas(CTkCanvas):
         self.initialized = False
         self.after_click = self.after(0, lambda: None)
         self.after_tooltip = self.after(0, lambda: None)
-        self.after(int(1000 / Canvas.FPS), self.update_planets)
 
         # sets event fields
         self.space_position = array([[0.0, 0.0], [0.0, 0.0]])  # planet pos, star pos
@@ -160,14 +159,10 @@ class Canvas(CTkCanvas):
 
         # misc actions
         self.bind("<MouseWheel>", lambda e: self.zoom_event(Canvas.ZOOM_AMT if e.delta > 0 else 1 / Canvas.ZOOM_AMT, e))
-        self.bind("<Button-1>", lambda e: self.focus_set())  # todo do this for planet settings
         self.bind("<Configure>", lambda e: self.resize_event(array([e.width, e.height])))
         self.bind("<Button-1>", lambda e: setattr(self, "drag_event", array([e.x, e.y])), add="+")
         self.bind("<Button-1>", lambda e: setattr(self, "drag_amt", 0), add="+")
         self.bind("<B1-Motion>", lambda e: self.position_event(self.drag_event - array([e.x, e.y]), event=e))
-        self.bind("<Button-1>", lambda e: setattr(self, "focused_planet", None if (not e.widget.find_withtag(
-            "current")) or "stars" in self.gettags(e.widget.find_withtag(
-                "current")) else self.planet_manager.focused_planet), add="+")
 
     # ================================================ PLANET FUNCTIONS ================================================
 
@@ -183,8 +178,12 @@ class Canvas(CTkCanvas):
         :param smooth: determines if the focus event should be smooth (only isn't during initial resize event)
         """
 
-        # sets focus on planet
-        self.planet_manager.focused_planet = planet
+        # handles when planet is being unfocused (planet is None)
+        self.planet_manager._focused_planet = planet
+        if not planet:
+            return
+
+        # makes planet visible
         self.tag_raise(planet.tag) if planet.tag else None
         self.tag_lower(planet.tag, "buttons") if planet.tag else None
         self.focus_frames = 0 if smooth else Canvas.FOCUS_FRAMES - 1
@@ -232,7 +231,7 @@ class Canvas(CTkCanvas):
         """
 
         # schedules the next frame and updates the midi editor
-        self.after(int(1000 / Canvas.FPS), self.update_planets)
+        self.after(Canvas.FPS, self.update_planets)
         self.menu_visibility["AI"]["menu"].midi.playback(Canvas.NAV_BUTTON_CLICK_TIME)
 
         # updates physics and focus
@@ -263,7 +262,7 @@ class Canvas(CTkCanvas):
 
             # binds click function to planet
             self.tag_bind(planet.tag, "<ButtonRelease-1>", lambda e, p=planet: self.set_focus(
-                p) if self.drag_amt < Canvas.FOCUS_DRAG_THRESHOLD else None)
+                p, e.state == 268) if self.drag_amt < Canvas.FOCUS_DRAG_THRESHOLD else None)
 
         # updates planet state
         for planet in self.planet_manager.planets:
@@ -504,7 +503,7 @@ class Canvas(CTkCanvas):
 
         # handles call is not from update planets
         if unfocus:
-            self.planet_manager.focused_planet = None
+            self.set_focus(None)
             self.draw_stars()
 
     def resize_event(self, size: array):
@@ -533,6 +532,7 @@ class Canvas(CTkCanvas):
         if not self.initialized:
             self.initialized = True
             self.set_focus(self.planet_manager.get_sun(), True, False)
+            self.update_planets()
 
     # ==================================================== BUTTONS =====================================================
 
