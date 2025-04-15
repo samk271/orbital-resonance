@@ -83,11 +83,6 @@ class SpectrogramDiffusionTrainer:
                 self.optimizer.step()
                 pbar.set_postfix(loss=loss.item())
 
-                if (count % 100 == 0):
-                    if save_path:
-                        os.makedirs(save_path, exist_ok=True)
-                        torch.save(self.model.state_dict(), os.path.join(save_path, f"unet_epoch_{epoch+1}_{count}.pt"))
-                count += 1
 
             # Save model after each epoch if path is provided
             if save_path:
@@ -97,15 +92,15 @@ class SpectrogramDiffusionTrainer:
     @torch.no_grad()
     def predict(self, text_embedding, num_inference_steps=50):
         self.model.eval()
-        text_embedding = text_embedding.to(self.device).unsqueeze(0)  # Add batch dimension
+        text_embedding = text_embedding.to(self.device).unsqueeze(0).unsqueeze(1)  # Add batch dimension
 
         # Start from pure noise
         shape = (1, 2, 129, 861)
         sample = torch.randn(shape).to(self.device)
 
-        for t in self.noise_scheduler.timesteps[:num_inference_steps]:
+        for t in tqdm(self.noise_scheduler.timesteps[:num_inference_steps]):
             # Predict the noise
-            noise_pred = self.model(sample, t, encoder_hidden_states=text_embedding).sample
+            noise_pred = self.model(sample=sample, timestep=t, encoder_hidden_states=text_embedding).sample
 
             # Remove noise according to the scheduler
             sample = self.noise_scheduler.step(noise_pred, t, sample).prev_sample

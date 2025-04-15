@@ -7,9 +7,11 @@ import numpy as np
 from scipy import signal
 from scipy.io import wavfile
 from torch.utils.data import Dataset
-from sentence_transformers import SentenceTransformer
+# from sentence_transformers import SentenceTransformer
 
 """
+New Dataset without retrieving text embeddings
+
 Dataset returns 5 second intervals from the clotho dataset
 
 2x129x1722 images
@@ -18,21 +20,21 @@ For more info on why this specific second interval was chosen see
 comment at bottom of file
 """
 
-class CustomDataset(Dataset):
+class CustomDatasetNoText(Dataset):
     def __init__(self, root_dir, train=True):
-        print("Loading captions")
-        self.text_encoder = SentenceTransformer('sentence-transformers/all-MiniLM-L6-v2')
+        # print("Loading captions")
+        # self.text_encoder = SentenceTransformer('sentence-transformers/all-MiniLM-L6-v2')
         if (train):
             self.data_dir = os.path.join(root_dir, "development")
-            #Load captions as a dictionary object
-            with open(os.path.join(root_dir, "clotho_embedded_captions_development.json"), 'r', encoding='utf-8') as file:
-                self.captions = json.load(file)
+            # #Load captions as a dictionary object
+            # with open(os.path.join(root_dir, "clotho_embedded_captions_development.json"), 'r', encoding='utf-8') as file:
+            #     self.captions = json.load(file)
         else:
             self.data_dir = os.path.join(root_dir, "evaluation")
-            #Load captions as a dictionary object
-            with open(os.path.join(root_dir, "clotho_embedded_captions_evaluation.json"), 'r', encoding='utf-8') as file:
-                self.captions = json.load(file)
-        print("Done.")
+            # #Load captions as a dictionary object
+            # with open(os.path.join(root_dir, "clotho_embedded_captions_evaluation.json"), 'r', encoding='utf-8') as file:
+            #     self.captions = json.load(file)
+        # print("Done.")
     def __len__(self):
         count = 0
         # Iterate directory
@@ -60,8 +62,8 @@ class CustomDataset(Dataset):
         file_name = os.listdir(self.data_dir)[idx]
 
         #Find caption for index
-        caption_list = self.captions[file_name[:-4]]
-        caption = torch.tensor(caption_list[random.randint(0,4)])
+        # caption_list = self.captions[file_name[:-4]]
+        # caption = torch.tensor(caption_list[random.randint(0,4)])
 
         wav_path = os.path.join(self.data_dir, file_name)
         _, samples = wavfile.read(wav_path)
@@ -72,7 +74,7 @@ class CustomDataset(Dataset):
 
         two_channel_tensor = self.preprocess_complex_image(cropped_spectrogram)
 
-        return {"spectrogram": two_channel_tensor, "text_embedding": caption}
+        return two_channel_tensor#{"spectrogram": two_channel_tensor, "text_embedding": caption}
 
 """
 Maximum wav file length was 30 seconds, full spectrograms are 129x10337
