@@ -12,6 +12,9 @@ from RangeSlider.RangeSlider import RangeSliderH
 import librosa
 import pygame
 from random import randint
+from diffusers import AudioLDM2Pipeline
+import torch
+
 # from GUI import note_lib_gen as nlg
 from Physics.PlanetManager import PlanetManager
 from Physics.Planet import Planet
@@ -54,6 +57,7 @@ class AISettings(CTkFrame):
         self.textbox.grid(row=0, column=2, rowspan=3, pady=20, padx=10)
         """
 
+        #Intiialize tabs
         self.tabview = CTkTabview(self)
         self.tabview.pack(fill="both", expand=True, padx=10, pady=10)
 
@@ -62,7 +66,11 @@ class AISettings(CTkFrame):
 
         self.sample_editor(self.sample_tab)
         self.sequence_editor(self.sequence_tab)
-        
+
+        #initialize ai model
+        repo_id = "cvssp/audioldm2"
+        self.pipe = AudioLDM2Pipeline.from_pretrained(repo_id, torch_dtype=torch.float16)
+        self.pipe = self.pipe.to("cuda" if torch.cuda.is_available() else "cpu")
 
         # sets column weights for dynamic resizing
         self.columnconfigure(0, weight=1)
@@ -83,7 +91,8 @@ class AISettings(CTkFrame):
         self.ai_textbox = CTkTextbox(parent, height=200, width=400)
         self.ai_textbox.grid(row=1, column=0, rowspan=3, sticky="nw", padx=10)
 
-        self.generate_button = CTkButton(parent, text="Generate Sound", fg_color="gray25", state="disabled")
+        self.generate_button = CTkButton(parent, text="Generate Sound")
+        self.generate_button.configure(command=lambda: self.generate_audio())
         self.generate_button.grid(row=2, column=0, rowspan=3, padx=10)
 
         self.listbox = CTkListbox(parent, width=320,height=120, hover=True)
@@ -116,10 +125,7 @@ class AISettings(CTkFrame):
         self.hSlider = RangeSliderH(parent , [self.hLeft, self.hRight],
                                      padX = 12, bgColor="gray17", font_color="#ffffff", digit_precision='.2f')
         self.hSlider.grid(row=3,column=2, columnspan=2,pady=10)
-
-        self.update_sound_button = CTkButton(parent, text="Crop", width=100, height=20, state="disabled")
-        self.update_sound_button.configure(command=lambda: self.update_sound(plot=plot1))
-        self.update_sound_button.grid(row=4,column=2,pady=10)
+        self.hSlider.bind("<ButtonRelease-1>", lambda e: self.update_sound(plot=plot1))
 
         # creates play sound button todo add function
         self.play_button = CTkButton(parent, text="Play Sound",width=100, height=20,  state="disabled", fg_color="gray25")
@@ -174,7 +180,6 @@ class AISettings(CTkFrame):
 
         # enabled the buttons
         self.play_button.configure(state="normal", fg_color=self.select_button.cget("fg_color"))
-        self.update_sound_button.configure(state="normal", fg_color=self.select_button.cget("fg_color"))
         
 
     def update_sound(self,plot):
@@ -240,3 +245,9 @@ class AISettings(CTkFrame):
         for i, file in enumerate(wav_files):
             listbox.insert(i, file)
         listbox.activate(0)
+
+    def generate_audio(self):
+        prompt = self.ai_textbox.get("1.0", "end-1c")
+        audio = self.pipe(prompt, num_inference_steps=200, audio_length_in_s=4.0).audios[0]
+        print("audio generated")
+        wav.write("techno.wav", rate=16000, data=audio)
