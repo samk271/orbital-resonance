@@ -2,7 +2,7 @@ import os
 import shutil
 import tkinter as tk
 from tkinter.colorchooser import askcolor
-from customtkinter import CTkFrame, CTkLabel, CTkTextbox, CTkButton, CTkCanvas
+from customtkinter import CTkFrame, CTkLabel, CTkTextbox, CTkButton, CTkCanvas, CTkTabview
 from CTkListbox import *
 import scipy.io.wavfile  as wav
 import numpy as np
@@ -54,7 +54,28 @@ class AISettings(CTkFrame):
         self.textbox.grid(row=0, column=2, rowspan=3, pady=20, padx=10)
         """
 
-        self.listbox = CTkListbox(self, width=320,height=120, hover=True)
+        self.tabview = CTkTabview(self)
+        self.tabview.pack(fill="both", expand=True, padx=10, pady=10)
+
+        self.sample_tab = self.tabview.add("Sample Editor")
+        self.sequence_tab = self.tabview.add("Sequence Editor")
+
+        self.sample_editor(self.sample_tab)
+        self.sequence_editor(self.sequence_tab)
+        
+
+        # sets column weights for dynamic resizing
+        self.columnconfigure(0, weight=1)
+        self.columnconfigure(7, weight=1)
+
+        
+
+    def sequence_editor(self, parent):
+        self.midi = MidiEditor(parent, planet_manager=self.planet_manager, fg_color=self.cget("fg_color"))
+        self.midi.grid(row=0, column=8)
+
+    def sample_editor(self, parent):
+        self.listbox = CTkListbox(parent, width=320,height=120, hover=True)
         self.listbox.grid(row=0,column=0,rowspan=2,pady=20,padx=10)
 
         self.sr = 0
@@ -69,11 +90,11 @@ class AISettings(CTkFrame):
         # creates the generated sound display
         fig = Figure(figsize = (5, 3), dpi = 100)
         plot1 = fig.add_subplot(111)
-        self.sound_graph = FigureCanvasTkAgg(fig, master = self)
+        self.sound_graph = FigureCanvasTkAgg(fig, master = parent)
         self.sound_graph.draw()
         self.sound_graph.get_tk_widget().grid(row=0, column=1, columnspan=2, rowspan=2, pady=(10,0), padx=10)
 
-        self.select_button = CTkButton(self, text="Select Sound")
+        self.select_button = CTkButton(parent, text="Select Sound")
         self.select_button.configure(command=lambda: self.select_sound(
             wav_dir="./AUDIO/temp_samples", plot=plot1))
         self.select_button.grid(row=2, column=0, pady=5)
@@ -81,70 +102,37 @@ class AISettings(CTkFrame):
         # create slider under graph
         self.hLeft = tk.DoubleVar(value=0)
         self.hRight = tk.DoubleVar(value=1)
-        self.hSlider = RangeSliderH(self , [self.hLeft, self.hRight],
+        self.hSlider = RangeSliderH(parent , [self.hLeft, self.hRight],
                                      padX = 12, bgColor="gray17", font_color="#ffffff", digit_precision='.2f')
         self.hSlider.grid(row=2,column=1, columnspan=2,pady=10)
 
-        self.update_sound_button = CTkButton(self, text="Crop", width=100, height=20, state="disabled")
+        self.update_sound_button = CTkButton(parent, text="Crop", width=100, height=20, state="disabled")
         self.update_sound_button.configure(command=lambda: self.update_sound(plot=plot1))
         self.update_sound_button.grid(row=3,column=1,pady=10)
 
         # creates play sound button todo add function
-        self.play_button = CTkButton(self, text="Play Sound",width=100, height=20,  state="disabled", fg_color="gray25")
+        self.play_button = CTkButton(parent, text="Play Sound",width=100, height=20,  state="disabled", fg_color="gray25")
         self.play_button.configure(command=lambda: self.play_sound())
         self.play_button.grid(row=3,column=2,pady=10)
 
 
         #Create name input box
-        self.name_label = CTkLabel(self,height=10, text="Name your planet")
+        self.name_label = CTkLabel(parent,height=10, text="Name your planet")
         self.name_label.grid(row=0, column=3, sticky="n", pady=(20,0))
-        self.planet_name_input = CTkTextbox(self, height=10)
+        self.planet_name_input = CTkTextbox(parent, height=10)
         self.planet_name_input.grid(row=0, column=3, sticky="n",pady=(40))
         self.planet_name_input.insert(index=tk.END,text ="Planet")
 
         #Generate sound library button
-        self.generate_button = CTkButton(self, text="Use Sample",  fg_color="gray25", state="disabled")
+        self.generate_button = CTkButton(parent, text="Use Sample",  fg_color="gray25", state="disabled")
         self.generate_button.configure(command=lambda: self.generate_library())
         self.generate_button.grid(row=1, column=3, sticky="n", pady=(20, 0))
 
         # creates add button todo add function
-        self.add_button = CTkButton(self, text="Add to Solar System", fg_color="gray25", state="disabled")
+        self.add_button = CTkButton(parent, text="Save Sample", fg_color="gray25", state="disabled")
         self.add_button.configure(command=lambda: self.add_planet_to_ss())
         self.add_button.grid(row=2, column=3, sticky="s", pady=(0, 20))
 
-        # creates generated planet display and label
-        self.planet_color = "#{:06x}".format(randint(0, 0xFFFFFF))
-        self.planet_canvas = CTkCanvas(self, width=60, height=60, bg="gray17", highlightthickness=0)
-        self.planet_canvas.grid(row=0, column=5, rowspan=3)
-
-        self.planet_preview_tag = self.planet_canvas.create_oval(0, 0, 60, 60, fill=self.planet_color)
-        self.planet_canvas.tag_bind(self.planet_preview_tag, "<ButtonRelease-1>", lambda e: self.select_color())
-
-        #create option menu for planet pitch
-        self.note_menu_label = CTkLabel(self, height=10, text="Select an offset")
-        self.note_menu_label.grid(row=1,column=6, sticky="n",padx=10)
-        #note_list = [librosa.midi_to_note(midi) for midi in range(30,61)]
-        offset_list = [0, .25, .5, .75, 1]
-        self.planet_offset = tk.DoubleVar(self)
-        self.planet_offset.set(0)
-        self.offset_menu = tk.OptionMenu(self, self.planet_offset, *offset_list)
-        self.offset_menu.grid(row=1,column=6, sticky="n", padx=10,pady=40)
-
-        #create optiom menu for note duration
-        self.note_menu_label = CTkLabel(self, height=10, text="Select a duration")
-        self.note_menu_label.grid(row=1,column=7,sticky="n", padx=10)
-        self.duration_list = [8,4,2,1,0.5]
-        self.planet_duration = tk.DoubleVar(self)
-        self.planet_duration.set(1)
-        self.duration_menu = tk.OptionMenu(self, self.planet_duration, *self.duration_list)
-        self.duration_menu.grid(row=1,column=7,sticky="n",padx=10,pady=40)
-
-        # sets column weights for dynamic resizing
-        self.columnconfigure(0, weight=1)
-        self.columnconfigure(7, weight=1)
-
-        self.midi = MidiEditor(self, planet_manager=self.planet_manager, fg_color=self.cget("fg_color"))
-        self.midi.grid(row=0, column=8)
 
     def select_color(self):
         temp_planet_color = askcolor(color=self.planet_color)[1]
