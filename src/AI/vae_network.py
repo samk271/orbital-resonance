@@ -3,7 +3,7 @@ import torch
 from tqdm.auto import tqdm
 from torch.utils.data import DataLoader
 from diffusers import AutoencoderKL
-from accelerate import Accelerator
+#from accelerate import Accelerator
 import torch.nn.functional as F
 #from audio_loss_functions import MultiResolutionSTFTLoss
 
@@ -12,8 +12,9 @@ class SpectrogramVAETrainer:
     def __init__(self, dataset, 
                  batch_size=16, 
                  lr=1e-4, latent_channels=256, 
-                 reg_mrstft = 1.0, reg_kl = 0.1):
-
+                 reg_mrstft = 1.0, reg_kl = 0.1,
+                 spectrogram_slice = 0):
+        self.spectrogram_slice = spectrogram_slice
         self.reg_mrstft = reg_mrstft
         self.reg_kl = reg_kl
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -24,15 +25,15 @@ class SpectrogramVAETrainer:
             out_channels=2,
             latent_channels=latent_channels,
             scaling_factor=0.18215,
-        )
+        ).to(self.device)
 
         self.optimizer = torch.optim.Adam(self.model.parameters(), lr=lr)
-        self.accelerator = Accelerator()
+        #self.accelerator = Accelerator()
 
         #Prepare to use accelerator class
-        self.model, self.dataloader, self.optimizer = self.accelerator.prepare(
-            self.model, self.dataloader, self.optimizer
-        )
+        # self.model, self.dataloader, self.optimizer = self.accelerator.prepare(
+        #     self.model, self.dataloader, self.optimizer
+        # )
 
     def train(self, num_epochs=10, save_path=None):
         self.model.train()
@@ -41,7 +42,7 @@ class SpectrogramVAETrainer:
             total_loss = 0.0
             pbar = tqdm(self.dataloader, desc=f"Epoch {epoch+1}/{num_epochs}")
             for batch in pbar:
-                batch = batch.to(self.accelerator.device)
+                batch = batch.to(self.device)
 
                 # Encode and sample from latent
                 posterior = self.model.encode(batch).latent_dist
@@ -57,7 +58,7 @@ class SpectrogramVAETrainer:
                 loss = recon_loss + kl_loss
 
                 self.optimizer.zero_grad()
-                self.accelerator.backward(loss)
+                loss.backward(loss)
                 self.optimizer.step()
 
                 pbar.set_postfix(loss=loss.item())
@@ -69,7 +70,8 @@ class SpectrogramVAETrainer:
             # Save model after each epoch if path is provided
             if save_path:
                 os.makedirs(save_path, exist_ok=True)
-                torch.save(self.model.state_dict(), os.path.join(save_path, f"unet_epoch_{epoch+1}.pt"))
+                torch.save(self.model.state_dict(), 
+                           os.path.join(save_path, f"vae_{self.spectrogram_slice}_epoch_{epoch+1}.pt"))
 
     def encode(self, spectrogram_batch):
         self.model.eval()

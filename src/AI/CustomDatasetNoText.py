@@ -21,9 +21,10 @@ comment at bottom of file
 """
 
 class CustomDatasetNoText(Dataset):
-    def __init__(self, root_dir, train=True):
+    def __init__(self, root_dir, train=True, spectrogram_slice = 0):
         # print("Loading captions")
         # self.text_encoder = SentenceTransformer('sentence-transformers/all-MiniLM-L6-v2')
+        self.spectrogram_slice = spectrogram_slice
         if (train):
             self.data_dir = os.path.join(root_dir, "development")
             # #Load captions as a dictionary object
@@ -69,11 +70,11 @@ class CustomDatasetNoText(Dataset):
         _, samples = wavfile.read(wav_path)
         f, t, Zxx = signal.stft(samples) #Generate spectrogram
         num_columns = Zxx.shape[1]
-        start_index = random.randint(0, num_columns - 1722) #Find random starting index
-        cropped_spectrogram = Zxx[:,start_index:start_index+1722] #Crop spectrogram to 5 second interval
+        start_index = random.randint(0, num_columns - 861) #Find random starting index
+        cropped_spectrogram = Zxx[:,start_index:start_index+861] #Crop spectrogram to 5 second interval
 
-        two_channel_tensor = self.preprocess_complex_image(cropped_spectrogram)
-
+        two_channel_tensor = self.preprocess_complex_image(cropped_spectrogram)[:,1:]
+        two_channel_tensor = two_channel_tensor[:,32*self.spectrogram_slice:32*(1+self.spectrogram_slice),:]
         return two_channel_tensor#{"spectrogram": two_channel_tensor, "text_embedding": caption}
 
 """

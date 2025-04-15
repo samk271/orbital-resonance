@@ -24,7 +24,7 @@ f, t, Zxx = signal.stft(samples)
 # plt.show()
 
 #Zxx = np.where(np.abs(Zxx) >= amp/10, Zxx, 0)
-_, xrec = signal.istft(Zxx, fs)
+_, xrec = signal.istft(Zxx[1:,:], fs)
 
 rounded_xrec = np.round(xrec).astype(np.int16)
 
