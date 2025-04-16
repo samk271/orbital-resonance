@@ -1,7 +1,12 @@
+import io
 import os
+import queue
 import shutil
+import threading
 import tkinter as tk
+from contextlib import redirect_stderr
 from tkinter.colorchooser import askcolor
+from tkinter.scrolledtext import ScrolledText
 from customtkinter import CTkFrame, CTkLabel, CTkTextbox, CTkButton, CTkCanvas, CTkTabview
 from CTkListbox import *
 import scipy.io.wavfile  as wav
@@ -95,6 +100,9 @@ class AISettings(CTkFrame):
         self.generate_button.configure(command=lambda: self.generate_audio())
         self.generate_button.grid(row=2, column=0, rowspan=3, padx=10)
 
+        self.gen_pbar = CTkLabel(parent, text = "", font=("Courier", 12), width=80)
+        self.gen_pbar.grid(row=3,column=0, pady = 20, padx=10)
+
         self.listbox = CTkListbox(parent, width=320,height=120, hover=True)
         self.listbox.grid(row=1,column=1,rowspan=2,pady=20,padx=10)
 
@@ -103,7 +111,7 @@ class AISettings(CTkFrame):
 
         # doesnt crash if dataset is not found
         try:
-            self.add_wav_to_listbox(listbox=self.listbox, wav_dir="./AUDIO/temp_samples")
+            self.add_wav_to_listbox(listbox=self.listbox, wav_dir="./AUDIO/prebuilt_samples")
         except:
             pass
 
@@ -125,7 +133,7 @@ class AISettings(CTkFrame):
         self.hSlider = RangeSliderH(parent , [self.hLeft, self.hRight],
                                      padX = 12, bgColor="gray17", font_color="#ffffff", digit_precision='.2f')
         self.hSlider.grid(row=3,column=2, columnspan=2,pady=10)
-        self.hSlider.bind("<ButtonRelease-1>", lambda e: self.update_sound(plot=plot1))
+        self.hSlider.bind("<Button-1>", lambda e: self.update_sound(plot=plot1))
 
         # creates play sound button todo add function
         self.play_button = CTkButton(parent, text="Play Sound",width=100, height=20,  state="disabled", fg_color="gray25")
@@ -134,16 +142,15 @@ class AISettings(CTkFrame):
 
 
         #Create name input box
-        self.name_label = CTkLabel(parent,height=10, text="Name your planet")
+        self.name_label = CTkLabel(parent,height=10, text="Name your sample")
         self.name_label.grid(row=1, column=4, sticky="n", pady=(20,0))
-        self.planet_name_input = CTkTextbox(parent, height=10)
-        self.planet_name_input.grid(row=1, column=4, sticky="n",pady=(40))
-        self.planet_name_input.insert(index=tk.END,text ="Planet")
+        self.sample_name_input = CTkTextbox(parent, height=10)
+        self.sample_name_input.grid(row=1, column=4, sticky="n",pady=(40))
 
         # creates add button todo add function
-        self.add_button = CTkButton(parent, text="Save Sample", fg_color="gray25", state="disabled")
-        self.add_button.configure(command=lambda: self.add_planet_to_ss())
-        self.add_button.grid(row=2, column=4, sticky="s", pady=(0, 20))
+        self.save_button = CTkButton(parent, text="Save Sample", fg_color="gray25", state="disabled")
+        self.save_button.configure(command=lambda: self.add_sample_to_list())
+        self.save_button.grid(row=2, column=4, sticky="s", pady=(0, 20))
 
 
     def select_color(self):
@@ -218,19 +225,19 @@ class AISettings(CTkFrame):
         stores cropped sample to dedicated planet wav file
         """
 
-        planet_name = self.planet_name_input.get("1.0",'end-1c')
+        planet_name = self.sample_name_input.get("1.0",'end-1c')
 
         if not (os.path.isdir(f"./AUDIO/planets/{planet_name}")):
             os.mkdir(f"./AUDIO/planets/{planet_name}")
 
         shutil.copy("./AUDIO/temp_wav.wav", f"./AUDIO/planets/{planet_name}/{planet_name}.wav")
-        self.add_button.configure(state="normal", fg_color=self.select_button.cget("fg_color"))
+        self.save_button.configure(state="normal", fg_color=self.select_button.cget("fg_color"))
 
         
     #Add planet to solar system
-    def add_planet_to_ss(self):
+    def add_sample_to_list(self):
 
-        planet_name = self.planet_name_input.get("1.0",'end-1c')
+        planet_name = self.sample_name_input.get("1.0",'end-1c')
 
         planet= Planet(period=self.planet_duration.get()
                        ,radius=20, color=self.planet_color, 
@@ -244,10 +251,45 @@ class AISettings(CTkFrame):
         wav_files = os.listdir(wav_dir)
         for i, file in enumerate(wav_files):
             listbox.insert(i, file)
-        listbox.activate(0)
 
     def generate_audio(self):
         prompt = self.ai_textbox.get("1.0", "end-1c")
-        audio = self.pipe(prompt, num_inference_steps=200, audio_length_in_s=4.0).audios[0]
-        print("audio generated")
-        wav.write("techno.wav", rate=16000, data=audio)
+
+        redirector = CTkLabelRedirector(self.gen_pbar)
+
+        def start_pipe():
+            def task():
+                with redirect_stderr(redirector):
+                    audio = self.pipe(prompt, num_inference_steps=200, audio_length_in_s=4.0).audios[0]
+                    print("penis music")
+
+                    wav.write("./AUDIO/temp/temp_gen.wav", rate=16000, data=audio)
+                    num_user_samples = len(os.listdir("./AUDIO/user_samples"))
+                    self.sample_name_input.insert(index=tk.END,text =f"sample_{num_user_samples}")
+
+            threading.Thread(target=task).start()
+
+        start_pipe()
+        self.gen_pbar.configure(text = "Generated!")
+        self.after(1000, self.gen_pbar.configure(text = ""))
+
+        
+
+# Redirect tqdm output to a CTkLabel
+class CTkLabelRedirector(io.TextIOBase):
+    def __init__(self, label):
+        super().__init__()
+        self.label = label
+        self.buffer = ""
+
+    def write(self, message):
+        self.buffer += message
+        if "\r" in message or "\n" in message:
+            lines = self.buffer.strip().splitlines()
+            if lines:
+                last_line = lines[-1]
+                self.label.after(0, lambda: self.label.configure(text=last_line))
+            self.buffer = ""
+
+    def flush(self):
+        pass
