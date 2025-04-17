@@ -1,4 +1,5 @@
 import customtkinter as ctk
+import matplotlib
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 from matplotlib.patches import Rectangle
@@ -131,3 +132,14 @@ class AudioPlotFrame(ctk.CTkFrame):
         left_index = np.searchsorted(self.time, self.left_crop, side='left')
         right_index = np.searchsorted(self.time, self.right_crop, side='right')
         return left_index, right_index
+    
+    def destroy(self):
+        # Properly destroy matplotlib canvas to cancel any pending .after calls
+        if hasattr(self, 'canvas'):
+            self.canvas.get_tk_widget().destroy()
+            self.canvas._tkcanvas = None  # helps avoid lingering references
+            self.canvas = None
+
+        plt.close(self.figure)  # Close the matplotlib figure explicitly
+
+        super().destroy()
