@@ -1,4 +1,3 @@
-from Physics.PlanetManager import PlanetManager
 from FileManagement.FileManager import FileManager
 from GUI.PlanetSettings import PlanetSettings
 from GUI.AISettings import AISettings

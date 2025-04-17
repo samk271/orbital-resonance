@@ -35,7 +35,7 @@ class PlanetManager:
 
         # sets values that will be controlled by the canvas
         self._focused_planet = None
-        self.canvas = None  # will be assigned
+        self.canvas = self.canvas if hasattr(self, "canvas") else None  # will be assigned
 
         # ensures planets have access to state manager
         for planet in self.planets:
@@ -48,7 +48,7 @@ class PlanetManager:
 
         return self.planets[0]
 
-    def add_planet(self, planet: Planet, add_state: bool = True):
+    def add_planet(self, planet: Planet, add_state: bool = True, modify_state: bool = False):
         """
         adds a planet to the list of planets that exist in the program
             ** note: planet class must be created externally and passed as a parameter **
@@ -60,11 +60,12 @@ class PlanetManager:
 
         :param planet: the planet that has been created that should be added to the planets list
         :param add_state: determines if the action should be added to the state manager
+        :param modify_state: determines if the action should modify the previous state
         """
 
         # adds state updates to state manager
         state = {"undo": [(self.remove_planet, (planet, False))], "redo": [(self.add_planet, (planet, False))]}
-        self.state_manager.add_state(state) if add_state else None
+        self.state_manager.add_state(state, modify_state) if add_state else None
 
         # adds planet to solar system
         planet.state_manager = self.state_manager
@@ -72,7 +73,7 @@ class PlanetManager:
         self.added_buffer.append(planet)
         planet.update = True
 
-    def remove_planet(self, planet: Planet, add_state: bool = True):
+    def remove_planet(self, planet: Planet, add_state: bool = True, modify_state: bool = False):
         """
         removes a planet from the list of planets that exist in the program
             ** note: this planet must have already been added to the list with add_planet and passed again to remove **
@@ -84,11 +85,12 @@ class PlanetManager:
 
         :param planet: the planet to remove from the planets list
         :param add_state: determines if the action should be added to the state manager
+        :param modify_state: determines if the action should modify the previous state
         """
 
         # adds state to state manager
         state = {"undo": [(self.add_planet, (planet, False))], "redo": [(self.remove_planet, (planet, False))]}
-        self.state_manager.add_state(state) if add_state else None
+        self.state_manager.add_state(state, modify_state) if add_state else None
 
         # removes planet
         self.planets.remove(planet)

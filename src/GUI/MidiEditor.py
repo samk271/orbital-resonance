@@ -6,6 +6,7 @@ from random import randint
 from math import floor
 
 
+# noinspection PyPropertyDefinition
 class MidiEditor(CTkFrame):
     """
     a class to represent a midi editor with the following functionality:
@@ -31,6 +32,7 @@ class MidiEditor(CTkFrame):
         # initializes superclass and canvas fields
         self.planet_manager = kwargs.pop("planet_manager")
         super().__init__(*args, **kwargs)
+        self.click_and_drag = 0  # 0 = off, 1 = mode-on, 2 = mode-off
         self.playback_col = 0
         self.sample = "Default (No Audio)"
 
@@ -73,7 +75,8 @@ class MidiEditor(CTkFrame):
         sample = self.planet_manager.samples[self.sample]
         if sample[row, col] and (not right):
             state = [(self.click, (row, col, right, sample[row, col]))]
-            self.planet_manager.remove_planet(sample[row, col]) if not planet else None
+            self.planet_manager.remove_planet(
+                sample[row, col], modify_state=self.click_and_drag) if not planet else None
 
             # updates state and midi editor
             self.planet_manager.state_manager.add_state({"undo": state, "redo": state}, True) if not planet else None
@@ -99,7 +102,7 @@ class MidiEditor(CTkFrame):
             # updates midi color, adds state and planet
             self.canvas.itemconfig(tag, fill=sample[row, col].color)
             state = [(self.click, (row, col, right, sample[row, col]))]
-            self.planet_manager.add_planet(sample[row, col]) if not planet else None
+            self.planet_manager.add_planet(sample[row, col], modify_state=self.click_and_drag) if not planet else None
             self.planet_manager.state_manager.add_state({"undo": state, "redo": state}, True) if not planet else None
 
     def load_sample(self, sample: str, update: bool = False):
@@ -126,26 +129,32 @@ class MidiEditor(CTkFrame):
         row_step = (self.canvas.winfo_height() - 1) / len(sample)
         column_step = (self.canvas.winfo_width() - 1) / len(sample[0])
 
-        # draws the blank editor
+        # draws the editor
         for row_num, row in enumerate(sample):
-            self.canvas.create_line(0, row_num * row_step, self.winfo_width(), row_num * row_step)
             for col_num, bar in enumerate(row):
-                if row_num == 0:
-                    self.canvas.create_line(col_num * column_step, 0, col_num * column_step, self.winfo_height())
 
                 # draws bars
                 pos = col_num * column_step, row_num * row_step, (col_num + 1) * column_step, (row_num + 1) * row_step
                 fill = bar.color if bar else self.canvas.cget("bg")
                 tag = self.canvas.create_rectangle(*pos, fill=fill, tags=(f"[{row_num}, {col_num}]", ))
+
+                # binds actions to bars
                 self.canvas.tag_bind(tag, "<Button-3>", lambda e, i=row_num, j=col_num: self.click(i, j, True))
                 self.canvas.tag_bind(tag, "<Button-1>", lambda e, i=row_num, j=col_num: self.click(
                     i, j) if not (e.state & 0x0001 or e.state & 0x0004) else None)
                 self.canvas.tag_bind(tag, "<Button-1>", lambda e, i=row_num, j=col_num: self.planet_manager.canvas.
                                      set_focus(sample[i, j], e.state & 0x0004) if e.state & 0x0001 or e.
                                      state & 0x0004 else None, add="+")
+                self.canvas.tag_bind(tag, "<Leave>", lambda e, i=row_num, j=col_num: [setattr(self, "click_and_drag", (
+                    1 if sample[i, j] else 2) if e.state & 0x0100 and (not (
+                        e.state & 0x0001 or e.state & 0x0004)) else 0)])
 
-        # draws playback line
+        # draws playback line and binds click and drag action
         self.canvas.create_line(0, 0, 0, self.canvas.winfo_height(), tags="playback")
+        self.canvas.bind("<Motion>", lambda e: self.click(int(e.y // row_step), int(
+            e.x // column_step)) if self.click_and_drag and 0 <= e.x < (self.canvas.winfo_width() - 1) and 0 <= e.y < (
+                self.canvas.winfo_height() - 1) and bool(sample[int(e.y // row_step), int(e.x // column_step)]) == bool(
+            self.click_and_drag == 2) else None)
 
     def modify_editor(self, axis: str, mode: str):
         """
@@ -239,4 +248,6 @@ class MidiEditor(CTkFrame):
         for row in range(len(self.planet_manager.samples[self.sample])):
             if planet := self.planet_manager.samples[self.sample][row, floor(period)]:
                 self.canvas.itemconfig(f"[{row}, {floor(period)}]", fill="white")
-                self.after(t, lambda r=row, p=planet: self.canvas.itemconfig(f"[{r}, {floor(period)}]", fill=p.color))
+                self.after(t, lambda r=row, p=planet: self.canvas.itemconfig(
+                    f"[{r}, {floor(period)}]", fill=p.color if self.planet_manager.samples[self.sample][
+                        r, floor(period)] else self.canvas.cget("bg")))
