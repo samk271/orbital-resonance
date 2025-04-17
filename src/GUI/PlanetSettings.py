@@ -107,6 +107,9 @@ class PlanetSettings(CTkFrame):
         self.planet_manager.get_sun()._radius = self.old_sun_r
         self.planet_manager.get_sun().update = False
         self.planet_manager.get_sun().radius = self.size_slider.get()
+        state = {"undo": [(self.size_slider.set, (self.old_sun_r, ))],
+                 "redo": [(self.size_slider.set, (self.size_slider.get(), ))]}
+        self.planet_manager.state_manager.add_state(state, True)
         self.old_sun_r = self.planet_manager.get_sun().radius
 
     def change_sun_color(self, color):
