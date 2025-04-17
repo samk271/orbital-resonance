@@ -129,16 +129,20 @@ class AISettings(CTkFrame):
 
         self.select_button = CTkButton(parent, text="Select Sound")
         self.select_button.configure(command=lambda: self.select_sound(
-            wav_dir="./AUDIO/temp", plot=plot1))
+            wav_dir="./AUDIO/prebuilt_samples", plot=plot1))
         self.select_button.grid(row=3, column=1, pady=5)
 
         # create slider under graph
         self.hLeft = tk.DoubleVar(value=0)
         self.hRight = tk.DoubleVar(value=1)
+
+        self.hLeft.trace_add("write", self.update_plot(plot=plot1))
+        self.hRight.trace_add("write", self.update_plot(plot=plot1))
+
         self.hSlider = RangeSliderH(parent , [self.hLeft, self.hRight],
                                      padX = 12, bgColor="gray17", font_color="#ffffff", digit_precision='.2f')
         self.hSlider.grid(row=3,column=2, columnspan=2,pady=10)
-        self.hSlider.bind("<Button-1>", lambda e: self.update_plot(plot=plot1))
+        self.hSlider.bind("<ButtonRelease-1>", lambda e: self.update_plot(plot=plot1))
 
         # creates play sound button todo add function
         self.play_button = CTkButton(parent, text="Play Sound",width=100, height=20,  state="disabled", fg_color="gray25")
@@ -183,6 +187,9 @@ class AISettings(CTkFrame):
         
 
     def update_plot(self,plot):
+
+        if len(self.signal) == 0:
+            return
 
         if (len(self.signal.shape) > 1):
             x= np.average(self.signal, axis=1)
