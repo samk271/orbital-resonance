@@ -1,5 +1,5 @@
 from Physics.Planet import Planet
-from customtkinter import CTkCanvas, CTkFrame, CTkButton
+from customtkinter import CTkCanvas, CTkFrame, CTkButton, CTkLabel
 from tkinter.colorchooser import askcolor
 from numpy import full, append, delete
 from random import randint
@@ -36,6 +36,10 @@ class MidiEditor(CTkFrame):
         self.playback_col = 0
         self.sample = "Default (No Audio)"
 
+        # creates pitch column
+        pitch = CTkLabel(self, text="Pitch:", font=("Arial", 18))
+        pitch.grid(row=0, column=0, sticky="sw", padx=(0, 10))
+
         # creates buttons
         add_column = CTkButton(self, text="Add Column", command=lambda: self.modify_editor(1, "add"))
         remove_column = CTkButton(self, text="Remove Column", command=lambda: self.modify_editor(1, "remove"))
@@ -43,22 +47,22 @@ class MidiEditor(CTkFrame):
         remove_row = CTkButton(self, text="Remove Row", command=lambda: self.modify_editor(0, "remove"))
 
         # places buttons
-        add_column.grid(row=0, column=0, sticky="ew")
-        remove_column.grid(row=0, column=1, sticky="ew")
-        add_row.grid(row=0, column=2, sticky="ew")
-        remove_row.grid(row=0, column=3, sticky="ew")
+        add_column.grid(row=0, column=1, sticky="ew")
+        remove_column.grid(row=0, column=2, sticky="ew")
+        add_row.grid(row=0, column=3, sticky="ew")
+        remove_row.grid(row=0, column=4, sticky="ew")
 
         # creates canvas
-        self.canvas = CTkCanvas(self, bg=self.cget("fg_color")[1], highlightthickness=0)
-        self.canvas.grid(row=1, column=0, columnspan=4, sticky="nsew")
+        self.canvas = CTkCanvas(self, bg=self.cget("fg_color"), highlightthickness=0)
+        self.canvas.grid(row=1, column=1, columnspan=4, sticky="nsew")
         self.canvas.bind("<Configure>", lambda e: self.load_sample(self.sample))
 
         # configures resizing
         self.rowconfigure(1, weight=1)
-        self.columnconfigure(0, weight=1)
         self.columnconfigure(1, weight=1)
         self.columnconfigure(2, weight=1)
         self.columnconfigure(3, weight=1)
+        self.columnconfigure(4, weight=1)
 
     def click(self, row: int, col: int, right: bool = False, planet: Planet = None):
         """
