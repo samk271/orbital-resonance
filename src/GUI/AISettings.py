@@ -97,13 +97,16 @@ class AISettings(CTkFrame):
         self.ai_textbox.grid(row=1, column=0, rowspan=3, sticky="nw", padx=10)
 
         self.generate_button = CTkButton(parent, text="Generate Sound")
-        self.generate_button.configure(command=lambda: self.generate_audio())
+        
         self.generate_button.grid(row=3, column=0, padx=10)
 
         self.gen_pbar = CTkLabel(parent, text = "", font=("Courier", 12), width=80)
         self.gen_pbar.grid(row=4,column=0)
 
-        self.listbox = CTkListbox(parent, width=320,height=120, hover=True)
+        self.listbox_label = CTkLabel(parent, text="Preset Samples:", font=("Arial", 18))
+        self.listbox_label.grid(row=0, column=1, sticky="nw", pady=20, padx=(20, 0))
+
+        self.listbox = CTkListbox(parent, width=290,height=150, hover=True)
         self.listbox.grid(row=1,column=1,rowspan=2,pady=20,padx=10)
 
         self.sr = 0
@@ -121,6 +124,8 @@ class AISettings(CTkFrame):
         self.sound_graph = FigureCanvasTkAgg(fig, master = parent)
         self.sound_graph.draw()
         self.sound_graph.get_tk_widget().grid(row=1, column=2, columnspan=2, rowspan=2, pady=(10,0), padx=10)
+
+        self.generate_button.configure(command=lambda: self.generate_audio(plot=plot1))
 
         self.select_button = CTkButton(parent, text="Select Sound")
         self.select_button.configure(command=lambda: self.select_sound(
@@ -256,7 +261,10 @@ class AISettings(CTkFrame):
                     self.sample_name_input.insert(index=tk.END,text =f"sample_{num_user_samples}")
 
                 self.after(1000, self.gen_pbar.configure(text = "Generated!"))
-                self.update_plot
+                self.sr = 16000
+                self.signal = audio
+
+                self.update_plot(plot=plot)
 
             threading.Thread(target=task).start()
 
