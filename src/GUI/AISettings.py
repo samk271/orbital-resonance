@@ -236,7 +236,6 @@ class AISettings(CTkFrame):
                 with redirect_stderr(redirector):
                     audio = self.pipe(prompt, negative_prompt="Low quality, noisy, and with ambience.", num_inference_steps=100, audio_length_in_s=4.0).audios[0]
                     num_user_samples = len(os.listdir("./AUDIO/user_samples"))
-                    self.sample_name_input.insert(index=tk.END,text =f"sample_{num_user_samples}")
 
                 self.sr = 16000
                 self.signal = audio
@@ -244,11 +243,17 @@ class AISettings(CTkFrame):
                 self.update_plot()
                 self.play_sound()
                 self.play_button.configure(state="normal", fg_color=self.select_button.cget("fg_color"))
+                self.sample_name_input.insert(index=tk.END,text =f"sample_{num_user_samples}")
 
             threading.Thread(target=task).start()
 
 
         start_pipe()
+
+    def on_close(self):
+        if self.after_id:
+            self.after_cancel(self.after_id)
+        self.destroy()
 
         
 
