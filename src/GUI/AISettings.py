@@ -70,7 +70,7 @@ class AISettings(CTkFrame):
         self.sample_editor(self.sample_tab)
         self.sequence_editor(self.sequence_tab)
 
-        #initialize ai model
+        #initialize ai model  todo might be good to have a loading screen for this part/do it in another thread
         repo_id = "cvssp/audioldm2"
         self.pipe = AudioLDM2Pipeline.from_pretrained(repo_id, torch_dtype=torch.float16)
         self.pipe = self.pipe.to("cuda" if torch.cuda.is_available() else "cpu")
@@ -273,7 +273,7 @@ class AISettings(CTkFrame):
 
         
 
-# Redirect tqdm output to a CTkLabel
+# Redirect tqdm output to a CTkLabel  todo there is a CTkProgressBar that might look nicer
 class CTkLabelRedirector(io.TextIOBase):
     def __init__(self, label):
         super().__init__()

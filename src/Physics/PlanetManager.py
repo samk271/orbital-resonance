@@ -35,7 +35,7 @@ class PlanetManager:
 
         # sets values that will be controlled by the canvas
         self._focused_planet = None
-        self.canvas = None  # will be assigned
+        self.canvas = self.canvas if hasattr(self, "canvas") else None  # will be assigned
 
         # ensures planets have access to state manager
         for planet in self.planets:
