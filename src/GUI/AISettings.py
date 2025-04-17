@@ -29,8 +29,6 @@ from GUI.MidiEditor import MidiEditor
 class AISettings(CTkFrame):
     """
     The class that will handle the settings menu that controls the AI planet generation
-
-    todo add to solar system button functionality
     """
 
     def __init__(self, *args, **kwargs):
@@ -80,12 +78,14 @@ class AISettings(CTkFrame):
         # sets column weights for dynamic resizing
         self.columnconfigure(0, weight=1)
         self.columnconfigure(7, weight=1)
+        self.tabview.grid_propagate(False)
 
-        
 
     def sequence_editor(self, parent):
         self.midi = MidiEditor(parent, planet_manager=self.planet_manager, fg_color=self.cget("fg_color"))
-        self.midi.grid(row=0, column=8)
+        self.midi.grid(row=0, column=0, sticky="nsew")
+        parent.columnconfigure(0, weight=1)
+        parent.rowconfigure(0, weight=1)
 
     def sample_editor(self, parent):
 

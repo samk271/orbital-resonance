@@ -1,5 +1,4 @@
 from customtkinter import CTkFrame, CTkLabel, CTkSlider, CTkButton, CTkTabview, CTkComboBox
-from tkinter import Canvas 
 from tkinter.colorchooser import askcolor
 
 
@@ -37,7 +36,9 @@ class PlanetSettings(CTkFrame):
         #slider for the size
         self.size_label = CTkLabel(parent, text="Size:")
         self.size_label.pack(pady=(10,2))
-        self.size_slider = CTkSlider(parent, from_=0, to=100)
+        self.size_slider = CTkSlider(parent, from_=0, to=100, command=self.display_sun_size)
+        self.old_sun_r = self.planet_manager.get_sun().radius
+        self.size_slider.set(self.old_sun_r)
         self.size_slider.bind("<ButtonRelease-1>", lambda e: self.change_sun_size())
         self.size_slider.pack(pady=2, padx=10, fill="x")
 
@@ -92,8 +93,21 @@ class PlanetSettings(CTkFrame):
         if color:  # If a color is selected (not canceled)
             self.change_sun_color(color)
 
+    def display_sun_size(self, r: int):
+        """
+        updates the UI to display the new sun size while sliding, but doesnt add the change to the state manager
+
+        :param r: the radius of the sun to display
+        """
+
+        self.planet_manager.get_sun()._radius = r
+        self.planet_manager.get_sun().update = True
+
     def change_sun_size(self):
+        self.planet_manager.get_sun()._radius = self.old_sun_r
+        self.planet_manager.get_sun().update = False
         self.planet_manager.get_sun().radius = self.size_slider.get()
+        self.old_sun_r = self.planet_manager.get_sun().radius
 
     def change_sun_color(self, color):
 

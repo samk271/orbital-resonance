@@ -41,10 +41,10 @@ class MidiEditor(CTkFrame):
         remove_row = CTkButton(self, text="Remove Row", command=lambda: self.modify_editor(0, "remove"))
 
         # places buttons
-        add_column.grid(row=0, column=0)
-        remove_column.grid(row=0, column=1)
-        add_row.grid(row=0, column=2)
-        remove_row.grid(row=0, column=3)
+        add_column.grid(row=0, column=0, sticky="ew")
+        remove_column.grid(row=0, column=1, sticky="ew")
+        add_row.grid(row=0, column=2, sticky="ew")
+        remove_row.grid(row=0, column=3, sticky="ew")
 
         # creates canvas
         self.canvas = CTkCanvas(self, bg=self.cget("fg_color")[1], highlightthickness=0)
