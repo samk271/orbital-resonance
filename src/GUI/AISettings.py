@@ -7,7 +7,7 @@ import tkinter as tk
 from contextlib import redirect_stderr
 from tkinter.colorchooser import askcolor
 from tkinter.scrolledtext import ScrolledText
-from customtkinter import CTkFrame, CTkLabel, CTkTextbox, CTkButton, CTkCanvas, CTkTabview
+from customtkinter import CTkFrame, CTkLabel, CTkTextbox, CTkButton, CTkCanvas, CTkTabview, CTkProgressBar
 from CTkListbox import *
 import scipy.io.wavfile  as wav
 import numpy as np
@@ -99,10 +99,11 @@ class AISettings(CTkFrame):
 
         self.generate_button = CTkButton(parent, text="Generate Sound")
         self.generate_button.configure(command=lambda: self.generate_audio())
-        self.generate_button.grid(row=3, column=0, padx=10)
+        self.generate_button.grid(row=4, column=0, padx=10)
 
-        self.gen_pbar = CTkLabel(parent, text = "", font=("Courier", 12), width=80)
-        self.gen_pbar.grid(row=4,column=0)
+        self.gen_pbar = CTkProgressBar(parent, width = 300, mode = 'determinate')
+        self.gen_pbar.grid(row=3,column=0)
+        self.gen_pbar.set(0)
 
         self.listbox_label = CTkLabel(parent, text="Preset Samples:", font=("Arial", 18))
         self.listbox_label.grid(row=0, column=1, sticky="nw", pady=20, padx=(20, 0))
@@ -237,7 +238,6 @@ class AISettings(CTkFrame):
                     num_user_samples = len(os.listdir("./AUDIO/user_samples"))
                     self.sample_name_input.insert(index=tk.END,text =f"sample_{num_user_samples}")
 
-                self.after(1000, self.gen_pbar.configure(text = "Generated!"))
                 self.sr = 16000
                 self.signal = audio
 
@@ -265,8 +265,13 @@ class CTkLabelRedirector(io.TextIOBase):
             lines = self.buffer.strip().splitlines()
             if lines:
                 last_line = lines[-1]
-                self.label.after(0, lambda: self.label.configure(text=last_line[:5]+last_line[5:-34][::5] + last_line[-33:-25])) #trim lastline
+                percent_index = last_line.find('%')
+                progress_value = int(last_line[:percent_index])/100
+                self.label.after(0, lambda: self.label.set(progress_value)) #trim lastline
             self.buffer = ""
 
     def flush(self):
         pass
+
+    def update_value(self, value):
+        self.label["value"] = value
