@@ -98,10 +98,10 @@ class AISettings(CTkFrame):
 
         self.generate_button = CTkButton(parent, text="Generate Sound")
         self.generate_button.configure(command=lambda: self.generate_audio())
-        self.generate_button.grid(row=2, column=0, rowspan=3, padx=10)
+        self.generate_button.grid(row=3, column=0, padx=10)
 
         self.gen_pbar = CTkLabel(parent, text = "", font=("Courier", 12), width=80)
-        self.gen_pbar.grid(row=3,column=0, pady = 20, padx=10)
+        self.gen_pbar.grid(row=4,column=0)
 
         self.listbox = CTkListbox(parent, width=320,height=120, hover=True)
         self.listbox.grid(row=1,column=1,rowspan=2,pady=20,padx=10)
@@ -124,7 +124,7 @@ class AISettings(CTkFrame):
 
         self.select_button = CTkButton(parent, text="Select Sound")
         self.select_button.configure(command=lambda: self.select_sound(
-            wav_dir="./AUDIO/temp_samples", plot=plot1))
+            wav_dir="./AUDIO/temp", plot=plot1))
         self.select_button.grid(row=3, column=1, pady=5)
 
         # create slider under graph
@@ -133,13 +133,12 @@ class AISettings(CTkFrame):
         self.hSlider = RangeSliderH(parent , [self.hLeft, self.hRight],
                                      padX = 12, bgColor="gray17", font_color="#ffffff", digit_precision='.2f')
         self.hSlider.grid(row=3,column=2, columnspan=2,pady=10)
-        self.hSlider.bind("<Button-1>", lambda e: self.update_sound(plot=plot1))
+        self.hSlider.bind("<Button-1>", lambda e: self.update_plot(plot=plot1))
 
         # creates play sound button todo add function
         self.play_button = CTkButton(parent, text="Play Sound",width=100, height=20,  state="disabled", fg_color="gray25")
         self.play_button.configure(command=lambda: self.play_sound())
         self.play_button.grid(row=4,column=3,pady=10)
-
 
         #Create name input box
         self.name_label = CTkLabel(parent,height=10, text="Name your sample")
@@ -172,24 +171,13 @@ class AISettings(CTkFrame):
         wav.write("./AUDIO/temp_wav.wav",self.sr, self.signal[
             int(len(self.signal)*self.hLeft.get()):int(len(self.signal)*self.hRight.get())])
         
-
-        #average stereo wav signal
-        if (len(x.shape) > 1):
-            x = np.average(x, axis=1)
-
-        plot.cla()
-        
-        #Draw signal with appropriate cropping
-        plot.plot(range(len(x)),x)
-        plot.plot(range(int(len(x)*self.hLeft.get())),x[:int(len(x)*self.hLeft.get())], color="skyblue")
-        plot.plot(range(int(len(x)*self.hRight.get()),len(x)),x[int(len(x)*self.hRight.get()):], color="skyblue")
-        self.sound_graph.draw()
+        self.update_plot(plot = plot)
 
         # enabled the buttons
         self.play_button.configure(state="normal", fg_color=self.select_button.cget("fg_color"))
         
 
-    def update_sound(self,plot):
+    def update_plot(self,plot):
 
         if (len(self.signal.shape) > 1):
             x= np.average(self.signal, axis=1)
@@ -252,7 +240,7 @@ class AISettings(CTkFrame):
         for i, file in enumerate(wav_files):
             listbox.insert(i, file)
 
-    def generate_audio(self):
+    def generate_audio(self, plot):
         prompt = self.ai_textbox.get("1.0", "end-1c")
 
         redirector = CTkLabelRedirector(self.gen_pbar)
@@ -260,18 +248,20 @@ class AISettings(CTkFrame):
         def start_pipe():
             def task():
                 with redirect_stderr(redirector):
-                    audio = self.pipe(prompt, num_inference_steps=200, audio_length_in_s=4.0).audios[0]
+                    audio = self.pipe(prompt, num_inference_steps=100, audio_length_in_s=4.0).audios[0]
                     print("penis music")
 
                     wav.write("./AUDIO/temp/temp_gen.wav", rate=16000, data=audio)
                     num_user_samples = len(os.listdir("./AUDIO/user_samples"))
                     self.sample_name_input.insert(index=tk.END,text =f"sample_{num_user_samples}")
 
+                self.after(1000, self.gen_pbar.configure(text = "Generated!"))
+                self.update_plot
+
             threading.Thread(target=task).start()
 
+
         start_pipe()
-        self.gen_pbar.configure(text = "Generated!")
-        self.after(1000, self.gen_pbar.configure(text = ""))
 
         
 
@@ -288,7 +278,7 @@ class CTkLabelRedirector(io.TextIOBase):
             lines = self.buffer.strip().splitlines()
             if lines:
                 last_line = lines[-1]
-                self.label.after(0, lambda: self.label.configure(text=last_line))
+                self.label.after(0, lambda: self.label.configure(text=last_line[:5]+last_line[5:-34][::5] + last_line[-33:-25])) #trim lastline
             self.buffer = ""
 
     def flush(self):
