@@ -83,8 +83,8 @@ class AISettings(CTkFrame):
 
 
     def sequence_editor(self, parent):
-        self.midi = MidiEditor(parent, planet_manager=self.planet_manager, fg_color=self.cget("fg_color"))
-        self.midi.grid(row=0, column=0, sticky="nsew")
+        self.midi = MidiEditor(parent, planet_manager=self.planet_manager, fg_color=parent.cget("fg_color"))
+        self.midi.grid(row=0, column=0, sticky="nsew", padx=10, pady=10)
         parent.columnconfigure(0, weight=1)
         parent.rowconfigure(0, weight=1)
 
