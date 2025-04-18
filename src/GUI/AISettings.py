@@ -6,17 +6,12 @@ import threading
 import tkinter as tk
 from contextlib import redirect_stderr
 from tkinter.colorchooser import askcolor
-from tkinter.scrolledtext import ScrolledText
-from customtkinter import CTkFrame, CTkLabel, CTkTextbox, CTkButton, CTkCanvas, CTkTabview, CTkProgressBar
+from customtkinter import CTkFrame, CTkLabel, CTkTextbox, CTkButton, CTkSlider, CTkTabview, CTkProgressBar
 from CTkListbox import *
+import librosa
 import scipy.io.wavfile  as wav
 import numpy as np
-from matplotlib.figure import Figure
-from matplotlib.backends.backend_tkagg import (FigureCanvasTkAgg, NavigationToolbar2Tk)
-from RangeSlider.RangeSlider import RangeSliderH 
-import librosa
 import pygame
-from random import randint
 from diffusers import AudioLDM2Pipeline
 import torch
 
@@ -113,6 +108,7 @@ class AISettings(CTkFrame):
 
         self.sr = 16000
         self.signal = range(500)
+        self.closest_note = -1
 
         # doesnt crash if dataset is not found
         try:
@@ -139,12 +135,17 @@ class AISettings(CTkFrame):
         self.name_label = CTkLabel(parent,height=10, text="Name your sample")
         self.name_label.grid(row=1, column=4, sticky="n", pady=(20,0))
         self.sample_name_input = CTkTextbox(parent, height=10)
-        self.sample_name_input.grid(row=1, column=4, sticky="n",pady=(40))
+        self.sample_name_input.grid(row=1, column=4, sticky="n", pady=40)
+
+        self.pitch_label = CTkLabel(parent,height=10, text="Pitch: ")
+        self.pitch_label.grid(row=2, column=4, sticky="n", pady=(20,0))
+        self.pitch_slider = CTkSlider(parent, from_=36, to=96)
+        self.pitch_slider.grid(row=2, column=4, sticky="n", pady=(40))
 
         # creates add button todo add function
         self.save_button = CTkButton(parent, text="Save Sample", fg_color="gray25", state="disabled")
         self.save_button.configure(command=lambda: self.add_sample_to_list())
-        self.save_button.grid(row=2, column=4, sticky="s", pady=(0, 20))
+        self.save_button.grid(row=3, column=4, sticky="s", pady=(0, 20))
 
 
     def select_color(self):
@@ -161,11 +162,17 @@ class AISettings(CTkFrame):
 
         self.sr=fs
         self.signal=x
+
+        self.pitch_label.configure(text="Pitch: " + str(self.closest_note))
         
         self.update_plot()
 
         # enabled the buttons
+        self.sample_name_input.delete('1.0', tk.END)
+        num_user_samples = len(os.listdir("./AUDIO/user_samples"))
+        self.sample_name_input.insert(index=tk.END,text =f"sample_{num_user_samples}")
         self.play_button.configure(state="normal", fg_color=self.select_button.cget("fg_color"))
+        self.save_button.configure(state="normal", fg_color=self.select_button.cget("fg_color"))
         
 
     def update_plot(self):
@@ -238,12 +245,16 @@ class AISettings(CTkFrame):
                     num_user_samples = len(os.listdir("./AUDIO/user_samples"))
 
                 self.sr = 16000
-                self.signal = audio
+                self.closest_note, self.signal = self.autotune_to_nearest_midi(audio,self.sr)
+
+                self.pitch_label.configure(text="Pitch: " + str(self.closest_note))
 
                 self.update_plot()
                 self.play_sound()
                 self.play_button.configure(state="normal", fg_color=self.select_button.cget("fg_color"))
+                self.sample_name_input.delete('1.0', tk.END)
                 self.sample_name_input.insert(index=tk.END,text =f"sample_{num_user_samples}")
+                self.save_button.configure(state="normal", fg_color=self.select_button.cget("fg_color"))
 
             threading.Thread(target=task).start()
 
@@ -255,7 +266,44 @@ class AISettings(CTkFrame):
             self.after_cancel(self.after_id)
         self.destroy()
 
+
+    def autotune_to_nearest_midi(self, y, sr):
+        """
+        Given an audio signal and sample rate, returns the closest MIDI note
+        and an autotuned version of the signal.
         
+        Parameters:
+        - y: np.ndarray, the input audio signal.
+        - sr: int, the sample rate.
+        
+        Returns:
+        - midi_note: int, the closest MIDI note to the detected pitch.
+        - y_tuned: np.ndarray, the pitch-shifted (autotuned) signal.
+        """
+        # Step 1: Estimate the fundamental frequency (f0) using YIN
+        f0 = librosa.yin(y, fmin=librosa.note_to_hz('C2'), fmax=librosa.note_to_hz('C7'), sr=sr)
+
+        # Remove unvoiced (nan) values
+        f0_clean = f0[~np.isnan(f0)]
+        
+        if len(f0_clean) == 0:
+            raise ValueError("No fundamental frequency detected in the signal.")
+        
+        # Step 2: Take the median frequency as the representative pitch
+        median_f0 = np.median(f0_clean)
+
+        # Step 3: Convert to MIDI note
+        midi_note = int(np.round(librosa.hz_to_midi(median_f0)))
+
+        # Step 4: Compute pitch shift (in semitones)
+        detected_midi = librosa.hz_to_midi(median_f0)
+        semitone_shift = midi_note - detected_midi
+
+        # Step 5: Pitch shift the signal to the nearest MIDI note
+        y_tuned = librosa.effects.pitch_shift(y, sr=sr, n_steps=semitone_shift)
+
+        return midi_note, y_tuned
+
 
 # Redirect tqdm output to a CTkLabel  todo there is a CTkProgressBar that might look nicer
 class CTkLabelRedirector(io.TextIOBase):
