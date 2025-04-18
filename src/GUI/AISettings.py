@@ -17,6 +17,7 @@ import torch
 
 # from GUI import note_lib_gen as nlg
 from GUI.SignalPlot import AudioPlotFrame
+from GUI.PlanetSettings import PlanetSettings
 from Physics.PlanetManager import PlanetManager
 from Physics.Planet import Planet
 from GUI.MidiEditor import MidiEditor
@@ -40,6 +41,13 @@ class AISettings(CTkFrame):
             self.planet_manager: PlanetManager = kwargs.pop("planet_manager")
         else:
             raise AttributeError("kwargs missing planet_manager")
+        
+        if "planet_settings" in kwargs:
+            self.planet_settings: PlanetSettings = kwargs.pop("planet_settings")
+        else:
+            raise AttributeError("kwargs missing planet_manager")
+        
+        
 
         # initializes superclass and binds user actions
         super().__init__(*args, **kwargs)
@@ -216,14 +224,19 @@ class AISettings(CTkFrame):
     #Add planet to solar system
     def add_sample_to_list(self):
 
-        planet_name = self.sample_name_input.get("1.0",'end-1c')
+        sample_name = self.sample_name_input.get("1.0",'end-1c')
+        prompt = self.ai_textbox.get("1.0", "end-1c")
 
-        planet= Planet(period=self.planet_duration.get()
-                       ,radius=20, color=self.planet_color, 
-                       sound_path=f"./AUDIO/planets/{planet_name}/{planet_name}.wav"
-                       ,offset=self.planet_offset.get())
+        sample_data = {
+            'signal_array':self.signal,
+            'sample_rate':self.sr,
+            'prompt':prompt,
+            'crops':self.audio_frame.get_crop_indices(),
+            'pitch':self.closest_note,
+            'midi_array':[[]*4]*3
+        }
 
-        self.planet_manager.add_planet(planet)
+        self.planet_manager.samples[sample_name] = sample_data
 
     #add all the wav files from the directory to the listbox
     def add_wav_to_listbox(self, listbox, wav_dir):
