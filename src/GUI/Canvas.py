@@ -1,5 +1,6 @@
 from Physics.Planet import Planet
 from Physics.PlanetManager import PlanetManager
+from Physics.Planet import Moon
 from customtkinter import CTkCanvas
 from tkinter.messagebox import askokcancel
 from random import uniform, seed

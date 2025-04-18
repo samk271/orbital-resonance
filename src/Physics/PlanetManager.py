@@ -1,4 +1,5 @@
 from Physics.Planet import Planet
+from Physics.Planet import Moon
 from numpy import array, copy
 from math import cos, sin, pi, atan2
 from FileManagement.StateManager import StateManger
@@ -100,6 +101,65 @@ class PlanetManager:
         if planet == self.focused_planet:
             self.focused_planet = None
 
+    def add_moon(self, planet: Planet, moon: Moon, add_state: bool = True):
+        """
+        adds a moon to a planet
+            ** note: moon class must be created externally and passed as a parameter **
+
+        the moon will not be added to the UI immediately but will be added to the add buffer which the UI will draw
+        each frame
+
+        additionally adds the remove moon action to the undo buffer
+
+        this function assumes the planet does not already contain a moon. If it already has a moon, it does nothing
+
+        :param planet: the planet that is getting the moon
+        :param moon: the moon being added
+        :param add_state: determines if the action should be added to the state manager
+        """
+        planet.moon = moon
+        # adds state updates to state manager
+        state = {"undo": (self.remove_moon, planet, moon, False), "redo": (self.add_moon, planet, moon, False)}
+        self.state_manager.add_state(state) if add_state else None
+        planet.moon.state_manager = self.state_manager
+
+        # sets some values for the moon
+        planet.moon.center = array([planet.original_position[0], planet.original_position[1]])
+        orig_x = planet.original_position[0] + moon.orbital_radius * cos(pi * 2 * (moon.offset + .25))
+        orig_y = planet.original_position[1] + moon.orbital_radius * -sin(pi * 2 * (moon.offset + .25))
+        planet.moon.original_position = array([orig_x,orig_y])
+        planet.moon.position = planet.moon.original_position.copy()
+        planet.moon.sound = planet.sound
+        planet.moon.sound_path = planet.sound_path
+
+        # adds moon to solar system
+        self.added_buffer.append(moon)
+        self.planets.append(moon)
+        planet.moon.update = True
+
+    def remove_moon(self, planet: Planet, moon: Moon, add_state: bool = True):
+        """
+        removes a moon from a planet
+            ** note: this planet must have already been added to the list with add_planet and passed again to remove **
+
+        the moon will not be removed from the UI immediately but will be added to the removed buffer which the UI will
+        remove each frame update
+
+        additionally adds the add moon action to the undo buffer
+
+        :param planet: the planet from the moon originates
+        :param moon: the specific moon that's being removed (for possibe use later for multiple moons)
+        :param add_state: determines if the action should be added to the state manager
+        """
+
+        # adds state to state manager
+        state = {"undo": lambda: self.add_moon(planet, moon, False), "redo": lambda: self.remove_moon(planet, moon, False)}
+        self.state_manager.add_state(state) if add_state else None
+
+        # removes planet
+        planet.moon = None
+        self.removed_buffer.append(moon)
+
     def get_added_buffer(self) -> list[Planet]:
         """
         gets the list of planets that have been queued to add to the UI and clears the queue
@@ -125,12 +185,16 @@ class PlanetManager:
     def set_planet_position(self, planet: Planet, dt: int):
         """
         sets the position of a given planet based on how much time has passed
+        also updates its moon if there is one
 
         :param planet the planet to set the position of
         :param dt: the time that has passed since last update
 
         :return true if the planet should play a sound
         """
+        # makes sure planet is not actually a moon
+        if isinstance(planet, Moon):
+            return False
 
         # gets the position
         dt = dt if not planet.update else self.time_elapsed
@@ -149,6 +213,30 @@ class PlanetManager:
 
         # Update absolute position
         planet.position = array([new_x, new_y])
+
+        #update moon position if there is one
+        if planet.moon:
+            moon = planet.moon
+            moon.center = planet.position
+
+            # centering at 0,0 for polar coordinates
+            moon_rel_x = moon.position[0] - rel_x
+            moon_rel_y = moon.position[1] - rel_y
+
+            # Apply rotation matrix and use polar coordinates
+            angular_speed = 2 * pi/moon.period
+            rel_angle = atan2(moon_rel_y, moon_rel_x)
+            new_angle = rel_angle + angular_speed * dt
+
+            # switch back to rectangular coordinates
+            moon_new_x = moon.center[0] + moon.orbital_radius * cos(new_angle)
+            moon_new_y = moon.center[1] + moon.orbital_radius * sin(new_angle)
+
+            # Update absolute position
+            moon.position = array([moon_new_x, moon_new_y])
+            #if rel_angle < pi/2 and new_angle >= pi/2:
+                #play moon sound if needed (moon sound is just planet.sound, just pitched differently)
+
         return rel_x < 0 <= new_x and (not planet.update)
 
     def update_planet_physics(self, dt):
