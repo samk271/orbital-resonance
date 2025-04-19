@@ -1,4 +1,5 @@
 from Physics.Planet import Planet
+from Physics.Moon import Moon
 from Physics.PlanetManager import PlanetManager
 from customtkinter import CTkCanvas
 from tkinter.messagebox import askokcancel
@@ -164,6 +165,10 @@ class Canvas(CTkCanvas):
         self.bind("<Button-1>", lambda e: setattr(self, "drag_amt", 0), add="+")
         self.bind("<B1-Motion>", lambda e: self.position_event(self.drag_event - array([e.x, e.y]), event=e))
 
+        planet = Planet(1, 50, "green")
+        self.planet_manager.add_planet(planet)
+        self.bind("<space>", lambda e: self.planet_manager.add_planet(Moon(planet, .25, 25, "purple", 1)))
+
     # ================================================ PLANET FUNCTIONS ================================================
 
     def set_focus(self, planet: Planet, zoom: bool = False, smooth: bool = True):
@@ -249,10 +254,16 @@ class Canvas(CTkCanvas):
         added_buffer = self.planet_manager.get_added_buffer()
         for planet in added_buffer:
 
+            # draws moon orbit path
+            if type(planet) == Moon:
+                p1 = self.space_to_canvas(planet.planet.position + array([planet.orbital_radius] * 2))[0]
+                p2 = self.space_to_canvas(planet.planet.position + array([-planet.orbital_radius] * 2))[0]
+                self.create_oval(*p1, *p2, outline="gray", width=1, tags=("paths", f"moon path {planet.tag}"))
+
             # draws orbit path
-            if planet != self.planet_manager.get_sun():
+            elif planet != self.planet_manager.get_sun():
                 p1 = self.space_to_canvas(array([planet.orbital_radius] * 2))[0]
-                p2 = self.space_to_canvas(array([- planet.orbital_radius] * 2))[0]
+                p2 = self.space_to_canvas(array([-planet.orbital_radius] * 2))[0]
                 self.create_oval(*p1, *p2, outline="gray", width=1, tags=("paths", f"path {planet.tag}"))
 
                 # draws sound trigger
@@ -311,6 +322,12 @@ class Canvas(CTkCanvas):
             bbox = array([bbox[2] - bbox[0], bbox[3] - bbox[1]]) / 2
             pos = floor(self.space_to_canvas(planet.position)[0] - bbox)
             self.moveto(planet.tag, pos[0], pos[1])
+
+            # moves planet moon path
+            if type(planet) == Moon:
+                p1 = self.space_to_canvas(planet.planet.position + array([planet.orbital_radius] * 2))[0]
+                p2 = self.space_to_canvas(planet.planet.position + array([-planet.orbital_radius] * 2))[0]
+                self.coords(f"moon path {planet.tag}", *p1, *p2)
 
         # updates color of triggered planets
         for planet in triggered:
