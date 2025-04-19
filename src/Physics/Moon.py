@@ -1,5 +1,5 @@
 from Physics.Planet import Planet
-from numpy import array
+from numpy import array, copy
 from math import cos, sin, pi, atan2
 
 
@@ -24,7 +24,6 @@ class Moon(Planet):
         super(Moon, self).__init__(period, radius, color, planet.sound_path, offset)
         self.pitch = pitch
         self.planet = planet
-        planet.moon = self
 
         # physics fields
         self.center = array([planet.original_position[0], planet.original_position[1]])
@@ -41,12 +40,14 @@ class Moon(Planet):
         """
 
         # centering at 0,0 for polar coordinates
-        moon_rel_x = self.position[0] - self.center[0]
-        moon_rel_y = self.position[1] - self.center[1]
+        self.position = self.position if not self.update else copy(self.original_position)
+        self.center = self.center if not self.update else self.planet.original_position
+        rel_x = self.position[0] - self.center[0]
+        rel_y = self.position[1] - self.center[1]
 
         # Apply rotation matrix and use polar coordinates
         angular_speed = 2 * pi / self.period
-        rel_angle = atan2(moon_rel_y, moon_rel_x)
+        rel_angle = atan2(rel_y, rel_x)
         new_angle = rel_angle + angular_speed * dt
 
         # switch back to rectangular coordinates
