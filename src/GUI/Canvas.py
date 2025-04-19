@@ -289,6 +289,8 @@ class Canvas(CTkCanvas):
                 self.coords(f"trigger {planet.tag}", *p1, *p2)
                 if type(planet) == Planet and (not self.find_withtag(f"trigger {planet.tag}")):
                     self.create_line(*p1, *p2, fill="gray", width=1, tags=("triggers", f"trigger {planet.tag}"))
+                elif type(planet) != Planet:
+                    self.delete(f"trigger {planet.tag}")
 
                 # handles drawing planet shape
                 self.delete(planet.tag)
