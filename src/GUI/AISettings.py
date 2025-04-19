@@ -6,7 +6,7 @@ import threading
 import tkinter as tk
 from contextlib import redirect_stderr
 from tkinter.colorchooser import askcolor
-from customtkinter import CTkFrame, CTkLabel, CTkTextbox, CTkButton, CTkSlider, CTkTabview, CTkProgressBar
+from customtkinter import CTkFrame, CTkLabel, CTkTextbox, CTkButton, CTkOptionMenu, CTkTabview, CTkProgressBar
 from CTkListbox import *
 import librosa
 import scipy.io.wavfile  as wav
@@ -145,10 +145,19 @@ class AISettings(CTkFrame):
         self.sample_name_input = CTkTextbox(parent, height=10)
         self.sample_name_input.grid(row=1, column=4, sticky="n", pady=40)
 
-        self.pitch_label = CTkLabel(parent,height=10, text="Pitch: ")
-        self.pitch_label.grid(row=2, column=4, sticky="n", pady=(20,0))
-        self.pitch_slider = CTkSlider(parent, from_=36, to=96)
-        self.pitch_slider.grid(row=2, column=4, sticky="n", pady=(40))
+        # Create pitch dropdowns
+        self.pitch_label = CTkLabel(parent, height=10, text="Pitch:")
+        self.pitch_label.grid(row=2, column=4, sticky="n")
+
+        # Note letter dropdown (A to G)
+        self.note_letter_var = tk.StringVar(value="C")
+        self.note_letter_menu = CTkOptionMenu(parent, values=["A", "A#", "B", "B#", "C", "C#", "D", "D#", "E", "E#", "F", "F#", "G", "G#"], variable=self.note_letter_var, width=80)
+        self.note_letter_menu.grid(row=2, column=4, padx=(0,20), pady=(20, 0))
+
+        # Octave number dropdown (2 to 7)
+        self.octave_number_var = tk.StringVar(value="4")
+        self.octave_number_menu = CTkOptionMenu(parent, values=[str(i) for i in range(2, 8)], variable=self.octave_number_var,width=50)
+        self.octave_number_menu.grid(row=2, column=4, padx=(100, 0), pady=(20, 0))
 
         # creates add button todo add function
         self.save_button = CTkButton(parent, text="Save Sample", fg_color="gray25", state="disabled")
@@ -247,20 +256,22 @@ class AISettings(CTkFrame):
     def generate_audio(self):
         prompt = self.ai_textbox.get("1.0", "end-1c")
 
-        print("poop")
-
         redirector = CTkLabelRedirector(self.gen_pbar)
 
         def start_pipe():
             def task():
                 with redirect_stderr(redirector):
+                    self.generate_button.configure(text="Generating...", fg_color="gray25", state="disabled")
                     audio = self.pipe(prompt, negative_prompt="Low quality, noisy, and with ambience.", num_inference_steps=100, audio_length_in_s=4.0).audios[0]
                     num_user_samples = len(os.listdir("./AUDIO/user_samples"))
+                    self.generate_button.configure(text = "Generate", state="normal", fg_color=self.select_button.cget("fg_color"))
 
                 self.sr = 16000
                 self.closest_note, self.signal = self.autotune_to_nearest_midi(audio,self.sr)
 
-                self.pitch_label.configure(text="Pitch: " + str(self.closest_note))
+                self.generate_button.configure(text = "Generate", state="normal", fg_color=self.select_button.cget("fg_color"))
+
+                self.pitch_label.configure(text="Pitch: " + librosa.midi_to_note(self.closest_note))
 
                 self.update_plot()
                 self.play_sound()
@@ -270,7 +281,6 @@ class AISettings(CTkFrame):
                 self.save_button.configure(state="normal", fg_color=self.select_button.cget("fg_color"))
 
             threading.Thread(target=task).start()
-
 
         start_pipe()
 
