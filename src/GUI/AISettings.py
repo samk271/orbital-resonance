@@ -117,7 +117,7 @@ class AISettings(CTkFrame):
         self.sr = 16000
         self.signal = [None]
         self.shifted_signal = None
-        self.closest_note = -1
+        self.midi_note = -1
 
         # doesnt crash if dataset is not found
         try:
@@ -181,15 +181,13 @@ class AISettings(CTkFrame):
         wav_file = self.listbox.get()
         fs, x = wav.read(os.path.join(wav_dir,wav_file))
 
-        self.closest_note = self.find_nearest_midi(x,fs)
+        self.midi_note = self.find_nearest_midi(x,fs)
         self.sr=fs
         self.signal=x
-
-        self.pitch_label.configure(text="Pitch: " + str(self.closest_note))
         
         self.update_plot()
 
-        # enabled the buttons
+        # enable the buttons
         self.sample_name_input.delete('1.0', tk.END)
         num_user_samples = len(os.listdir("./AUDIO/user_samples"))
         self.sample_name_input.insert(index=tk.END,text =f"sample_{num_user_samples}")
@@ -210,10 +208,10 @@ class AISettings(CTkFrame):
         self.audio_frame.update_waveform(new_signal=x, new_sample_rate=self.sr)
 
         left, right = self.audio_frame.get_crop_indices()
-        self.closest_note = self.find_nearest_midi(self.signal[left:right],self.sr)
+        self.midi_note = self.find_nearest_midi(self.signal[left:right],self.sr)
 
         #Change displayed pitch to closest midi
-        self.set_pitch_dropdown(note_str=librosa.midi_to_note(self.closest_note))
+        self.set_pitch_dropdown(note_str=librosa.midi_to_note(self.midi_note))
         
 
 
@@ -252,23 +250,23 @@ class AISettings(CTkFrame):
         prompt = self.ai_textbox.get("1.0", "end-1c")
 
         sample_data = {
-            'signal_array':self.signal,
+            'raw_signal_array':self.signal,
+            'shifted_signal_array':self.shifted_signal,
             'sample_rate':self.sr,
             'prompt':prompt,
             'crops':self.audio_frame.get_crop_indices(),
-            'pitch':self.closest_note,
+            'pitch':self.midi_note,
             'midi_array':[[]*4]*3
         }
 
         left, right = self.audio_frame.get_crop_indices()
-        print(left, right)
-
         if not (os.path.isdir(f"./AUDIO/user_samples/{sample_name}")):
-            os.mkdir(f"./AUDIO/planets/{sample_name}")
-
-        wav.write(f"./AUDIO/user_samples/{sample_name}/{sample_name}_{self.closest_note}",self.sr, self.signal[left:right])
-
+            os.mkdir(f"./AUDIO/user_samples/{sample_name}")
+        wav.write(f"./AUDIO/user_samples/{sample_name}/{sample_name}_{self.midi_note}",self.sr, self.shifted_signal[left:right])
         self.planet_manager.samples[sample_name] = sample_data
+
+        #Load sample into editor
+        self.midi.load_sample(sample=sample_name)
 
     #add all the wav files from the directory to the listbox
     def add_wav_to_listbox(self, listbox, wav_dir):
@@ -290,12 +288,12 @@ class AISettings(CTkFrame):
                     self.generate_button.configure(text = "Generate", state="normal", fg_color=self.select_button.cget("fg_color"))
 
                 self.sr = 16000
-                self.closest_note = self.find_nearest_midi(audio,self.sr)
+                self.midi_note = self.find_nearest_midi(audio,self.sr)
                 self.signal = audio
 
                 self.generate_button.configure(text = "Generate", state="normal", fg_color=self.select_button.cget("fg_color"))
                 #Change displayed pitch to closest midi
-                self.set_pitch_dropdown(note_str=librosa.midi_to_note(self.closest_note))
+                self.set_pitch_dropdown(note_str=librosa.midi_to_note(self.midi_note))
 
                 self.update_plot()
                 self.play_button.configure(state="normal", fg_color=self.select_button.cget("fg_color"))
@@ -363,11 +361,12 @@ class AISettings(CTkFrame):
 
         desired_note = self.note_letter_var.get() + self.octave_number_var.get()
         desired_midi = librosa.note_to_midi(desired_note)
-        steps_to_shift = desired_midi - self.closest_note
+        steps_to_shift = desired_midi - self.midi_note
 
         self.shifted_signal = librosa.effects.pitch_shift(self.signal, sr=self.sr, n_steps=steps_to_shift)
 
         self.play_sound(signal=self.shifted_signal,sr=self.sr)
+        self.midi_note = desired_midi
 
 
 # Redirect tqdm output to a CTkLabel  todo there is a CTkProgressBar that might look nicer
