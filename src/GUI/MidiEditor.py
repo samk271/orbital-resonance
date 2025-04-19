@@ -139,7 +139,8 @@ class MidiEditor(CTkFrame):
         elif (not sample[row, col]) and (not right):
             # todo adjust radius based on min max size
             r, color, offset = 50 + (row * 10), "#{:06x}".format(randint(0, 0xFFFFFF)), col / len(sample[0])
-            sample[row, col] = planet if planet else Planet(len(sample[0]), r, color, pitch + row, self.sample, offset)
+            sample_name = self.sample if self.sample != "Default (No Audio)" else None
+            sample[row, col] = planet if planet else Planet(len(sample[0]), r, color, pitch + row, sample_name, offset)
 
             # updates midi color, adds state and planet
             self.canvas.itemconfig(tag, fill=sample[row, col].color)
