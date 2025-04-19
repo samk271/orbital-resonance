@@ -96,7 +96,8 @@ class MidiEditor(CTkFrame):
         # ensures remaining elements are moons
         for i, elem in enumerate(column[1:]):
             elem.convert(column[0], moon_period, (i * MidiEditor.PERIOD_FACTOR) / moon_period) if type(elem) == Planet \
-                else elem.__init__(column[0], elem.period, elem.radius, elem.color, elem.pitch, elem.offset)
+                else elem.__init__(column[0], elem.period, elem.radius, elem.color, elem.pitch, (
+                    i * MidiEditor.PERIOD_FACTOR) / moon_period)
             column[0].moons.append(elem) if elem not in column[0].moons else None
 
     def click(self, row: int, col: int, right: bool = False, planet: Planet = None):
