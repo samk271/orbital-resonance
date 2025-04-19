@@ -4,6 +4,7 @@ from tkinter.colorchooser import askcolor
 from numpy import full, append, delete
 from random import randint
 from math import floor
+from librosa import midi_to_note
 
 
 # noinspection PyPropertyDefinition
@@ -20,6 +21,7 @@ class MidiEditor(CTkFrame):
     """
 
     DEFAULT_EDITOR = property(lambda self: full((3, 5), None))
+    PERIOD_FACTOR = .25
 
     def __init__(self, *args, **kwargs):
         """
@@ -37,6 +39,7 @@ class MidiEditor(CTkFrame):
         self.sample = "Default (No Audio)"
 
         # creates pitch column
+        self.pitch_labels = []
         pitch = CTkLabel(self, text="Pitch:", font=("Arial", 18))
         pitch.grid(row=0, column=0, sticky="sw", padx=(0, 10))
 
@@ -64,6 +67,39 @@ class MidiEditor(CTkFrame):
         self.columnconfigure(3, weight=1)
         self.columnconfigure(4, weight=1)
 
+    def update_column(self, column_num):
+        """
+        updates a column to ensure the following:
+            --> nothing happens if column is empty
+            --> ensures only 1 planet exists
+            --> remaining celestial bodies are moons
+            --> converts a moon to a planet if no planets exists
+            --> planet is at the lowest index
+
+        :param column_num: the index of the column to update
+        """
+
+        # gets the column as a 1d array without null values
+        column = self.planet_manager.samples[self.sample]["midi_array"][:, column_num]
+        moon_period = (len(column)) * MidiEditor.PERIOD_FACTOR
+        planet_period = len(self.planet_manager.samples[self.sample]["midi_array"][0])
+        column = [elem for elem in column if elem is not None]
+
+        # handles when column is empty
+        if not column:
+            return
+
+        # ensures first element is a planet
+        if type(column[0]) != Planet:
+            column[0].convert(planet_period, column_num / planet_period)
+
+        # ensures remaining elements are moons
+        for i, elem in enumerate(column[1:]):
+            elem.convert(column[0], moon_period, (i * MidiEditor.PERIOD_FACTOR) / moon_period) if type(elem) == Planet \
+                else elem.__init__(column[0], elem.period, elem.radius, elem.color, elem.pitch, (
+                    i * MidiEditor.PERIOD_FACTOR) / moon_period)
+            column[0].moons.append(elem) if elem not in column[0].moons else None
+
     def click(self, row: int, col: int, right: bool = False, planet: Planet = None):
         """
         handles when a bar on the editor is clicked
@@ -77,6 +113,7 @@ class MidiEditor(CTkFrame):
         # removes planet when a selected bar is clicked
         tag = f"[{row}, {col}]"
         sample = self.planet_manager.samples[self.sample]["midi_array"]
+        pitch = self.planet_manager.samples[self.sample]["pitch"]
         if sample[row, col] and (not right):
             state = [(self.click, (row, col, right, sample[row, col]))]
             self.planet_manager.remove_planet(
@@ -86,6 +123,7 @@ class MidiEditor(CTkFrame):
             self.planet_manager.state_manager.add_state({"undo": state, "redo": state}, True) if not planet else None
             self.canvas.itemconfig(tag, fill=self.canvas.cget("bg"))
             sample[row, col] = None
+            self.update_column(col)
 
         # updates planet color when a selected bar is right clicked
         elif sample[row, col] and (color := askcolor()[1]):
@@ -97,17 +135,19 @@ class MidiEditor(CTkFrame):
             self.planet_manager.state_manager.add_state({"undo": undo, "redo": redo}, True)
             self.canvas.itemconfig(tag, fill=sample[row, col].color)
 
-        # creates planet when non selected bar is clicked todo add sound and add support for moons
+        # creates planet when non selected bar is clicked
         elif (not sample[row, col]) and (not right):
             # todo adjust radius based on min max size
             r, color, offset = 50 + (row * 10), "#{:06x}".format(randint(0, 0xFFFFFF)), col / len(sample[0])
-            sample[row, col] = planet if planet else Planet(len(sample[0]), r, color, None, offset)
+            sample_name = self.sample if self.sample != "Default (No Audio)" else None
+            sample[row, col] = planet if planet else Planet(len(sample[0]), r, color, pitch + row, sample_name, offset)
 
             # updates midi color, adds state and planet
             self.canvas.itemconfig(tag, fill=sample[row, col].color)
             state = [(self.click, (row, col, right, sample[row, col]))]
             self.planet_manager.add_planet(sample[row, col], modify_state=self.click_and_drag) if not planet else None
             self.planet_manager.state_manager.add_state({"undo": state, "redo": state}, True) if not planet else None
+            self.update_column(col)
 
     def load_sample(self, sample: str, update: bool = False):
         """
@@ -127,17 +167,21 @@ class MidiEditor(CTkFrame):
             self.planet_manager.samples[sample]["midi_array"] = self.DEFAULT_EDITOR
 
         # loads the sample
+        [label.destroy() for label in self.pitch_labels]
         self.canvas.delete("all")
         self.sample = sample
         sample = self.planet_manager.samples[self.sample]["midi_array"]
+        pitch = self.planet_manager.samples[self.sample]["pitch"]
         row_step = (self.canvas.winfo_height() - 1) / len(sample)
         column_step = (self.canvas.winfo_width() - 1) / len(sample[0])
 
-        # draws the editor
+        # draws pitch label
         for row_num, row in enumerate(sample):
-            for col_num, bar in enumerate(row):
+            self.pitch_labels.append(CTkLabel(self, text=midi_to_note(pitch + row_num)))
+            self.pitch_labels[-1].place(x=10, y=((row_num + .5) * row_step) + self.canvas.winfo_y() - 10)
 
-                # draws bars
+            # draws bars
+            for col_num, bar in enumerate(row):
                 pos = col_num * column_step, row_num * row_step, (col_num + 1) * column_step, (row_num + 1) * row_step
                 fill = bar.color if bar else self.canvas.cget("bg")
                 tag = self.canvas.create_rectangle(*pos, fill=fill, tags=(f"[{row_num}, {col_num}]", ))
@@ -215,11 +259,21 @@ class MidiEditor(CTkFrame):
                     continue
 
                 # gets args
-                old_args = (planet.period, planet.radius, planet.color, planet.sound_path, planet.offset)
+                old_args = [planet.period, planet.radius, planet.color, planet.pitch, planet.sound_path, planet.offset]
                 # todo adjust radius based on min max size
-                new_args = (len(self.planet_manager.samples[self.sample]["midi_array"][0]), 50 + (row_num * 10),
-                            planet.color, planet.sound_path,
-                            (col_num / len(self.planet_manager.samples[self.sample]["midi_array"][0])))
+                new_args = [len(self.planet_manager.samples[self.sample]["midi_array"][0]), 50 + (row_num * 10),
+                            planet.color, planet.pitch, planet.sound_path,
+                            (col_num / len(self.planet_manager.samples[self.sample]["midi_array"][0]))]
+
+                # modifies args when planet is a moon
+                if type(planet) != Planet:
+                    old_args.pop(4)
+                    new_args.pop(4)
+                    old_args.insert(0, planet.planet)
+                    new_args.insert(0, planet.planet)
+                    period = len(self.planet_manager.samples[self.sample]["midi_array"]) - 1
+                    new_args[1] = period * MidiEditor.PERIOD_FACTOR
+                    new_args[-1] = (row_num * MidiEditor.PERIOD_FACTOR) / new_args[1]
 
                 # updates the planet
                 planet.__init__(*new_args)

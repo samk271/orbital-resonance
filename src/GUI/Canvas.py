@@ -254,7 +254,7 @@ class Canvas(CTkCanvas):
             if type(planet) == Moon:
                 p1 = self.space_to_canvas(planet.planet.position + array([planet.orbital_radius] * 2))[0]
                 p2 = self.space_to_canvas(planet.planet.position + array([-planet.orbital_radius] * 2))[0]
-                self.create_oval(*p1, *p2, outline="gray", width=1, tags=("paths", f"moon path {planet.tag}"))
+                self.create_oval(*p1, *p2, outline="gray", width=1, tags=("paths", f"path {planet.tag}"))
 
             # draws orbit path
             elif planet != self.planet_manager.get_sun():
@@ -287,6 +287,10 @@ class Canvas(CTkCanvas):
                 p1 = self.space_to_canvas(array([0, -planet.orbital_radius + (planet.radius * Canvas.TRIGGER_SIZE)]))[0]
                 p2 = self.space_to_canvas(array([0, -planet.orbital_radius - (planet.radius * Canvas.TRIGGER_SIZE)]))[0]
                 self.coords(f"trigger {planet.tag}", *p1, *p2)
+                if type(planet) == Planet and (not self.find_withtag(f"trigger {planet.tag}")):
+                    self.create_line(*p1, *p2, fill="gray", width=1, tags=("triggers", f"trigger {planet.tag}"))
+                elif type(planet) != Planet:
+                    self.delete(f"trigger {planet.tag}")
 
                 # handles drawing planet shape
                 self.delete(planet.tag)
@@ -323,7 +327,7 @@ class Canvas(CTkCanvas):
             if type(planet) == Moon:
                 p1 = self.space_to_canvas(planet.planet.position + array([planet.orbital_radius] * 2))[0]
                 p2 = self.space_to_canvas(planet.planet.position + array([-planet.orbital_radius] * 2))[0]
-                self.coords(f"moon path {planet.tag}", *p1, *p2)
+                self.coords(f"path {planet.tag}", *p1, *p2)
 
         # updates color of triggered planets
         for planet in triggered:

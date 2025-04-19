@@ -8,6 +8,8 @@ class Moon(Planet):
     the class to control a moon's attributes
     """
 
+    RADIUS_FACTOR = 1 / Planet.RADIUS_FACTOR  # how much to adjust radius when converting to planet
+
     def __init__(self, planet: Planet, period: float, radius: float, color: str, pitch: int, offset=0):
         """
         creates the planet with the given attributes
@@ -21,8 +23,7 @@ class Moon(Planet):
         """
 
         # fields that will need gui updated when modified (see property assignments at end of class)
-        super(Moon, self).__init__(period, radius, color, planet.sound_path, offset)
-        self.pitch = pitch
+        super(Moon, self).__init__(period, radius, color, pitch, planet.sound_path, offset)
         self.planet = planet
 
         # physics fields
@@ -59,3 +60,14 @@ class Moon(Planet):
         self.center = self.planet.position
         self.position = array([moon_new_x, moon_new_y])
         return result
+
+    def convert(self, period: float, offset: float, **kwargs):
+        """
+        converts the moon to a planet
+
+        :param period: the new period of the planet
+        :param offset: the offset for the moon
+        """
+
+        self.__class__ = Planet
+        self.__init__(period, self.radius * Moon.RADIUS_FACTOR, self.color, self.pitch, self.sound_path, offset)

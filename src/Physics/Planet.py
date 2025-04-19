@@ -12,13 +12,16 @@ class Planet:
         has state functions to handle proper saving and loading of files
     """
 
-    def __init__(self, period: float, radius: float, color: str, sound_path=None, offset=0):
+    RADIUS_FACTOR = .5  # how much to adjust radius when converting to moon
+
+    def __init__(self, period: float, radius: float, color: str, pitch: int, sound_path=None, offset=0):
         """
         creates the planet with the given attributes
 
         :param period: how long it takes the planet to revolve
         :param radius: the radius of the planet
         :param color: the color of the planet
+        :param pitch: the pitch to apply to the sound for this planet
         :param sound_path: the file path of to the sound to play
         :param offset: the offset for which to place the moon
         """
@@ -30,7 +33,7 @@ class Planet:
         self._shape = "Circle"
 
         # physics fields
-        self.moon = None
+        self.moons = []
         self.offset = offset
         orig_x = self.orbital_radius * cos(2 * pi * (self.offset + .25))
         orig_y = self.orbital_radius * -sin(2 * pi * (self.offset + .25))
@@ -43,6 +46,7 @@ class Planet:
         self.state_manager = self.state_manager if hasattr(self, "state_manager") else None  # added by planet manager
 
         # music generation fields
+        self.pitch = pitch
         self.sound_path = sound_path
         self.sound = Sound(sound_path) if sound_path else None
 
@@ -73,28 +77,19 @@ class Planet:
         self.position = array([new_x, new_y])
         return rel_x < 0 <= new_x and (not self.update)
 
-    def __getstate__(self):
+    def convert(self, planet, period: float, offset: float):
         """
-        gets the state of the planet to serialize when saving
+        converts the planet to a moon
 
-        :return: the state of the planet excluding the play sound file object
-        """
-
-        state = self.__dict__.copy()
-        del state["sound"]
-        del state["state_manager"]
-        return state
-
-    def __setstate__(self, state):
-        """
-        restore the state of the planet after loading from file with the sound attribute
-
-        :param state: the state without the sound attribute
+        :param planet: the planet that this planet (soon to be a moon) should orbit
+        :param period: the new period for the moon
+        :param offset: the offset for the moon
         """
 
-        self.__dict__.update(state)
-        self.sound = Sound(self.sound_path) if self.sound_path else None
-        self.update = True
+        from Physics.Moon import Moon
+        self.moons.clear()
+        self.__class__ = Moon
+        self.__init__(planet, period, self.radius * Planet.RADIUS_FACTOR, self.color, self.pitch, offset)
 
     def set_value(self, value, attribute: str, add_state: bool = True):
         """
@@ -119,6 +114,29 @@ class Planet:
 
         # updates planet
         setattr(self, attribute, value)
+        self.update = True
+
+    def __getstate__(self):
+        """
+        gets the state of the planet to serialize when saving
+
+        :return: the state of the planet excluding the play sound file object
+        """
+
+        state = self.__dict__.copy()
+        del state["sound"]
+        del state["state_manager"]
+        return state
+
+    def __setstate__(self, state):
+        """
+        restore the state of the planet after loading from file with the sound attribute
+
+        :param state: the state without the sound attribute
+        """
+
+        self.__dict__.update(state)
+        self.sound = Sound(self.sound_path) if self.sound_path else None
         self.update = True
 
     # sets class attributes to properties so state can be stored in state manager
