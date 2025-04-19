@@ -24,7 +24,7 @@ class PlanetManager:
         """
 
         # sets attributes
-        self.planets = planets if planets else [Planet(0, 50, "yellow")]  # todo adjust default sun settings when min/max values are determined
+        self.planets = planets if planets else [Planet(0, 50, "yellow", 0)]  # todo adjust default sun settings when min/max values are determined
         self.samples = samples if samples else {"Default (No Audio)": {}}
         self.time_elapsed = 0
         self.removed_buffer = []
@@ -71,6 +71,10 @@ class PlanetManager:
         self.added_buffer.append(planet)
         planet.update = True
 
+        # adds to parent planet list if planet is a moon
+        if type(planet) != Planet:
+            planet.planet.moons.append(planet)
+
     def remove_planet(self, planet: Planet, add_state: bool = True, modify_state: bool = False):
         """
         removes a planet from the list of planets that exist in the program
@@ -93,6 +97,10 @@ class PlanetManager:
         # removes planet
         self.planets.remove(planet)
         self.removed_buffer.append(planet)
+
+        # removes from parent planet list if planet is a moon
+        if type(planet) != Planet:
+            planet.planet.moons.remove(planet)
 
         # ensures focused planet is reset if needed
         if planet == self.focused_planet:
