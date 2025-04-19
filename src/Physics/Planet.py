@@ -77,18 +77,19 @@ class Planet:
         self.position = array([new_x, new_y])
         return rel_x < 0 <= new_x and (not self.update)
 
-    def convert(self, planet, period: float):
+    def convert(self, planet, period: float, offset: float):
         """
         converts the planet to a moon
 
         :param planet: the planet that this planet (soon to be a moon) should orbit
         :param period: the new period for the moon
+        :param offset: the offset for the moon
         """
 
         from Physics.Moon import Moon
         self.moons.clear()
         self.__class__ = Moon
-        self.__init__(planet, period, self.radius * Planet.RADIUS_FACTOR, self.color, self.pitch, self.offset)
+        self.__init__(planet, period, self.radius * Planet.RADIUS_FACTOR, self.color, self.pitch, offset)
 
     def set_value(self, value, attribute: str, add_state: bool = True):
         """

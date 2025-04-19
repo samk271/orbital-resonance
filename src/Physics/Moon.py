@@ -61,12 +61,13 @@ class Moon(Planet):
         self.position = array([moon_new_x, moon_new_y])
         return result
 
-    def convert(self, period: float, **kwargs):
+    def convert(self, period: float, offset: float, **kwargs):
         """
         converts the moon to a planet
 
         :param period: the new period of the planet
+        :param offset: the offset for the moon
         """
 
         self.__class__ = Planet
-        self.__init__(period, self.radius * Moon.RADIUS_FACTOR, self.color, self.pitch, self.sound_path, self.offset)
+        self.__init__(period, self.radius * Moon.RADIUS_FACTOR, self.color, self.pitch, self.sound_path, offset)

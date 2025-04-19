@@ -67,7 +67,7 @@ class MidiEditor(CTkFrame):
         self.columnconfigure(3, weight=1)
         self.columnconfigure(4, weight=1)
 
-    def update_column(self, column):
+    def update_column(self, column_num):
         """
         updates a column to ensure the following:
             --> nothing happens if column is empty
@@ -76,13 +76,13 @@ class MidiEditor(CTkFrame):
             --> converts a moon to a planet if no planets exists
             --> planet is at the lowest index
 
-        :param column: the index of the column to update
+        :param column_num: the index of the column to update
         """
 
         # gets the column as a 1d array without null values
-        column = self.planet_manager.samples[self.sample]["midi_array"][:, column]
-        moon_period = (len(self.planet_manager.samples[self.sample]["midi_array"]) - 1) * MidiEditor.PERIOD_FACTOR
-        planet_period = len(column)
+        column = self.planet_manager.samples[self.sample]["midi_array"][:, column_num]
+        moon_period = (len(column)) * MidiEditor.PERIOD_FACTOR
+        planet_period = len(self.planet_manager.samples[self.sample]["midi_array"][0])
         column = [elem for elem in column if elem is not None]
 
         # handles when column is empty
@@ -91,13 +91,12 @@ class MidiEditor(CTkFrame):
 
         # ensures first element is a planet
         if type(column[0]) != Planet:
-            column[0].convert(planet_period)
+            column[0].convert(planet_period, column_num / planet_period)
 
         # ensures remaining elements are moons
         for i, elem in enumerate(column[1:]):
-            elem.offset = (i * MidiEditor.PERIOD_FACTOR) / moon_period
-            elem.convert(column[0], moon_period) if type(elem) == Planet else elem.__init__(
-                column[0], elem.period, elem.radius, elem.color, elem.pitch, elem.offset)
+            elem.convert(column[0], moon_period, (i * MidiEditor.PERIOD_FACTOR) / moon_period) if type(elem) == Planet \
+                else elem.__init__(column[0], elem.period, elem.radius, elem.color, elem.pitch, elem.offset)
             column[0].moons.append(elem) if elem not in column[0].moons else None
 
     def click(self, row: int, col: int, right: bool = False, planet: Planet = None):
