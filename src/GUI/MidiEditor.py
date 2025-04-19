@@ -76,7 +76,7 @@ class MidiEditor(CTkFrame):
 
         # removes planet when a selected bar is clicked
         tag = f"[{row}, {col}]"
-        sample = self.planet_manager.samples[self.sample]
+        sample = self.planet_manager.samples[self.sample]["midi_array"]
         if sample[row, col] and (not right):
             state = [(self.click, (row, col, right, sample[row, col]))]
             self.planet_manager.remove_planet(
@@ -123,13 +123,13 @@ class MidiEditor(CTkFrame):
             return
 
         # handles when sample has not been created yet
-        if sample not in self.planet_manager.samples.keys():
-            self.planet_manager.samples[sample] = self.DEFAULT_EDITOR
+        if "midi_array" not in self.planet_manager.samples[sample].keys():
+            self.planet_manager.samples[sample]["midi_array"] = self.DEFAULT_EDITOR
 
         # loads the sample
         self.canvas.delete("all")
         self.sample = sample
-        sample = self.planet_manager.samples[self.sample]
+        sample = self.planet_manager.samples[self.sample]["midi_array"]
         row_step = (self.canvas.winfo_height() - 1) / len(sample)
         column_step = (self.canvas.winfo_width() - 1) / len(sample[0])
 
@@ -169,14 +169,15 @@ class MidiEditor(CTkFrame):
         """
 
         # handles adding to the editor
-        old_sample = self.planet_manager.samples[self.sample]
-        undo = [(self.planet_manager.samples.update, ({self.sample: old_sample}, ))]
+        old_sample = self.planet_manager.samples[self.sample]["midi_array"]
+        undo = [(self.planet_manager.samples[self.sample].update, ({"midi_array": old_sample}, ))]
         if mode == "add":
             arr = full((len(old_sample), 1), None) if axis == 1 else full((1, len(old_sample[0])), None)
-            self.planet_manager.samples[self.sample] = append(old_sample, arr, axis=axis)
+            self.planet_manager.samples[self.sample]["midi_array"] = append(old_sample, arr, axis=axis)
 
             # adds midi state to state manager
-            redo = [(self.planet_manager.samples.update, ({self.sample: self.planet_manager.samples[self.sample]}, ))]
+            redo = [(self.planet_manager.samples[self.sample].update, (
+                {"midi_array": self.planet_manager.samples[self.sample]["midi_array"]}, ))]
             self.planet_manager.state_manager.add_state({"undo": undo, "redo": redo})
             state = [(self.load_sample, (self.sample, True), {})]
             self.planet_manager.state_manager.add_state({"undo": state, "redo": state}, True)
@@ -189,11 +190,12 @@ class MidiEditor(CTkFrame):
                 return self.load_sample(self.sample)
 
             # handles when array is big enough to remove elements
-            self.planet_manager.samples[self.sample] = sample
+            self.planet_manager.samples[self.sample]["midi_array"] = sample
             pop = [elem for elem in pop if elem is not None]
 
             # adds midi state to state manager
-            redo = [(self.planet_manager.samples.update, ({self.sample: self.planet_manager.samples[self.sample]}, ))]
+            redo = [(self.planet_manager.samples[self.sample].update, (
+                {"midi_array": self.planet_manager.samples[self.sample]["midi_array"]}, ))]
             self.planet_manager.state_manager.add_state({"undo": undo, "redo": redo})
             state = [(self.load_sample, (self.sample, True))]
             self.planet_manager.state_manager.add_state({"undo": state, "redo": state}, True)
@@ -207,7 +209,7 @@ class MidiEditor(CTkFrame):
 
         # reloads planets
         self.load_sample(self.sample)
-        for row_num, row in enumerate(self.planet_manager.samples[self.sample]):
+        for row_num, row in enumerate(self.planet_manager.samples[self.sample]["midi_array"]):
             for col_num, planet in enumerate(row):
                 if not planet:
                     continue
@@ -215,8 +217,9 @@ class MidiEditor(CTkFrame):
                 # gets args
                 old_args = (planet.period, planet.radius, planet.color, planet.sound_path, planet.offset)
                 # todo adjust radius based on min max size
-                new_args = (len(self.planet_manager.samples[self.sample][0]), 50 + (row_num * 10), planet.color,
-                            planet.sound_path, (col_num / len(self.planet_manager.samples[self.sample][0])))
+                new_args = (len(self.planet_manager.samples[self.sample]["midi_array"][0]), 50 + (row_num * 10),
+                            planet.color, planet.sound_path,
+                            (col_num / len(self.planet_manager.samples[self.sample]["midi_array"][0])))
 
                 # updates the planet
                 planet.__init__(*new_args)
@@ -234,12 +237,12 @@ class MidiEditor(CTkFrame):
         """
 
         # handles when editor has not been loaded yet
-        if self.sample not in self.planet_manager.samples.keys():
+        if "midi_array" not in self.planet_manager.samples[self.sample].keys():
             return
 
         # moves the slider
-        period = self.planet_manager.time_elapsed % len(self.planet_manager.samples[self.sample][0])
-        x = self.canvas.winfo_width() * (period / len(self.planet_manager.samples[self.sample][0]))
+        period = self.planet_manager.time_elapsed % len(self.planet_manager.samples[self.sample]["midi_array"][0])
+        x = self.canvas.winfo_width() * (period / len(self.planet_manager.samples[self.sample]["midi_array"][0]))
         self.canvas.coords("playback", x, 0, x, self.canvas.winfo_height())
 
         # handles when bars have already ben lit up this cycle
@@ -249,9 +252,9 @@ class MidiEditor(CTkFrame):
 
         # lights up any bars it passes
         self.playback_col = period
-        for row in range(len(self.planet_manager.samples[self.sample])):
-            if planet := self.planet_manager.samples[self.sample][row, floor(period)]:
+        for row in range(len(self.planet_manager.samples[self.sample]["midi_array"])):
+            if planet := self.planet_manager.samples[self.sample]["midi_array"][row, floor(period)]:
                 self.canvas.itemconfig(f"[{row}, {floor(period)}]", fill="white")
                 self.after(t, lambda r=row, p=planet: self.canvas.itemconfig(
-                    f"[{r}, {floor(period)}]", fill=p.color if self.planet_manager.samples[self.sample][
+                    f"[{r}, {floor(period)}]", fill=p.color if self.planet_manager.samples[self.sample]["midi_array"][
                         r, floor(period)] else self.canvas.cget("bg")))

@@ -25,7 +25,7 @@ class PlanetManager:
 
         # sets attributes
         self.planets = planets if planets else [Planet(0, 50, "yellow")]  # todo adjust default sun settings when min/max values are determined
-        self.samples = samples if samples else {}
+        self.samples = samples if samples else {"Default (No Audio)": {}}
         self.time_elapsed = 0
         self.removed_buffer = []
         self.added_buffer = self.planets.copy()

@@ -165,10 +165,6 @@ class Canvas(CTkCanvas):
         self.bind("<Button-1>", lambda e: setattr(self, "drag_amt", 0), add="+")
         self.bind("<B1-Motion>", lambda e: self.position_event(self.drag_event - array([e.x, e.y]), event=e))
 
-        planet = Planet(1, 50, "green")
-        self.planet_manager.add_planet(planet)
-        self.bind("<space>", lambda e: self.planet_manager.add_planet(Moon(planet, .25, 25, "purple", 1)))
-
     # ================================================ PLANET FUNCTIONS ================================================
 
     def set_focus(self, planet: Planet, zoom: bool = False, smooth: bool = True):
