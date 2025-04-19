@@ -1,7 +1,7 @@
-from numpy import array
+from numpy import array, copy
 from functools import partial
 from pygame.mixer import Sound
-from math import cos, sin, pi
+from math import cos, sin, pi, atan2
 from uuid import uuid1
 
 
@@ -20,6 +20,7 @@ class Planet:
         :param radius: the radius of the planet
         :param color: the color of the planet
         :param sound_path: the file path of to the sound to play
+        :param offset: the offset for which to place the moon
         """
 
         # fields that will need gui updated when modified (see property assignments at end of class)
@@ -29,7 +30,7 @@ class Planet:
         self._shape = "Circle"
 
         # physics fields
-        self.moon: Moon = None
+        self.moon = None
         self.offset = offset
         orig_x = self.orbital_radius * cos(2 * pi * (self.offset + .25))
         orig_y = self.orbital_radius * -sin(2 * pi * (self.offset + .25))
@@ -44,6 +45,33 @@ class Planet:
         # music generation fields
         self.sound_path = sound_path
         self.sound = Sound(sound_path) if sound_path else None
+
+    def update_physics(self, dt: float):
+        """
+        updates the physics for the planet
+
+        :param dt: the time that has passed since the last update
+
+        :return: true if the planet should play a sound
+        """
+
+        # gets the position
+        self.position = self.position if not self.update else copy(self.original_position)
+        rel_x = self.position[0]
+        rel_y = self.position[1]
+
+        # Apply rotation matrix and use polar coordinates
+        angular_speed = 2 * pi / self.period
+        rel_angle = atan2(rel_y, rel_x)
+        new_angle = rel_angle + angular_speed * dt
+
+        # switch back to rectangular coordinates
+        new_x = self.orbital_radius * cos(new_angle)
+        new_y = self.orbital_radius * sin(new_angle)
+
+        # Update absolute position and returns
+        self.position = array([new_x, new_y])
+        return rel_x < 0 <= new_x and (not self.update)
 
     def __getstate__(self):
         """
@@ -99,74 +127,3 @@ class Planet:
     period = property(lambda self: self._period, partial(set_value, attribute="_period"))
     shape = property(lambda self: self._shape, partial(set_value, attribute="_shape"))
     orbital_radius = property(lambda self: (self.period ** (2 / 3)) * 500)  # read only, calculated with period
-
-
-
-class Moon(Planet):
-    """
-    the class to control a moon's attributes
-    """
-
-    def __init__(self, period: float, radius: float, pitch: int, color: str, offset=0):
-        """
-        creates the planet with the given attributes
-
-        :param period: how long it takes the planet to revolve
-        :param radius: the radius of the planet
-        :param center: x and y of the associated planet
-        :param pitch: the pitch of the sound
-        :param color: the color of the planet
-        :param sound_path: the file path of to the sound to play
-        """
-
-        # fields that will need gui updated when modified (see property assignments at end of class)
-        self._period = period
-        self._radius = radius
-        self._color = color
-        self._shape = "Circle"
-
-        # physics fields
-        self.offset = offset
-        self.center = array([0,0])
-        orig_x = 0
-        orig_y = 0
-        self.original_position = array([orig_x, orig_y])
-        self.position = array([orig_x, orig_y])
-
-        # UI fields
-        self.tag = self.tag if hasattr(self, "tag") else uuid1()
-        self.update = True
-        self.state_manager = self.state_manager if hasattr(self, "state_manager") else None  # added by planet manager
-
-        # music generation fields, sound fields will be added in planet manager
-        self.sound_path = None
-        self.sound: Sound = None
-        self.pitch = pitch
-
-    def __getstate__(self):
-        """
-        gets the state of the moon to serialize when saving
-
-        :return: the state of the planet excluding the play sound file object
-        """
-
-        state = self.__dict__.copy()
-        del state["state_manager"]
-        del state["sound"]
-        return state
-
-    def __setstate__(self, state):
-        """
-        restore the state of the moon after loading from file with the sound attribute
-
-        :param state: the state without the sound attribute
-        """
-
-        self.__dict__.update(state)
-
-    # sets class attributes to properties so state can be stored in state manager
-    color = property(lambda self: self._color, partial(Planet.set_value, attribute="_color"))
-    radius = property(lambda self: self._radius, partial(Planet.set_value, attribute="_radius"))
-    period = property(lambda self: self._period, partial(Planet.set_value, attribute="_period"))
-    shape = property(lambda self: self._shape, partial(Planet.set_value, attribute="_shape"))
-    orbital_radius = property(lambda self: (self.period ** (2 / 3)) * 50)  # read only, calculated with period
