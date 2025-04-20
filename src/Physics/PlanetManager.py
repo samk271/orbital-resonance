@@ -41,6 +41,13 @@ class PlanetManager:
         for planet in self.planets:
             planet.state_manager = self.state_manager
 
+        # adds samples to sample list
+        if self.canvas:
+            self.set_sample(self.sample)
+            [frame.destroy() for frame in self.canvas.menu_visibility["planet"]["menu"].sample_frames.values()]
+            for name, sample in self.samples.items():
+                self.canvas.menu_visibility["planet"]["menu"].add_sample(name, sample)
+
     def get_sun(self) -> Planet:
         """
         :return: the sun, the first element of the planet list
@@ -138,7 +145,7 @@ class PlanetManager:
 
         # adds planets from sample
         if "midi_array" in sample.keys():
-            [self.add_planet(planet) for planet in sample["midi_array"].flatten() if planet is not None]
+            [self.add_planet(planet, False) for planet in sample["midi_array"].flatten() if planet is not None]
 
         # adds to state manager
         if add_state:
@@ -167,7 +174,7 @@ class PlanetManager:
 
         # deletes planets in sample
         if "midi_array" in sample.keys():
-            [self.remove_planet(planet) for planet in sample["midi_array"].flatten() if planet is not None]
+            [self.remove_planet(planet, False) for planet in sample["midi_array"].flatten() if planet is not None]
 
         # adds to state manager
         undo = [(self.add_sample, (name, sample, False))]

@@ -24,7 +24,7 @@ canvas = Canvas(root, bg="black", highlightthickness=1, planet_settings=planet_s
 # configures grid close and click functions
 root.rowconfigure(0, weight=1)
 root.columnconfigure(0, weight=1)
-root.bind_all("<Button-1>", lambda e: e.widget.focus_set(), add="+")
+root.bind_all("<Button-1>", lambda e: e.widget.focus_set() if type(e.widget) != str else None, add="+")
 
 # binds hotkeys to file functions
 root.bind_all("<Control-n>", lambda e: canvas.file_buttons("🆕", e))

@@ -43,7 +43,7 @@ class PlanetSettings(CTkFrame):
 
     def add_sample(self, name, sample):
         """
-        adds a sample to the sample list todo reload samples on file load, make text cut off
+        adds a sample to the sample list todo make text cut off
 
         :param name: the name of the sample
         :param sample: the data for the sample

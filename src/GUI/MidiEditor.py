@@ -84,7 +84,7 @@ class MidiEditor(CTkFrame):
 
         # gets the column as a 1d array without null values
         column = self.planet_manager.samples[self.sample]["midi_array"][:, column_num]
-        moon_period = (len(column)) * MidiEditor.PERIOD_FACTOR
+        moon_period = (len(column) - 1) * MidiEditor.PERIOD_FACTOR
         planet_period = len(self.planet_manager.samples[self.sample]["midi_array"][0])
         column = [elem for elem in column if elem is not None]
 
