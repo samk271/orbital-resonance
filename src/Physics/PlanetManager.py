@@ -1,5 +1,6 @@
 from Physics.Planet import Planet
 from FileManagement.StateManager import StateManger
+from tkinter.messagebox import askokcancel, showerror
 
 
 # noinspection PyPropertyDefinition
@@ -106,23 +107,63 @@ class PlanetManager:
         if planet == self.focused_planet:
             self.focused_planet = None
 
-    def add_sample(self, name: str, sample: dict):
+    def add_sample(self, name: str, sample: dict, add_state: bool = True):
         """
         adds a sample to the list of samples and updates the gui
 
         :param name: the name of the sample
         :param sample: the sample to add
+        :param add_state: determines if the state should be added to the state manager
         """
 
+        # handles when name is invalid
+        if name == "Default (No Audio)":
+            showerror("Invalid Name", "Sample cannot be named: Default (No Audio)")
+            return
+
+        # exits if user does not want to override another sample
+        msg = "A sample with this name already exist, saving will override this save. Continue?"
+        if (name in self.samples.keys()) and (not askokcancel("Sample Already Exists", msg)):
+            return
+
+        # overrides another sample
+        state = {"undo": [], "redo": []}
+        if name in self.samples.keys():
+            state = self.delete_sample(name, False)
+
+        # adds sample
         self.samples[name] = sample
         self.canvas.menu_visibility["planet"]["menu"].add_sample(name, sample)
 
-    def delete_sample(self, name):
+        # adds to state manager
+        if add_state:
+            undo = [(self.delete_sample, (name, False))] + state["undo"]
+            redo = state["redo"] + [(self.add_sample, (name, sample, False))]
+            self.state_manager.add_state({"undo": undo, "redo": redo})
+
+    def delete_sample(self, name: str, add_state: bool = True):
         """
         deletes a sample from the list of samples and updates the gui
 
         :param name: the name of the sample
+        :param add_state: determines if the state should be added to the state manager
+
+        :return the state
         """
+
+        # asks user if they are sure they want to delete
+        if add_state and (not askokcancel("Delete Sample", "You are about to delete a sample. Continue?")):
+            return
+
+        # deletes the sample
+        sample = self.samples.pop(name)
+        self.canvas.menu_visibility["planet"]["menu"].sample_frames[name].destroy()
+
+        # adds to state manager
+        undo = [(self.add_sample, (name, sample, False))]
+        redo = [(self.delete_sample, (name, False))]
+        self.state_manager.add_state({"undo": undo, "redo": redo}) if add_state else None
+        return {"undo": undo, "redo": redo}
 
     def get_added_buffer(self) -> list[Planet]:
         """

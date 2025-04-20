@@ -29,7 +29,7 @@ def load_ai():
 
         # remaining loading message
         progress_bar.set(0)
-        label.configure(text="Cleaning Up...")
+        label.configure(text="Creating Display...")
         root.update_idletasks()
         root.quit()
 

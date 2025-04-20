@@ -17,6 +17,7 @@ class PlanetSettings(CTkFrame):
 
         self.planet_manager = kwargs.pop("planet_manager")
         super().__init__(*args, **kwargs)
+        self.sample_frames = {}
         self.tabview = CTkTabview(self, width=450)
         self.tabview.pack(fill="both" , expand= True, padx=10, pady= 10)
 
@@ -39,7 +40,7 @@ class PlanetSettings(CTkFrame):
 
     def add_sample(self, name, sample):
         """
-        adds a sample to the sample list
+        adds a sample to the sample list todo disable delete button on default
 
         :param name: the name of the sample
         :param sample: the data for the sample
@@ -47,6 +48,7 @@ class PlanetSettings(CTkFrame):
 
         # creates frame for the sample
         row_frame = CTkFrame(self.sample_frame)
+        self.sample_frames[name] = row_frame
         row_frame.columnconfigure(4, weight=1)
         row_frame.grid(column=0)
 
@@ -69,8 +71,8 @@ class PlanetSettings(CTkFrame):
 
         # binds functions
         copy.configure(command=lambda: self.copy_sample(name))
-        delete.configure(command=lambda: self.delete_sample(row_frame, name))
-        self.size_slider.bind("<ButtonRelease-1>", lambda e: self.set_volume(sample, slider.get()))
+        delete.configure(command=lambda: self.planet_manager.delete_sample(name))
+        slider.bind("<ButtonRelease-1>", lambda e: self.set_volume(sample, slider.get()))
 
     def set_volume(self, sample, volume):
         """
@@ -80,33 +82,14 @@ class PlanetSettings(CTkFrame):
         :param volume: the new volume for the sample
         """
 
+        sample["volume"] = volume
+
     def copy_sample(self, name):
         """
         creates a copy of a sample
 
         :param name: the name of the sample to copy
         """
-
-    def delete_sample(self, frame, name):
-        """
-        deletes a sample
-
-        :param frame: the frame to delete from the screen containing the sample
-        :param name: the name of the sample to delete
-        """
-
-        # deletes the sample
-        frame.grid_forget()
-        sample = self.planet_manager.samples.pop(name)
-        planets = [planet for planet in [row for row in sample["midi_array"]] if planet is not None]
-        [self.planet_manager.remove_planet(planet) for planet in planets]
-
-        # adds to state manager
-        undo = [(self.planet_manager.samples.setdefault, (name, sample)), (frame.grid, (), {"column": 0})]
-        undo.extend([(lambda: [self.planet_manager.add_planet(planet) for planet in planets], ())])
-        redo = [(self.planet_manager.samples.pop, (name, )), (frame.grid_forget, ())]
-        redo.extend([(lambda: [self.planet_manager.remove_planet(planet) for planet in planets], ())])
-        self.planet_manager.state_manager.add_state({"undo": undo, "redo": redo})
 
     def sun_settings(self, parent):
         "UI for sun settings"
