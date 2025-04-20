@@ -163,6 +163,8 @@ class MidiEditor(CTkFrame):
             # updates midi color, adds state and planet
             sample_path = sample_path if "shifted_signal_array" in self.planet_manager.samples[self.sample] else None
             sample[row, col] = planet if planet else Planet(len(sample[0]), r, color, pitch + row, sample_path, offset)
+            volume = self.planet_manager.samples[self.sample]["volume"]
+            sample[row, col].sound.set_volume(volume) if sample[row, col].sound else None
             self.canvas.itemconfig(tag, fill=sample[row, col].color)
             state = [(self.click, (row, col, right, sample[row, col]))]
             self.planet_manager.add_planet(sample[row, col], modify_state=self.click_and_drag) if not planet else None

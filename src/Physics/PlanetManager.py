@@ -41,6 +41,12 @@ class PlanetManager:
         for planet in self.planets:
             planet.state_manager = self.state_manager
 
+        # sets planet volume
+        for sample in self.samples.values():
+            if "midi_array" in sample:
+                [planet.sound.set_volume(sample["volume"]) if planet and planet.sound else None for planet in sample[
+                    "midi_array"].flatten()]
+
         # adds samples to sample list
         if self.canvas:
             self.set_sample(self.sample)
