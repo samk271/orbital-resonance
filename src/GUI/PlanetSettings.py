@@ -29,33 +29,85 @@ class PlanetSettings(CTkFrame):
         # creates the sample list
         sample_list = self.tabview.add("Sample List")
         self.tabview.grid_propagate(False)
-        sample_frame = CTkScrollableFrame(sample_list)
-        sample_frame.columnconfigure(0, weight=1)
-        sample_frame.pack(fill="both", expand=True)
+        self.sample_frame = CTkScrollableFrame(sample_list)
+        self.sample_frame.columnconfigure(0, weight=1)
+        self.sample_frame.pack(fill="both", expand=True)
 
         # adds samples to sample list
-        for row, (name, sample) in enumerate(self.planet_manager.samples.items()):
-            row_frame = CTkFrame(sample_frame)
-            row_frame.columnconfigure(4, weight=1)
-            row_frame.grid(row=row, column=0)
+        for name, sample in self.planet_manager.samples.items():
+            self.add_sample(name, sample)
 
-            # creates name label
-            label = CTkLabel(row_frame, text=name, font=("Arial", 18))
-            label.grid(row=0, column=0, sticky="w", padx=5)
+    def add_sample(self, name, sample):
+        """
+        adds a sample to the sample list
 
-            # creates buttons
-            copy = CTkButton(row_frame, text="📋", width=1, font=("Arial", 18))
-            copy.grid(row=0, column=1, padx=5)
-            delete = CTkButton(row_frame, text="🗑", width=0, font=("Arial", 18))
-            delete.grid(row=0, column=2)
+        :param name: the name of the sample
+        :param sample: the data for the sample
+        """
 
-            # creates volume slider
-            volume = CTkLabel(row_frame, text="🔊", font=("Arial", 18))
-            volume.grid(row=0, column=3, sticky="e", padx=(10, 0))
-            slider = CTkSlider(row_frame, from_=0, to=1)
-            slider.set(sample["volume"])
-            slider.grid(row=0, column=4, sticky="ew", padx=(2, 5))
-    
+        # creates frame for the sample
+        row_frame = CTkFrame(self.sample_frame)
+        row_frame.columnconfigure(4, weight=1)
+        row_frame.grid(column=0)
+
+        # creates name label
+        label = CTkLabel(row_frame, text=name, font=("Arial", 18))
+        label.grid(row=0, column=0, sticky="w", padx=5)
+
+        # creates buttons
+        copy = CTkButton(row_frame, text="📋", width=1, font=("Arial", 18))
+        copy.grid(row=0, column=1, padx=5)
+        delete = CTkButton(row_frame, text="🗑", width=0, font=("Arial", 18))
+        delete.grid(row=0, column=2)
+
+        # creates volume slider
+        volume = CTkLabel(row_frame, text="🔊", font=("Arial", 18))
+        volume.grid(row=0, column=3, sticky="e", padx=(10, 0))
+        slider = CTkSlider(row_frame, from_=0, to=1)
+        slider.set(sample["volume"])
+        slider.grid(row=0, column=4, sticky="ew", padx=(2, 5))
+
+        # binds functions
+        copy.configure(command=lambda: self.copy_sample(name))
+        delete.configure(command=lambda: self.delete_sample(row_frame, name))
+        self.size_slider.bind("<ButtonRelease-1>", lambda e: self.set_volume(sample, slider.get()))
+
+    def set_volume(self, sample, volume):
+        """
+        sets the volume of a sample
+
+        :param sample: the sample to adjust
+        :param volume: the new volume for the sample
+        """
+
+    def copy_sample(self, name):
+        """
+        creates a copy of a sample
+
+        :param name: the name of the sample to copy
+        """
+
+    def delete_sample(self, frame, name):
+        """
+        deletes a sample
+
+        :param frame: the frame to delete from the screen containing the sample
+        :param name: the name of the sample to delete
+        """
+
+        # deletes the sample
+        frame.grid_forget()
+        sample = self.planet_manager.samples.pop(name)
+        planets = [planet for planet in [row for row in sample["midi_array"]] if planet is not None]
+        [self.planet_manager.remove_planet(planet) for planet in planets]
+
+        # adds to state manager
+        undo = [(self.planet_manager.samples.setdefault, (name, sample)), (frame.grid, (), {"column": 0})]
+        undo.extend([(lambda: [self.planet_manager.add_planet(planet) for planet in planets], ())])
+        redo = [(self.planet_manager.samples.pop, (name, )), (frame.grid_forget, ())]
+        redo.extend([(lambda: [self.planet_manager.remove_planet(planet) for planet in planets], ())])
+        self.planet_manager.state_manager.add_state({"undo": undo, "redo": redo})
+
     def sun_settings(self, parent):
         "UI for sun settings"
         

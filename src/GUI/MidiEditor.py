@@ -309,6 +309,10 @@ class MidiEditor(CTkFrame):
         :param t: the amount of time that the bar should be lit up
         """
 
+        # handles when the loaded sample has been deleted
+        if self.sample not in self.planet_manager.samples.keys():
+            self.load_sample("Default (No Audio)")
+
         # handles when editor has not been loaded yet
         if "midi_array" not in self.planet_manager.samples[self.sample].keys():
             return
