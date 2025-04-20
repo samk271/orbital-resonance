@@ -242,7 +242,7 @@ class AISettings(CTkFrame):
             'prompt':prompt,
             'crops':self.audio_frame.get_crop_indices(),
             'pitch':self.midi_note,
-            'volume': 1,
+            'volume': 1
         }
 
         left, right = self.audio_frame.get_crop_indices()
