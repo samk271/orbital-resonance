@@ -1,3 +1,4 @@
+import numpy as np
 from os import listdir, mkdir
 from os.path import join, isdir
 from shutil import copy
@@ -6,7 +7,6 @@ from librosa import midi_to_note, yin, note_to_hz, hz_to_midi, note_to_midi
 from librosa.effects import pitch_shift
 from scipy.io.wavfile import read, write
 from numpy import round as np_round, average, isnan, median
-from numpy import full, mean
 from pygame.mixer import Sound
 from contextlib import redirect_stderr
 from tkinter.colorchooser import askcolor
@@ -169,7 +169,7 @@ class AISettings(CTkFrame):
         fs, x = read(join(wav_dir,wav_file))
 
         if x.ndim > 1:
-            x = mean(x, axis=1)
+            x = np.mean(x, axis=1)
 
         self.midi_note = self.find_nearest_midi(x,fs)
         self.sr=fs
@@ -209,6 +209,8 @@ class AISettings(CTkFrame):
     def play_sound(self, signal, sr):
 
         left, right = self.audio_frame.get_crop_indices()
+
+        self.shifted_signal = self.shifted_signal.astype(np.int16)
 
         if (self.shifted_signal is None):
             write("./AUDIO/temp_wav.wav", sr, signal[left:right])
@@ -352,7 +354,9 @@ class AISettings(CTkFrame):
         desired_midi = note_to_midi(desired_note)
         steps_to_shift = desired_midi - self.midi_note
 
-        self.shifted_signal = pitch_shift(self.signal.astype(float), sr=self.sr, n_steps=steps_to_shift).astype(float)
+        self.shifted_signal = pitch_shift(self.signal.astype(float), sr=self.sr, n_steps=steps_to_shift)
+
+        print(self.shifted_signal)
 
         self.play_sound(signal=self.shifted_signal,sr=self.sr)
         self.midi_note = desired_midi
