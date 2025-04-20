@@ -1,5 +1,7 @@
-from customtkinter import CTkFrame, CTkLabel, CTkSlider, CTkButton, CTkTabview, CTkComboBox, CTkScrollableFrame
 from tkinter.colorchooser import askcolor
+from copy import deepcopy
+from customtkinter import CTkFrame, CTkLabel, CTkSlider, CTkButton, CTkTabview, CTkComboBox, CTkScrollableFrame, \
+    CTkRadioButton, StringVar
 
 
 class PlanetSettings(CTkFrame):
@@ -18,6 +20,7 @@ class PlanetSettings(CTkFrame):
         self.planet_manager = kwargs.pop("planet_manager")
         super().__init__(*args, **kwargs)
         self.sample_frames = {}
+        self.sample = StringVar(self.master, self.planet_manager.sample)
         self.tabview = CTkTabview(self, width=450)
         self.tabview.pack(fill="both" , expand= True, padx=10, pady= 10)
 
@@ -40,21 +43,21 @@ class PlanetSettings(CTkFrame):
 
     def add_sample(self, name, sample):
         """
-        adds a sample to the sample list todo disable delete button on default
+        adds a sample to the sample list todo reload samples on file load, make text cut off
 
         :param name: the name of the sample
         :param sample: the data for the sample
         """
 
         # creates frame for the sample
-        row_frame = CTkFrame(self.sample_frame)
+        row_frame = CTkFrame(self.sample_frame, border_width=1)
         self.sample_frames[name] = row_frame
         row_frame.columnconfigure(4, weight=1)
         row_frame.grid(column=0)
 
-        # creates name label
-        label = CTkLabel(row_frame, text=name, font=("Arial", 18))
-        label.grid(row=0, column=0, sticky="w", padx=5)
+        # creates radiobutton
+        radio_button = CTkRadioButton(row_frame, text=name, font=("Arial", 18), value=name, variable=self.sample)
+        radio_button.grid(row=0, column=0, sticky="w", padx=5, pady=5)
 
         # creates buttons
         copy = CTkButton(row_frame, text="📋", width=1, font=("Arial", 18))
@@ -70,13 +73,18 @@ class PlanetSettings(CTkFrame):
         slider.grid(row=0, column=4, sticky="ew", padx=(2, 5))
 
         # binds functions
+        radio_button.configure(command=lambda: self.planet_manager.set_sample(self.sample.get()))
         copy.configure(command=lambda: self.copy_sample(name))
         delete.configure(command=lambda: self.planet_manager.delete_sample(name))
         slider.bind("<ButtonRelease-1>", lambda e: self.set_volume(sample, slider.get()))
 
+        # ensures default sample has proper settings
+        if name == "Default (No Audio)":
+            delete.configure(state="disabled", fg_color="gray25")
+
     def set_volume(self, sample, volume):
         """
-        sets the volume of a sample
+        sets the volume of a sample todo add state
 
         :param sample: the sample to adjust
         :param volume: the new volume for the sample
@@ -90,6 +98,15 @@ class PlanetSettings(CTkFrame):
 
         :param name: the name of the sample to copy
         """
+
+        # ensures save name is unique
+        i = 1
+        while f"{name} ({i})" in self.planet_manager.samples.keys():
+            i += 1
+
+        # creates a copy of the sample
+        sample = deepcopy(self.planet_manager.samples[name])
+        self.planet_manager.add_sample(f"{name} ({i})", sample)
 
     def sun_settings(self, parent):
         "UI for sun settings"

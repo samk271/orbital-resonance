@@ -27,6 +27,7 @@ class PlanetManager:
         # sets attributes
         self.planets = planets if planets else [Planet(0, 50, "yellow", 0)]  # todo adjust default sun settings when min/max values are determined
         self.samples = samples if samples else {"Default (No Audio)": {"pitch": 0, "volume": 0}}
+        self.sample = "Default (No Audio)"
         self.time_elapsed = 0
         self.removed_buffer = []
         self.added_buffer = self.planets.copy()
@@ -135,6 +136,10 @@ class PlanetManager:
         self.samples[name] = sample
         self.canvas.menu_visibility["planet"]["menu"].add_sample(name, sample)
 
+        # adds planets from sample
+        if "midi_array" in sample.keys():
+            [self.add_planet(planet) for planet in sample["midi_array"].flatten() if planet is not None]
+
         # adds to state manager
         if add_state:
             undo = [(self.delete_sample, (name, False))] + state["undo"]
@@ -152,18 +157,34 @@ class PlanetManager:
         """
 
         # asks user if they are sure they want to delete
-        if add_state and (not askokcancel("Delete Sample", "You are about to delete a sample. Continue?")):
+        msg = "You are about to delete a sample which will delete any associated planets. Continue?"
+        if add_state and (not askokcancel("Delete Sample", msg)):
             return
 
         # deletes the sample
         sample = self.samples.pop(name)
         self.canvas.menu_visibility["planet"]["menu"].sample_frames[name].destroy()
 
+        # deletes planets in sample
+        if "midi_array" in sample.keys():
+            [self.remove_planet(planet) for planet in sample["midi_array"].flatten() if planet is not None]
+
         # adds to state manager
         undo = [(self.add_sample, (name, sample, False))]
         redo = [(self.delete_sample, (name, False))]
         self.state_manager.add_state({"undo": undo, "redo": redo}) if add_state else None
         return {"undo": undo, "redo": redo}
+
+    def set_sample(self, sample: str):
+        """
+        sets the selected sample and updates the GUI
+
+        :param sample: the sample that was selected
+        """
+
+        self.sample = sample
+        self.canvas.menu_visibility["planet"]["menu"].sample.set(sample)
+        self.canvas.menu_visibility["AI"]["menu"].midi.load_sample(sample)
 
     def get_added_buffer(self) -> list[Planet]:
         """

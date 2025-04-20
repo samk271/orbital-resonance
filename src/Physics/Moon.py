@@ -1,6 +1,7 @@
 from Physics.Planet import Planet
 from numpy import array, copy
 from math import cos, sin, pi, atan2
+from copy import deepcopy
 
 
 class Moon(Planet):
@@ -71,3 +72,16 @@ class Moon(Planet):
 
         self.__class__ = Planet
         self.__init__(period, self.radius * Moon.RADIUS_FACTOR, self.color, self.pitch, self.sound_path, offset)
+
+    def __deepcopy__(self, memo):
+        """
+        creates a deep copy of the planet object
+
+        :param memo: the dict of already copied objects
+
+        :return: the copied object
+        """
+
+        moon_copy = Moon(deepcopy(self.planet, memo), self.period, self.radius, self.color, self.pitch, self.offset)
+        memo[id(self)] = moon_copy
+        return moon_copy
