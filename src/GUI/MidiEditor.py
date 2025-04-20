@@ -146,22 +146,23 @@ class MidiEditor(CTkFrame):
             # todo adjust radius based on min max size
             r, color, offset = 50 + (row * 10), "#{:06x}".format(randint(0, 0xFFFFFF)), col / len(sample[0])
             sample_name = self.sample if self.sample != "Default (No Audio)" else None
+            if sample_name:
+                sample_path = f"./AUDIO/user_samples/{sample_name}/{sample_name}_{pitch}.wav"
+                #find sample path based on pitch and sample name
+                if not os.path.exists(sample_path):
+                    #Make the pitch shifted file
+                    steps_to_shift = pitch - self.planet_manager.samples[self.sample]["midi_array"]
+                    signal = self.planet_manager.samples[self.sample]["shifted_signal"]
+                    sr = self.planet_manager.samples[self.sample]["sample_rate"]
+                    left, right = self.planet_manager.samples[self.sample]["crops"]
+                    shifted_signal = librosa.effects.pitch_shift(y=signal, 
+                                                                sr=sr, 
+                                                                n_steps=steps_to_shift)
+                    wav.write("./AUDIO/temp_wav.wav", sr, shifted_signal[left:right])
 
-            sample_path = f"./AUDIO/user_samples/{sample_name}/{sample_name}_{pitch}.wav"
-
-            #find sample path based on pitch and sample name
-            if not os.path.exists(sample_path):
-                #Make the pitch shifted file
-                steps_to_shift = pitch - self.planet_manager.samples[self.sample]["midi_array"]
-                signal = self.planet_manager.samples[self.sample]["shifted_signal"]
-                sr = self.planet_manager.samples[self.sample]["sample_rate"]
-                left, right = self.planet_manager.samples[self.sample]["crops"]
-                shifted_signal = librosa.effects.pitch_shift(y=signal, 
-                                                             sr=sr, 
-                                                             n_steps=steps_to_shift)
-                wav.write("./AUDIO/temp_wav.wav", sr, signal[left:right])
-
-            sample[row, col] = planet if planet else Planet(len(sample[0]), r, color, pitch + row, sample_name, offset)
+                sample[row, col] = planet if planet else Planet(len(sample[0]), r, color, pitch + row, sample_name, offset)
+            else:
+                sample[row, col] = planet if planet else Planet(len(sample[0]), r, color, pitch + row, sound_path=None, offset=offset)
 
             # updates midi color, adds state and planet
             self.canvas.itemconfig(tag, fill=sample[row, col].color)

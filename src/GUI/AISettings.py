@@ -256,7 +256,7 @@ class AISettings(CTkFrame):
             'prompt':prompt,
             'crops':self.audio_frame.get_crop_indices(),
             'pitch':self.midi_note,
-            'midi_array':[[]*4]*3
+            'midi_array':[[None for i in range(4)] for j in range(3)]
         }
 
         left, right = self.audio_frame.get_crop_indices()
