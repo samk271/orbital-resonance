@@ -151,17 +151,17 @@ class MidiEditor(CTkFrame):
             if not exists(sample_path) and self.sample != "Default (No Audio)":
 
                 # Make the pitch shifted file
-                steps_to_shift = pitch - self.planet_manager.samples[self.sample]["midi_array"]
-                signal = self.planet_manager.samples[self.sample]["shifted_signal"]
+                steps_to_shift = pitch - self.planet_manager.samples[self.sample]["pitch"]
+                signal = self.planet_manager.samples[self.sample]["shifted_signal_array"]
                 sr = self.planet_manager.samples[self.sample]["sample_rate"]
                 left, right = self.planet_manager.samples[self.sample]["crops"]
                 shifted_signal = pitch_shift(y=signal,
                                                              sr=sr, 
                                                              n_steps=steps_to_shift)
-                write("./AUDIO/temp_wav.wav", sr, signal[left:right])
+                write(sample_path, sr, shifted_signal[left:right])
 
             # updates midi color, adds state and planet
-            sample[row, col] = planet if planet else Planet(len(sample[0]), r, color, pitch + row, sample_name, offset)
+            sample[row, col] = planet if planet else Planet(len(sample[0]), r, color, pitch + row, sample_path, offset)
             self.canvas.itemconfig(tag, fill=sample[row, col].color)
             state = [(self.click, (row, col, right, sample[row, col]))]
             self.planet_manager.add_planet(sample[row, col], modify_state=self.click_and_drag) if not planet else None
