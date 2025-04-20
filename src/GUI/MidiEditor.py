@@ -1,5 +1,5 @@
 import os
-import scipy.io.wavfile  as wav
+import scipy.io.wavfile as wav
 import librosa
 from Physics.Planet import Planet
 from customtkinter import CTkCanvas, CTkFrame, CTkButton, CTkLabel
@@ -117,9 +117,8 @@ class MidiEditor(CTkFrame):
         tag = f"[{row}, {col}]"
         sample = self.planet_manager.samples[self.sample]["midi_array"]
 
-        #Calculate pitch based on row
-        middle_row = len(sample) // 2
-        pitch = self.planet_manager.samples[self.sample]["pitch"] + (middle_row - row)
+        # Calculate pitch based on row
+        pitch = self.planet_manager.samples[self.sample]["pitch"] + row
         if sample[row, col] and (not right):
             state = [(self.click, (row, col, right, sample[row, col]))]
             self.planet_manager.remove_planet(
@@ -147,11 +146,11 @@ class MidiEditor(CTkFrame):
             r, color, offset = 50 + (row * 10), "#{:06x}".format(randint(0, 0xFFFFFF)), col / len(sample[0])
             sample_name = self.sample if self.sample != "Default (No Audio)" else None
 
+            # find sample path based on pitch and sample name
             sample_path = f"./AUDIO/user_samples/{sample_name}/{sample_name}_{pitch}.wav"
+            if not os.path.exists(sample_path) and self.sample != "Default (No Audio)":
 
-            #find sample path based on pitch and sample name
-            if not os.path.exists(sample_path):
-                #Make the pitch shifted file
+                # Make the pitch shifted file
                 steps_to_shift = pitch - self.planet_manager.samples[self.sample]["midi_array"]
                 signal = self.planet_manager.samples[self.sample]["shifted_signal"]
                 sr = self.planet_manager.samples[self.sample]["sample_rate"]
@@ -161,9 +160,8 @@ class MidiEditor(CTkFrame):
                                                              n_steps=steps_to_shift)
                 wav.write("./AUDIO/temp_wav.wav", sr, signal[left:right])
 
-            sample[row, col] = planet if planet else Planet(len(sample[0]), r, color, pitch + row, sample_name, offset)
-
             # updates midi color, adds state and planet
+            sample[row, col] = planet if planet else Planet(len(sample[0]), r, color, pitch + row, sample_name, offset)
             self.canvas.itemconfig(tag, fill=sample[row, col].color)
             state = [(self.click, (row, col, right, sample[row, col]))]
             self.planet_manager.add_planet(sample[row, col], modify_state=self.click_and_drag) if not planet else None
