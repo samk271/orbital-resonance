@@ -3,7 +3,7 @@ from scipy.io.wavfile import write
 from Physics.Planet import Planet
 from customtkinter import CTkCanvas, CTkFrame, CTkButton, CTkLabel
 from tkinter.colorchooser import askcolor
-from numpy import full, append, delete
+from numpy import full, append, delete, int16
 from random import randint
 from math import floor
 from librosa import midi_to_note
@@ -155,10 +155,10 @@ class MidiEditor(CTkFrame):
                 signal = self.planet_manager.samples[self.sample]["shifted_signal_array"]
                 sr = self.planet_manager.samples[self.sample]["sample_rate"]
                 left, right = self.planet_manager.samples[self.sample]["crops"]
-                shifted_signal = pitch_shift(y=signal,
+                shifted_signal = pitch_shift(y=signal.astype(float),
                                                              sr=sr, 
                                                              n_steps=steps_to_shift)
-                write(sample_path, sr, shifted_signal[left:right])
+                write(sample_path, sr, shifted_signal[left:right].astype(int16))
 
             # updates midi color, adds state and planet
             sample_path = sample_path if "shifted_signal_array" in self.planet_manager.samples[self.sample] else None
