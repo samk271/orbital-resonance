@@ -252,10 +252,7 @@ class AISettings(CTkFrame):
         if not (isdir(f"./AUDIO/user_samples/{sample_name}")):
             mkdir(f"./AUDIO/user_samples/{sample_name}")
         write(f"./AUDIO/user_samples/{sample_name}/{sample_name}_{self.midi_note}",self.sr, self.shifted_signal[left:right])
-        self.planet_manager.samples[sample_name] = sample_data
-
-        #Load sample into editor
-        self.midi.load_sample(sample=sample_name)
+        self.planet_manager.add_sample(sample_name, sample_data)
 
     #add all the wav files from the directory to the listbox
     def add_wav_to_listbox(self, listbox, wav_dir):

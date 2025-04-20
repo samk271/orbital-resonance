@@ -106,6 +106,16 @@ class PlanetManager:
         if planet == self.focused_planet:
             self.focused_planet = None
 
+    def add_sample(self, name: str, sample: dict):
+        """
+        adds a sample to the list of samples and updates the gui
+
+        :param name: the name of the sample
+        :param sample: the sample to add
+        """
+
+        self.samples[name] = sample
+
     def get_added_buffer(self) -> list[Planet]:
         """
         gets the list of planets that have been queued to add to the UI and clears the queue
