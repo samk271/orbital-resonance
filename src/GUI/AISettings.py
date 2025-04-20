@@ -213,12 +213,12 @@ class AISettings(CTkFrame):
         self.shifted_signal = self.shifted_signal.astype(np.int16)
 
         if (self.shifted_signal is None):
-            write("./AUDIO/temp_wav.wav", sr, signal[left:right])
+            write("./AUDIO/temp/temp.wav", sr, signal[left:right])
         else:
-            write("./AUDIO/temp_wav.wav", sr, self.shifted_signal[left:right])
+            write("./AUDIO/temp/temp.wav", sr, self.shifted_signal[left:right])
             
 
-        sound = Sound("./AUDIO/temp_wav.wav")
+        sound = Sound("./AUDIO/temp/temp.wav")
         sound.play()
 
 
@@ -355,8 +355,6 @@ class AISettings(CTkFrame):
         steps_to_shift = desired_midi - self.midi_note
 
         self.shifted_signal = pitch_shift(self.signal.astype(float), sr=self.sr, n_steps=steps_to_shift)
-
-        print(self.shifted_signal)
 
         self.play_sound(signal=self.shifted_signal,sr=self.sr)
         self.midi_note = desired_midi
