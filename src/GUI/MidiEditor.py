@@ -148,7 +148,7 @@ class MidiEditor(CTkFrame):
 
             # find sample path based on pitch and sample name
             sample_path = f"./AUDIO/user_samples/{sample_name}/{sample_name}_{pitch}.wav"
-            if not exists(sample_path) and self.sample != "Default (No Audio)":
+            if not exists(sample_path) and "shifted_signal_array" in self.planet_manager.samples[self.sample]:
 
                 # Make the pitch shifted file
                 steps_to_shift = pitch - self.planet_manager.samples[self.sample]["pitch"]
@@ -161,6 +161,7 @@ class MidiEditor(CTkFrame):
                 write(sample_path, sr, shifted_signal[left:right])
 
             # updates midi color, adds state and planet
+            sample_path = sample_path if "shifted_signal_array" in self.planet_manager.samples[self.sample] else None
             sample[row, col] = planet if planet else Planet(len(sample[0]), r, color, pitch + row, sample_path, offset)
             self.canvas.itemconfig(tag, fill=sample[row, col].color)
             state = [(self.click, (row, col, right, sample[row, col]))]
@@ -311,7 +312,7 @@ class MidiEditor(CTkFrame):
 
         # handles when the loaded sample has been deleted
         if self.sample not in self.planet_manager.samples.keys():
-            self.load_sample("Default (No Audio)")
+            self.planet_manager.set_sample("Default (No Audio)")
 
         # handles when editor has not been loaded yet
         if "midi_array" not in self.planet_manager.samples[self.sample].keys():

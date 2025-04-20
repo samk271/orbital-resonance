@@ -139,6 +139,24 @@ class Planet:
         self.sound = Sound(self.sound_path) if self.sound_path else None
         self.update = True
 
+    def __deepcopy__(self, memo):
+        """
+        creates a deep copy of the planet object
+
+        :param memo: the dict of already copied objects
+
+        :return: the copied object
+        """
+
+        # handles when the planet has already been copied
+        if id(self) in memo:
+            return memo[id(self)]
+
+        # copies the planet
+        planet_copy = Planet(self.period, self.radius, self.color, self.pitch, self.sound_path, self.offset)
+        memo[id(self)] = planet_copy
+        return planet_copy
+
     # sets class attributes to properties so state can be stored in state manager
     color = property(lambda self: self._color, partial(set_value, attribute="_color"))
     radius = property(lambda self: self._radius, partial(set_value, attribute="_radius"))
