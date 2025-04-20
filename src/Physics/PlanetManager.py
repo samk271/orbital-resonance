@@ -115,6 +115,14 @@ class PlanetManager:
         """
 
         self.samples[name] = sample
+        self.canvas.menu_visibility["planet"]["menu"].add_sample(name, sample)
+
+    def delete_sample(self, name):
+        """
+        deletes a sample from the list of samples and updates the gui
+
+        :param name: the name of the sample
+        """
 
     def get_added_buffer(self) -> list[Planet]:
         """
