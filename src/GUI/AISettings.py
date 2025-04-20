@@ -171,6 +171,7 @@ class AISettings(CTkFrame):
         self.midi_note = self.find_nearest_midi(x,fs)
         self.sr=fs
         self.signal=x
+        self.shifted_signal=x
         
         self.update_plot()
 
@@ -243,7 +244,8 @@ class AISettings(CTkFrame):
             'prompt':prompt,
             'crops':self.audio_frame.get_crop_indices(),
             'pitch':self.midi_note,
-            'midi_array': full((3, 4), None, dtype=object)
+            'midi_array': full((3, 4), None, dtype=object),
+            'volume': 1
         }
 
         left, right = self.audio_frame.get_crop_indices()
@@ -323,7 +325,7 @@ class AISettings(CTkFrame):
         - y_tuned: np.ndarray, the pitch-shifted (autotuned) signal.
         """
         # Step 1: Estimate the fundamental frequency (f0) using YIN
-        f0 = yin(y, fmin=note_to_hz('C2'), fmax=note_to_hz('C7'), sr=sr)
+        f0 = yin(y.astype(float), fmin=note_to_hz('C2'), fmax=note_to_hz('C7'), sr=sr)
 
         # Remove unvoiced (nan) values
         f0_clean = f0[~isnan(f0)]
@@ -351,7 +353,7 @@ class AISettings(CTkFrame):
         desired_midi = note_to_midi(desired_note)
         steps_to_shift = desired_midi - self.midi_note
 
-        self.shifted_signal = pitch_shift(self.signal, sr=self.sr, n_steps=steps_to_shift)
+        self.shifted_signal = pitch_shift(self.signal.astype(float), sr=self.sr, n_steps=steps_to_shift).astype(float)
 
         self.play_sound(signal=self.shifted_signal,sr=self.sr)
         self.midi_note = desired_midi
