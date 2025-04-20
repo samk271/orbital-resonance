@@ -22,7 +22,6 @@ canvas = Canvas(root, bg="black", highlightthickness=1, planet_settings=planet_s
                 planet_manager=planet_manager, file_manager=file_manager)
 
 # configures grid close and click functions
-root.protocol("WM_DELETE_WINDOW", lambda: root.destroy() if canvas.file_buttons("exit") else None)
 root.rowconfigure(0, weight=1)
 root.columnconfigure(0, weight=1)
 root.bind_all("<Button-1>", lambda e: e.widget.focus_set(), add="+")
@@ -47,13 +46,16 @@ root.bind_all("<Control-Shift-minus>", lambda e: setattr(canvas, "speed", canvas
 root.bind_all("<Control-Shift-equal>", lambda e: setattr(canvas, "speed", canvas.speed * Canvas.SPEED_FACTOR))
 root.bind_all("<Control-Shift-underscore>", lambda e: setattr(canvas, "speed", canvas.speed / Canvas.SPEED_FACTOR))
 
-# places widgets on the screen and starts display
+# places widgets on screen
 label.destroy()
 progress_bar.destroy()
 planet_settings.grid(row=0, column=1, sticky="nsew")
 AI_settings.grid(row=1, column=0, columnspan=2, sticky="nsew")
 canvas.grid(row=0, column=0, sticky="nsew")
+
+# starts program
 root.update_idletasks()
+root.protocol("WM_DELETE_WINDOW", lambda: root.destroy() if canvas.file_buttons("exit") else None)
 root.resizable(True, True)
 root.state('zoomed')
 root.mainloop() if __name__ == "__main__" else None  # can import project from other scripts to run

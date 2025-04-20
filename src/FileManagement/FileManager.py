@@ -1,6 +1,5 @@
 from Physics.PlanetManager import PlanetManager
 from GUI.Canvas import Canvas
-from customtkinter import CTk
 from tkinter.filedialog import asksaveasfilename, askopenfilename
 from pathlib import Path
 from pickle import dumps, loads

@@ -1,4 +1,5 @@
 from customtkinter import CTkProgressBar, CTk, CTkLabel
+from tkinter.messagebox import askokcancel
 from contextlib import redirect_stderr
 from FileManagement.IORedirect import IORedirect
 from threading import Thread
@@ -46,8 +47,10 @@ progress_bar = CTkProgressBar(root, mode="determinate", width=500)
 progress_bar.set(0)
 progress_bar.pack(padx=50, pady=(10, 50))
 
+# starts thread
 pipe = None
 thread = Thread(target=load_ai)
 thread.start()
-root.protocol("WM_DELETE_WINDOW", lambda: [root.destroy(), exit()])
+root.protocol("WM_DELETE_WINDOW", lambda: [root.destroy(), exit()] if askokcancel(
+    "Exit", "You are are about to exit. Continue?") else None)
 root.mainloop()
