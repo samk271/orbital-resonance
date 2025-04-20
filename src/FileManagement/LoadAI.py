@@ -30,6 +30,7 @@ def load_ai():
         # remaining loading message
         progress_bar.set(0)
         label.configure(text="Cleaning Up...")
+        root.update_idletasks()
         root.quit()
 
     # handles when user quits while still loading

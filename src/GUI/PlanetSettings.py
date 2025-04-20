@@ -1,4 +1,4 @@
-from customtkinter import CTkFrame, CTkLabel, CTkSlider, CTkButton, CTkTabview, CTkComboBox
+from customtkinter import CTkFrame, CTkLabel, CTkSlider, CTkButton, CTkTabview, CTkComboBox, CTkScrollableFrame
 from tkinter.colorchooser import askcolor
 
 
@@ -17,7 +17,7 @@ class PlanetSettings(CTkFrame):
 
         self.planet_manager = kwargs.pop("planet_manager")
         super().__init__(*args, **kwargs)
-        self.tabview = CTkTabview(self)
+        self.tabview = CTkTabview(self, width=450)
         self.tabview.pack(fill="both" , expand= True, padx=10, pady= 10)
 
         #tabs for different settings
@@ -25,6 +25,36 @@ class PlanetSettings(CTkFrame):
 
         #sun 
         self.sun_settings(self.sun_tab)
+
+        # creates the sample list
+        sample_list = self.tabview.add("Sample List")
+        self.tabview.grid_propagate(False)
+        sample_frame = CTkScrollableFrame(sample_list)
+        sample_frame.columnconfigure(0, weight=1)
+        sample_frame.pack(fill="both", expand=True)
+
+        # adds samples to sample list
+        for row, (name, sample) in enumerate(self.planet_manager.samples.items()):
+            row_frame = CTkFrame(sample_frame)
+            row_frame.columnconfigure(4, weight=1)
+            row_frame.grid(row=row, column=0)
+
+            # creates name label
+            label = CTkLabel(row_frame, text=name, font=("Arial", 18))
+            label.grid(row=0, column=0, sticky="w", padx=5)
+
+            # creates buttons
+            copy = CTkButton(row_frame, text="📋", width=1, font=("Arial", 18))
+            copy.grid(row=0, column=1, padx=5)
+            delete = CTkButton(row_frame, text="🗑", width=0, font=("Arial", 18))
+            delete.grid(row=0, column=2)
+
+            # creates volume slider
+            volume = CTkLabel(row_frame, text="🔊", font=("Arial", 18))
+            volume.grid(row=0, column=3, sticky="e", padx=(10, 0))
+            slider = CTkSlider(row_frame, from_=0, to=1)
+            slider.set(sample["volume"])
+            slider.grid(row=0, column=4, sticky="ew", padx=(2, 5))
     
     def sun_settings(self, parent):
         "UI for sun settings"
