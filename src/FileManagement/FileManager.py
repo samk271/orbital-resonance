@@ -1,6 +1,5 @@
 from Physics.PlanetManager import PlanetManager
 from GUI.Canvas import Canvas
-from customtkinter import CTk
 from tkinter.filedialog import asksaveasfilename, askopenfilename
 from pathlib import Path
 from pickle import dumps, loads
@@ -22,7 +21,7 @@ class FileManager:
             ("Orbital Resonance Files", "*.orbres")
         ],
         "title": "Save As",
-        "parent": CTk(),
+        "parent": None,  # will be set when initial window is loaded
         "confirmoverwrite": True
     }
 
