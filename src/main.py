@@ -1,4 +1,4 @@
-from FileManagement.LoadAI import pipe
+from FileManagement.LoadAI import pipe, root, label, progress_bar
 from FileManagement.FileManager import FileManager
 from GUI.PlanetSettings import PlanetSettings
 from GUI.AISettings import AISettings
@@ -7,12 +7,12 @@ from pygame.mixer import init, set_num_channels
 from sys import argv
 
 # initializes pygame audio mixer and AI
+progress_bar.set(1 / 2)
 init()
 set_num_channels(1000)  # adjust as needed
 
 # creates the screen and its widgets
-root = FileManager.SAVE_OPTIONS["parent"]
-root.title("Orbital Resonance")
+FileManager.SAVE_OPTIONS["parent"] = root
 file_manager = FileManager()
 planet_manager = file_manager.load(path=argv[1] if len(argv) == 2 else None, new=len(argv) != 2)
 planet_settings = PlanetSettings(root, border_width=2, planet_manager=planet_manager)
@@ -48,7 +48,12 @@ root.bind_all("<Control-Shift-equal>", lambda e: setattr(canvas, "speed", canvas
 root.bind_all("<Control-Shift-underscore>", lambda e: setattr(canvas, "speed", canvas.speed / Canvas.SPEED_FACTOR))
 
 # places widgets on the screen and starts display
+label.destroy()
+progress_bar.destroy()
 planet_settings.grid(row=0, column=1, sticky="nsew")
 AI_settings.grid(row=1, column=0, columnspan=2, sticky="nsew")
 canvas.grid(row=0, column=0, sticky="nsew")
+root.update_idletasks()
+root.resizable(True, True)
+root.state('zoomed')
 root.mainloop() if __name__ == "__main__" else None  # can import project from other scripts to run

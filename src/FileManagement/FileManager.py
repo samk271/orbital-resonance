@@ -22,7 +22,7 @@ class FileManager:
             ("Orbital Resonance Files", "*.orbres")
         ],
         "title": "Save As",
-        "parent": CTk(),
+        "parent": None,  # will be set when initial window is loaded
         "confirmoverwrite": True
     }
 

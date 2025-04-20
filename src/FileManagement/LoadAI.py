@@ -1,4 +1,4 @@
-from customtkinter import CTkProgressBar, CTk
+from customtkinter import CTkProgressBar, CTk, CTkLabel
 from contextlib import redirect_stderr
 from FileManagement.IORedirect import IORedirect
 from threading import Thread
@@ -11,23 +11,43 @@ def load_ai():
     global pipe
 
     # imports modules
-    with redirect_stderr(IORedirect(progress_bar)):
-        from diffusers import AudioLDM2Pipeline
-        from torch.cuda import is_available
-        from torch import float16
+    try:
+        with redirect_stderr(IORedirect(progress_bar)):
+            from diffusers import AudioLDM2Pipeline
+            progress_bar.set(1 / 3)
+            from torch.cuda import is_available
+            progress_bar.set(2 / 3)
+            from torch import float16
+            progress_bar.set(3 / 3)
 
-        # loads ai
-        repo_id = "cvssp/audioldm2"
-        pipe = AudioLDM2Pipeline.from_pretrained(repo_id, torch_dtype=float16)
-        pipe = pipe.to("cuda" if is_available() else "cpu")
+            # loads ai
+            label.configure(text="Loading AI...")
+            repo_id = "cvssp/audioldm2"
+            pipe = AudioLDM2Pipeline.from_pretrained(repo_id, torch_dtype=float16)
+            pipe = pipe.to("cuda" if is_available() else "cpu")
 
-    print("done")
+        # remaining loading message
+        progress_bar.set(0)
+        label.configure(text="Cleaning Up...")
+        root.quit()
+
+    # handles when user quits while still loading
+    except RuntimeError:
+        pass
 
 
-# creates progress bar for loading AI
-pipe = None
-progress_bar = CTkProgressBar(CTk(), mode="determinate")
+# creates loading menu
+root = CTk()
+root.title("Orbital Resonance")
+root.resizable(False, False)
+label = CTkLabel(root, text="Importing Modules...", font=("Arial", 20))
+label.pack(padx=50, pady=(50, 0))
+progress_bar = CTkProgressBar(root, mode="determinate", width=500)
 progress_bar.set(0)
-progress_bar.pack()
-Thread(target=load_ai).start()
-progress_bar.master.mainloop()
+progress_bar.pack(padx=50, pady=(10, 50))
+
+pipe = None
+thread = Thread(target=load_ai)
+thread.start()
+root.protocol("WM_DELETE_WINDOW", lambda: [root.destroy(), exit()])
+root.mainloop()
