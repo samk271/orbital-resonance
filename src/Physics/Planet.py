@@ -33,7 +33,7 @@ class Planet:
         self._shape = "Circle"
 
         # physics fields
-        self.moons = []
+        self.moons = self.moons if hasattr(self, "moons") else []
         self.offset = offset
         orig_x = self.orbital_radius * cos(2 * pi * (self.offset + .25))
         orig_y = self.orbital_radius * -sin(2 * pi * (self.offset + .25))

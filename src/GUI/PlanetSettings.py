@@ -21,7 +21,7 @@ class PlanetSettings(CTkFrame):
         super().__init__(*args, **kwargs)
         self.sample_frames = {}
         self.sample = StringVar(self.master, self.planet_manager.sample)
-        self.tabview = CTkTabview(self, width=450)
+        self.tabview = CTkTabview(self, width=500)
         self.tabview.pack(fill="both" , expand= True, padx=10, pady= 10)
 
         #tabs for different settings
@@ -43,7 +43,7 @@ class PlanetSettings(CTkFrame):
 
     def add_sample(self, name, sample):
         """
-        adds a sample to the sample list todo reload samples on file load, make text cut off
+        adds a sample to the sample list
 
         :param name: the name of the sample
         :param sample: the data for the sample
@@ -56,8 +56,11 @@ class PlanetSettings(CTkFrame):
         row_frame.grid(column=0)
 
         # creates radiobutton
-        radio_button = CTkRadioButton(row_frame, text=name, font=("Arial", 18), value=name, variable=self.sample)
-        radio_button.grid(row=0, column=0, sticky="w", padx=5, pady=5)
+        container = CTkFrame(row_frame, width=200, height=30, fg_color=row_frame.cget("fg_color"))
+        container.pack_propagate(False)
+        radio_button = CTkRadioButton(container, text=name, font=("Arial", 18), value=name, variable=self.sample)
+        radio_button.pack(side="left")
+        container.grid(row=0, column=0, sticky="w", padx=5, pady=5)
 
         # creates buttons
         copy = CTkButton(row_frame, text="📋", width=1, font=("Arial", 18))
@@ -76,21 +79,38 @@ class PlanetSettings(CTkFrame):
         radio_button.configure(command=lambda: self.planet_manager.set_sample(self.sample.get()))
         copy.configure(command=lambda: self.copy_sample(name))
         delete.configure(command=lambda: self.planet_manager.delete_sample(name))
-        slider.bind("<ButtonRelease-1>", lambda e: self.set_volume(sample, slider.get()))
+        slider.bind("<ButtonRelease-1>", lambda e: self.set_volume(sample, slider))
+        slider.configure(command=lambda e: [planet.sound.set_volume(e) if planet.sound else None for
+                                            planet in sample["midi_array"].flatten() if planet is not None])
 
         # ensures default sample has proper settings
         if name == "Default (No Audio)":
             delete.configure(state="disabled", fg_color="gray25")
 
-    def set_volume(self, sample, volume):
+    def set_volume(self, sample, slider):
         """
-        sets the volume of a sample todo add state
+        sets the volume of a sample
 
         :param sample: the sample to adjust
-        :param volume: the new volume for the sample
+        :param slider: the slider object that controls the volume
         """
 
-        sample["volume"] = volume
+        # sets state
+        state = {"undo": [(sample.update, ({"volume": sample["volume"]}, )),
+                          (lambda: [planet.sound.set_volume(sample["volume"]) if planet.sound else None for planet in
+                                    sample["midi_array"].flatten() if planet is not None], ()),
+                          (slider.set, (sample["volume"], ))],
+                 "redo": [(sample.update, ({"volume": slider.get()}, )),
+                          (lambda: [planet.sound.set_volume(sample["volume"]) if planet.sound else None for planet in
+                                    sample["midi_array"].flatten() if planet is not None], ()),
+                          (slider.set, (slider.get(), ))]}
+        self.planet_manager.state_manager.add_state(state)
+
+        # updates volume
+        sample["volume"] = slider.get()
+        for planet in [planet for planet in sample["midi_array"].flatten() if planet is not None]:
+            if planet.sound:
+                planet.sound.set_volume(slider.get())
 
     def copy_sample(self, name):
         """
@@ -122,7 +142,7 @@ class PlanetSettings(CTkFrame):
         self.old_sun_r = self.planet_manager.get_sun().radius
         self.size_slider.set(self.old_sun_r)
         self.size_slider.bind("<ButtonRelease-1>", lambda e: self.change_sun_size())
-        self.size_slider.pack(pady=2, padx=10, fill="x")
+        self.size_slider.pack(pady=2, padx=10)
 
 
         #select shape
