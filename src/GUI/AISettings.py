@@ -6,6 +6,7 @@ from librosa import midi_to_note, yin, note_to_hz, hz_to_midi, note_to_midi
 from librosa.effects import pitch_shift
 from scipy.io.wavfile import read, write
 from numpy import round as np_round, average, isnan, median
+from numpy import full
 from pygame.mixer import Sound
 from contextlib import redirect_stderr
 from tkinter.colorchooser import askcolor
@@ -242,7 +243,7 @@ class AISettings(CTkFrame):
             'prompt':prompt,
             'crops':self.audio_frame.get_crop_indices(),
             'pitch':self.midi_note,
-            'midi_array':[[None for i in range(4)] for j in range(3)]
+            'midi_array': full((3, 4), None, dtype=object)
         }
 
         left, right = self.audio_frame.get_crop_indices()
@@ -276,6 +277,7 @@ class AISettings(CTkFrame):
                 self.sr = 16000
                 self.midi_note = self.find_nearest_midi(audio,self.sr)
                 self.signal = audio
+                self.shifted_signal = audio
 
                 self.generate_button.configure(text = "Generate", state="normal", fg_color=self.select_button.cget("fg_color"))
                 #Change displayed pitch to closest midi
