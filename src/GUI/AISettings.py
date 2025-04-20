@@ -6,7 +6,7 @@ from librosa import midi_to_note, yin, note_to_hz, hz_to_midi, note_to_midi
 from librosa.effects import pitch_shift
 from scipy.io.wavfile import read, write
 from numpy import round as np_round, average, isnan, median
-from numpy import full
+from numpy import full, mean
 from pygame.mixer import Sound
 from contextlib import redirect_stderr
 from tkinter.colorchooser import askcolor
@@ -168,6 +168,9 @@ class AISettings(CTkFrame):
         wav_file = self.listbox.get()
         fs, x = read(join(wav_dir,wav_file))
 
+        if x.ndim > 1:
+            x = mean(x, axis=1)
+
         self.midi_note = self.find_nearest_midi(x,fs)
         self.sr=fs
         self.signal=x
@@ -251,7 +254,7 @@ class AISettings(CTkFrame):
         left, right = self.audio_frame.get_crop_indices()
         if not (isdir(f"./AUDIO/user_samples/{sample_name}")):
             mkdir(f"./AUDIO/user_samples/{sample_name}")
-        write(f"./AUDIO/user_samples/{sample_name}/{sample_name}_{self.midi_note}",self.sr, self.shifted_signal[left:right])
+        write(f"./AUDIO/user_samples/{sample_name}/{sample_name}_{self.midi_note}.wav",self.sr, self.shifted_signal[left:right])
         self.planet_manager.add_sample(sample_name, sample_data)
 
     #add all the wav files from the directory to the listbox
