@@ -1,3 +1,4 @@
+from FileManagement.LoadAI import pipe
 from FileManagement.FileManager import FileManager
 from GUI.PlanetSettings import PlanetSettings
 from GUI.AISettings import AISettings
@@ -5,7 +6,7 @@ from GUI.Canvas import Canvas
 from pygame.mixer import init, set_num_channels
 from sys import argv
 
-# initializes pygame audio mixer
+# initializes pygame audio mixer and AI
 init()
 set_num_channels(1000)  # adjust as needed
 
@@ -15,7 +16,8 @@ root.title("Orbital Resonance")
 file_manager = FileManager()
 planet_manager = file_manager.load(path=argv[1] if len(argv) == 2 else None, new=len(argv) != 2)
 planet_settings = PlanetSettings(root, border_width=2, planet_manager=planet_manager)
-AI_settings = AISettings(root, border_width=2, planet_manager=planet_manager, planet_settings=planet_settings)
+AI_settings = AISettings(root, border_width=2, planet_manager=planet_manager, planet_settings=planet_settings,
+                         pipe=pipe)
 canvas = Canvas(root, bg="black", highlightthickness=1, planet_settings=planet_settings, AI_settings=AI_settings,
                 planet_manager=planet_manager, file_manager=file_manager)
 

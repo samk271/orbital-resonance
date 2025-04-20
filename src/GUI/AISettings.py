@@ -1,26 +1,22 @@
-import io
-import os
-import queue
-import shutil
-import threading
-import tkinter as tk
+from os import listdir, mkdir
+from os.path import join, isdir
+from shutil import copy
+from threading import Thread
+from librosa import midi_to_note, yin, note_to_hz, hz_to_midi, note_to_midi
+from librosa.effects import pitch_shift
+from scipy.io.wavfile import read, write
+from numpy import round as np_round, average, isnan, median
+from pygame.mixer import Sound
 from contextlib import redirect_stderr
 from tkinter.colorchooser import askcolor
-from customtkinter import CTkFrame, CTkLabel, CTkTextbox, CTkButton, CTkOptionMenu, CTkTabview, CTkProgressBar
 from CTkListbox import *
-import librosa
-import scipy.io.wavfile  as wav
-import numpy as np
-import pygame
-from diffusers import AudioLDM2Pipeline
-import torch
-
-# from GUI import note_lib_gen as nlg
 from GUI.SignalPlot import AudioPlotFrame
 from GUI.PlanetSettings import PlanetSettings
 from Physics.PlanetManager import PlanetManager
-from Physics.Planet import Planet
 from GUI.MidiEditor import MidiEditor
+from FileManagement.IORedirect import IORedirect
+from customtkinter import CTkFrame, CTkLabel, CTkTextbox, CTkButton, CTkOptionMenu, CTkTabview, CTkProgressBar, \
+    StringVar
 
 
 class AISettings(CTkFrame):
@@ -37,15 +33,9 @@ class AISettings(CTkFrame):
         """
 
         #Check for planet manager in args
-        if "planet_manager" in kwargs:
-            self.planet_manager: PlanetManager = kwargs.pop("planet_manager")
-        else:
-            raise AttributeError("kwargs missing planet_manager")
-        
-        if "planet_settings" in kwargs:
-            self.planet_settings: PlanetSettings = kwargs.pop("planet_settings")
-        else:
-            raise AttributeError("kwargs missing planet_manager")
+        self.planet_manager: PlanetManager = kwargs.pop("planet_manager")
+        self.planet_settings: PlanetSettings = kwargs.pop("planet_settings")
+        self.pipe = kwargs.pop("pipe")
         
         
 
@@ -74,10 +64,6 @@ class AISettings(CTkFrame):
         self.sample_editor(self.sample_tab)
         self.sequence_editor(self.sequence_tab)
 
-        #initialize ai model  todo might be good to have a loading screen for this part/do it in another thread
-        repo_id = "cvssp/audioldm2"
-        self.pipe = AudioLDM2Pipeline.from_pretrained(repo_id, torch_dtype=torch.float16)
-        self.pipe = self.pipe.to("cuda" if torch.cuda.is_available() else "cpu")
 
         # sets column weights for dynamic resizing
         self.columnconfigure(0, weight=1)
@@ -151,8 +137,8 @@ class AISettings(CTkFrame):
         self.pitch_label.grid(row=3, column=3, sticky="n")
 
         # Note letter dropdown (A to G)
-        self.note_letter_var = tk.StringVar(value="C")
-        self.octave_number_var = tk.StringVar(value="4")
+        self.note_letter_var = StringVar(value="C")
+        self.octave_number_var = StringVar(value="4")
         self.note_letter_menu = CTkOptionMenu(parent, values=["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"], 
                                               variable=self.note_letter_var, width=80,
                                               command=self.update_pitch)
@@ -179,7 +165,7 @@ class AISettings(CTkFrame):
 
     def select_sound(self, wav_dir):
         wav_file = self.listbox.get()
-        fs, x = wav.read(os.path.join(wav_dir,wav_file))
+        fs, x = read(join(wav_dir,wav_file))
 
         self.midi_note = self.find_nearest_midi(x,fs)
         self.sr=fs
@@ -188,9 +174,9 @@ class AISettings(CTkFrame):
         self.update_plot()
 
         # enable the buttons
-        self.sample_name_input.delete('1.0', tk.END)
-        num_user_samples = len(os.listdir("./AUDIO/user_samples"))
-        self.sample_name_input.insert(index=tk.END,text =f"sample_{num_user_samples}")
+        self.sample_name_input.delete('1.0', "end")
+        num_user_samples = len(listdir("./AUDIO/user_samples"))
+        self.sample_name_input.insert(index="end",text =f"sample_{num_user_samples}")
         self.play_button.configure(state="normal", fg_color=self.select_button.cget("fg_color"))
         self.save_button.configure(state="normal", fg_color=self.select_button.cget("fg_color"))
         
@@ -201,7 +187,7 @@ class AISettings(CTkFrame):
             return
 
         if (len(self.signal.shape) > 1):
-            x= np.average(self.signal, axis=1)
+            x= average(self.signal, axis=1)
         else:
             x=self.signal
 
@@ -211,7 +197,7 @@ class AISettings(CTkFrame):
         self.midi_note = self.find_nearest_midi(self.signal[left:right],self.sr)
 
         #Change displayed pitch to closest midi
-        self.set_pitch_dropdown(note_str=librosa.midi_to_note(self.midi_note))
+        self.set_pitch_dropdown(note_str=midi_to_note(self.midi_note))
         
 
 
@@ -220,12 +206,12 @@ class AISettings(CTkFrame):
         left, right = self.audio_frame.get_crop_indices()
 
         if (self.shifted_signal is None):
-            wav.write("./AUDIO/temp_wav.wav", sr, signal[left:right])
+            write("./AUDIO/temp_wav.wav", sr, signal[left:right])
         else:
-            wav.write("./AUDIO/temp_wav.wav", sr, self.shifted_signal[left:right])
+            write("./AUDIO/temp_wav.wav", sr, self.shifted_signal[left:right])
             
 
-        sound = pygame.mixer.Sound("./AUDIO/temp_wav.wav")
+        sound = Sound("./AUDIO/temp_wav.wav")
         sound.play()
 
 
@@ -236,10 +222,10 @@ class AISettings(CTkFrame):
 
         planet_name = self.sample_name_input.get("1.0",'end-1c')
 
-        if not (os.path.isdir(f"./AUDIO/planets/{planet_name}")):
-            os.mkdir(f"./AUDIO/planets/{planet_name}")
+        if not (isdir(f"./AUDIO/planets/{planet_name}")):
+            mkdir(f"./AUDIO/planets/{planet_name}")
 
-        shutil.copy("./AUDIO/temp_wav.wav", f"./AUDIO/planets/{planet_name}/{planet_name}.wav")
+        copy("./AUDIO/temp_wav.wav", f"./AUDIO/planets/{planet_name}/{planet_name}.wav")
         self.save_button.configure(state="normal", fg_color=self.select_button.cget("fg_color"))
 
         
@@ -260,9 +246,9 @@ class AISettings(CTkFrame):
         }
 
         left, right = self.audio_frame.get_crop_indices()
-        if not (os.path.isdir(f"./AUDIO/user_samples/{sample_name}")):
-            os.mkdir(f"./AUDIO/user_samples/{sample_name}")
-        wav.write(f"./AUDIO/user_samples/{sample_name}/{sample_name}_{self.midi_note}",self.sr, self.shifted_signal[left:right])
+        if not (isdir(f"./AUDIO/user_samples/{sample_name}")):
+            mkdir(f"./AUDIO/user_samples/{sample_name}")
+        write(f"./AUDIO/user_samples/{sample_name}/{sample_name}_{self.midi_note}",self.sr, self.shifted_signal[left:right])
         self.planet_manager.samples[sample_name] = sample_data
 
         #Load sample into editor
@@ -270,21 +256,21 @@ class AISettings(CTkFrame):
 
     #add all the wav files from the directory to the listbox
     def add_wav_to_listbox(self, listbox, wav_dir):
-        wav_files = os.listdir(wav_dir)
+        wav_files = listdir(wav_dir)
         for i, file in enumerate(wav_files):
             listbox.insert(i, file)
 
     def generate_audio(self):
         prompt = self.ai_textbox.get("1.0", "end-1c")
 
-        redirector = CTkLabelRedirector(self.gen_pbar)
+        redirector = IORedirect(self.gen_pbar)
 
         def start_pipe():
             def task():
                 with redirect_stderr(redirector):
                     self.generate_button.configure(text="Generating...", fg_color="gray25", state="disabled")
                     audio = self.pipe(prompt, negative_prompt="Low quality, noisy, and with ambience.", num_inference_steps=100, audio_length_in_s=4.0).audios[0]
-                    num_user_samples = len(os.listdir("./AUDIO/user_samples"))
+                    num_user_samples = len(listdir("./AUDIO/user_samples"))
                     self.generate_button.configure(text = "Generate", state="normal", fg_color=self.select_button.cget("fg_color"))
 
                 self.sr = 16000
@@ -293,15 +279,15 @@ class AISettings(CTkFrame):
 
                 self.generate_button.configure(text = "Generate", state="normal", fg_color=self.select_button.cget("fg_color"))
                 #Change displayed pitch to closest midi
-                self.set_pitch_dropdown(note_str=librosa.midi_to_note(self.midi_note))
+                self.set_pitch_dropdown(note_str=midi_to_note(self.midi_note))
 
                 self.update_plot()
                 self.play_button.configure(state="normal", fg_color=self.select_button.cget("fg_color"))
-                self.sample_name_input.delete('1.0', tk.END)
-                self.sample_name_input.insert(index=tk.END,text =f"sample_{num_user_samples}")
+                self.sample_name_input.delete('1.0', "end")
+                self.sample_name_input.insert(index="end",text =f"sample_{num_user_samples}")
                 self.save_button.configure(state="normal", fg_color=self.select_button.cget("fg_color"))
 
-            threading.Thread(target=task).start()
+            Thread(target=task).start()
 
         start_pipe()
 
@@ -335,19 +321,19 @@ class AISettings(CTkFrame):
         - y_tuned: np.ndarray, the pitch-shifted (autotuned) signal.
         """
         # Step 1: Estimate the fundamental frequency (f0) using YIN
-        f0 = librosa.yin(y, fmin=librosa.note_to_hz('C2'), fmax=librosa.note_to_hz('C7'), sr=sr)
+        f0 = yin(y, fmin=note_to_hz('C2'), fmax=note_to_hz('C7'), sr=sr)
 
         # Remove unvoiced (nan) values
-        f0_clean = f0[~np.isnan(f0)]
+        f0_clean = f0[~isnan(f0)]
         
         if len(f0_clean) == 0:
             raise ValueError("No fundamental frequency detected in the signal.")
         
         # Step 2: Take the median frequency as the representative pitch
-        median_f0 = np.median(f0_clean)
+        median_f0 = median(f0_clean)
 
         # Step 3: Convert to MIDI note
-        midi_note = int(np.round(librosa.hz_to_midi(median_f0)))
+        midi_note = int(np_round(hz_to_midi(median_f0)))
 
         return midi_note
     
@@ -360,35 +346,10 @@ class AISettings(CTkFrame):
             return
 
         desired_note = self.note_letter_var.get() + self.octave_number_var.get()
-        desired_midi = librosa.note_to_midi(desired_note)
+        desired_midi = note_to_midi(desired_note)
         steps_to_shift = desired_midi - self.midi_note
 
-        self.shifted_signal = librosa.effects.pitch_shift(self.signal, sr=self.sr, n_steps=steps_to_shift)
+        self.shifted_signal = pitch_shift(self.signal, sr=self.sr, n_steps=steps_to_shift)
 
         self.play_sound(signal=self.shifted_signal,sr=self.sr)
         self.midi_note = desired_midi
-
-
-# Redirect tqdm output to a CTkLabel  todo there is a CTkProgressBar that might look nicer
-class CTkLabelRedirector(io.TextIOBase):
-    def __init__(self, label):
-        super().__init__()
-        self.label = label
-        self.buffer = ""
-
-    def write(self, message):
-        self.buffer += message
-        if "\r" in message or "\n" in message:
-            lines = self.buffer.strip().splitlines()
-            if lines:
-                last_line = lines[-1]
-                percent_index = last_line.find('%')
-                progress_value = int(last_line[:percent_index])/100
-                self.label.after(0, lambda: self.label.set(progress_value)) #trim lastline
-            self.buffer = ""
-
-    def flush(self):
-        pass
-
-    def update_value(self, value):
-        self.label["value"] = value

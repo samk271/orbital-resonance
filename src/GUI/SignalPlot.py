@@ -1,18 +1,17 @@
-import customtkinter as ctk
-import matplotlib
-import matplotlib.pyplot as plt
+from customtkinter import CTkFrame, get_appearance_mode
+from matplotlib.pyplot import subplots, close
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 from matplotlib.patches import Rectangle
-import numpy as np
-import scipy.io.wavfile as wav
+from numpy import linspace, min as np_min, max as np_max, searchsorted
 
-class AudioPlotFrame(ctk.CTkFrame):
+
+class AudioPlotFrame(CTkFrame):
     def __init__(self, master, audio_signal, sample_rate, **kwargs):
         super().__init__(master, **kwargs)
 
         self.audio_signal = audio_signal
         self.sample_rate = sample_rate
-        self.time = np.linspace(0, len(audio_signal) / sample_rate, len(audio_signal))
+        self.time = linspace(0, len(audio_signal) / sample_rate, len(audio_signal))
 
         # Initial crop positions
         self.left_crop = self.time[0]
@@ -21,7 +20,7 @@ class AudioPlotFrame(ctk.CTkFrame):
         self.drag_threshold = 0.01  # seconds
 
         # Set up plot
-        self.figure, self.ax = plt.subplots(figsize=(6, 3), dpi=100)
+        self.figure, self.ax = subplots(figsize=(6, 3), dpi=100)
         self.line, = self.ax.plot(self.time, self.audio_signal, color='dodgerblue', zorder=2)
         self.ax.set_title("Audio Signal")
         self.ax.set_xlabel("Time (s)")
@@ -51,7 +50,7 @@ class AudioPlotFrame(ctk.CTkFrame):
 
     #Applies the color scheme of the app to the graph
     def apply_theme(self):
-        theme = ctk.get_appearance_mode()
+        theme = get_appearance_mode()
         if theme == "Dark":
             bg_color = "#2b2b2b"
             text_color = "white"
@@ -103,12 +102,12 @@ class AudioPlotFrame(ctk.CTkFrame):
     def update_waveform(self, new_signal, new_sample_rate):
         self.audio_signal = new_signal
         self.sample_rate = new_sample_rate
-        self.time = np.linspace(0, len(new_signal) / new_sample_rate, len(new_signal))
+        self.time = linspace(0, len(new_signal) / new_sample_rate, len(new_signal))
 
         self.line.set_xdata(self.time)
         self.line.set_ydata(self.audio_signal)
         self.ax.set_xlim(self.time[0], self.time[-1])
-        self.ax.set_ylim(np.min(self.audio_signal), np.max(self.audio_signal))
+        self.ax.set_ylim(np_min(self.audio_signal), np_max(self.audio_signal))
         self.ax.margins(x=0, y=0)
         self.ax.autoscale_view(tight=True)
         self.figure.tight_layout()
@@ -129,8 +128,8 @@ class AudioPlotFrame(ctk.CTkFrame):
         self.right_shade.set_bounds(self.right_crop, y_min, self.time[-1] - self.right_crop, y_max - y_min)
 
     def get_crop_indices(self):
-        left_index = np.searchsorted(self.time, self.left_crop, side='left')
-        right_index = np.searchsorted(self.time, self.right_crop, side='right')
+        left_index = searchsorted(self.time, self.left_crop, side='left')
+        right_index = searchsorted(self.time, self.right_crop, side='right')
         return left_index, right_index
     
     def destroy(self):
@@ -140,6 +139,6 @@ class AudioPlotFrame(ctk.CTkFrame):
             self.canvas._tkcanvas = None  # helps avoid lingering references
             self.canvas = None
 
-        plt.close(self.figure)  # Close the matplotlib figure explicitly
+        close(self.figure)  # Close the matplotlib figure explicitly
 
         super().destroy()
