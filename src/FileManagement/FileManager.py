@@ -33,7 +33,7 @@ class FileManager:
             ("Orbital Resonance Files", "*.orbres")
         ],
         "defaultextension": ".orbres",
-        "parent": SAVE_OPTIONS["parent"]
+        "parent": None  # will be set when initial window is loaded
     }
 
     def __init__(self):

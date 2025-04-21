@@ -13,6 +13,8 @@ set_num_channels(1000)  # adjust as needed
 
 # creates the screen and its widgets
 FileManager.SAVE_OPTIONS["parent"] = root
+FileManager.LOAD_OPTIONS["parent"] = root
+AISettings.LOAD_OPTIONS["parent"] = root
 file_manager = FileManager()
 planet_manager = file_manager.load(path=argv[1] if len(argv) == 2 else None, new=len(argv) != 2)
 planet_settings = PlanetSettings(root, border_width=2, planet_manager=planet_manager)
