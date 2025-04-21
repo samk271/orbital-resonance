@@ -142,8 +142,7 @@ class MidiEditor(CTkFrame):
 
         # creates planet when non selected bar is clicked
         elif (not sample[row, col]) and (not right):
-            # todo adjust radius based on min max size
-            r, color, offset = 50 + (row * 10), "#{:06x}".format(randint(0, 0xFFFFFF)), col / len(sample[0])
+            r, color, offset = 50, "#{:06x}".format(randint(0, 0xFFFFFF)), col / len(sample[0])
             sample_name = self.sample if self.sample != "Default (No Audio)" else None
 
             # find sample path based on pitch and sample name
@@ -282,8 +281,7 @@ class MidiEditor(CTkFrame):
 
                 # gets args
                 old_args = [planet.period, planet.radius, planet.color, planet.pitch, planet.sound_path, planet.offset]
-                # todo adjust radius based on min max size
-                new_args = [len(self.planet_manager.samples[self.sample]["midi_array"][0]), 50 + (row_num * 10),
+                new_args = [len(self.planet_manager.samples[self.sample]["midi_array"][0]), 50,
                             planet.color, planet.pitch, planet.sound_path,
                             (col_num / len(self.planet_manager.samples[self.sample]["midi_array"][0]))]
 

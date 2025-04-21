@@ -548,6 +548,7 @@ class Canvas(CTkCanvas):
         # handles initial resize event
         if not self.initialized:
             self.initialized = True
+            self.planet_manager.set_sample(self.planet_manager.sample)
             self.set_focus(self.planet_manager.get_sun(), True, False)
             self.update_planets()
 

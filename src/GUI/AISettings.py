@@ -66,8 +66,6 @@ class AISettings(CTkFrame):
 
 
         # sets column weights for dynamic resizing
-        self.columnconfigure(0, weight=1)
-        self.columnconfigure(7, weight=1)
         self.tabview.grid_propagate(False)
 
 
@@ -80,79 +78,89 @@ class AISettings(CTkFrame):
     def sample_editor(self, parent):
 
         input_label = CTkLabel(parent, text="AI Input:", font=("Arial", 18))
-        input_label.grid(row=0, column=0, sticky="nw", pady=20, padx=(20, 0))
+        input_label.grid(row=0, column=1, sticky="nw", pady=(10, 5), padx=(10, 0))
 
         # creates user input text box
         self.ai_textbox = CTkTextbox(parent, height=200, width=400)
-        self.ai_textbox.grid(row=1, column=0, rowspan=3, sticky="nw", padx=10)
+        self.ai_textbox.grid(row=1, column=1, sticky="nsw", padx=(10, 0), rowspan=4)
 
         self.generate_button = CTkButton(parent, text="Generate Sound")
         self.generate_button.configure(command=lambda: self.generate_audio())
-        self.generate_button.grid(row=4, column=0, padx=10)
+        self.generate_button.grid(row=5, column=1, padx=(10, 0), pady=10, sticky="ew")
 
         self.gen_pbar = CTkProgressBar(parent, width = 300, mode = 'determinate')
-        self.gen_pbar.grid(row=3,column=0)
-        self.gen_pbar.set(0)
+        self.gen_pbar.grid(row=5,column=3, sticky="ew", padx=20)
+        self.gen_pbar.set(1)
 
-        self.listbox_label = CTkLabel(parent, text="Preset Samples:", font=("Arial", 18))
-        self.listbox_label.grid(row=0, column=1, sticky="nw", pady=20, padx=(20, 0))
-
-        self.listbox = CTkListbox(parent, width=290,height=150, hover=True)
-        self.listbox.grid(row=1,column=1,rowspan=2,pady=20,padx=10)
+        # self.listbox_label = CTkLabel(parent, text="Preset Samples:", font=("Arial", 18))
+        # self.listbox_label.grid(row=0, column=1, sticky="nw", pady=20, padx=(20, 0))
+        #
+        # self.listbox = CTkListbox(parent, width=290,height=150, hover=True)
+        # self.listbox.grid(row=1,column=1,rowspan=2,pady=20,padx=10)
 
         self.sr = 16000
         self.signal = [None]
         self.shifted_signal = None
         self.midi_note = -1
 
-        # doesnt crash if dataset is not found
-        try:
-            self.add_wav_to_listbox(listbox=self.listbox, wav_dir="./AUDIO/prebuilt_samples")
-        except:
-            pass
+        # # doesnt crash if dataset is not found
+        # try:
+        #     self.add_wav_to_listbox(listbox=self.listbox, wav_dir="./AUDIO/prebuilt_samples")
+        # except:
+        #     pass
 
         # creates the generated sound display
 
-        self.audio_frame = AudioPlotFrame(parent, audio_signal=self.signal, sample_rate=self.sr)
-        self.audio_frame.grid(row=1, column=2, columnspan=2, rowspan=2, pady=(10,0), padx=10)
+        generated_label = CTkLabel(parent, text="Generated Audio:", font=("Arial", 18))
+        generated_label.grid(row=0, column=3, sticky="nw", pady=(10, 5), padx=20)
+        self.audio_frame = AudioPlotFrame(parent, audio_signal=self.signal, sample_rate=self.sr, fg_color=parent.cget("fg_color"))
+        self.audio_frame.grid(row=1, column=3, rowspan=4, padx=20, sticky="ns")
 
-        self.select_button = CTkButton(parent, text="Select Sound")
-        self.select_button.configure(command=lambda: self.select_sound(
-            wav_dir="./AUDIO/prebuilt_samples"))
-        self.select_button.grid(row=3, column=1, pady=5)
+        # self.select_button = CTkButton(parent, text="Select Sound")
+        # self.select_button.configure(command=lambda: self.select_sound(
+        #     wav_dir="./AUDIO/prebuilt_samples"))
+        # self.select_button.grid(row=3, column=1, pady=5)
 
         # creates play sound button todo add function
-        self.play_button = CTkButton(parent, text="Play Sound",width=100, height=20,  state="disabled", fg_color="gray25")
+        self.play_button = CTkButton(parent, text="Play Sound")
         self.play_button.configure(command=lambda: self.play_sound(self.signal,self.sr))
-        self.play_button.grid(row=3,column=2,pady=10)
+        self.play_button.grid(row=4, column=5, sticky="sew", columnspan=2)
 
         #Create name input box
-        self.name_label = CTkLabel(parent,height=10, text="Name your sample")
-        self.name_label.grid(row=1, column=4, sticky="n", pady=(20,0))
+        self.name_label = CTkLabel(parent, text="Sample Name:", font=("Arial", 18))
+        self.name_label.grid(row=0, column=5, sticky="w", pady=(10, 5), columnspan=2)
         self.sample_name_input = CTkTextbox(parent, height=10)
-        self.sample_name_input.grid(row=1, column=4, sticky="n", pady=40)
+        self.sample_name_input.grid(row=1, column=5, sticky="new", columnspan=2)
 
         # Create pitch dropdowns
-        self.pitch_label = CTkLabel(parent, height=10, text="Pitch:")
-        self.pitch_label.grid(row=3, column=3, sticky="n")
+        self.pitch_label = CTkLabel(parent, text="Pitch:", font=("Arial", 18))
+        self.pitch_label.grid(row=2, column=5, sticky="sw", columnspan=2, pady=(0, 5))
 
         # Note letter dropdown (A to G)
         self.note_letter_var = StringVar(value="C")
         self.octave_number_var = StringVar(value="4")
         self.note_letter_menu = CTkOptionMenu(parent, values=["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"], 
-                                              variable=self.note_letter_var, width=80,
+                                              variable=self.note_letter_var,
                                               command=self.update_pitch)
-        self.note_letter_menu.grid(row=3, column=3, padx=(0,20), pady=(20, 0))
+        self.note_letter_menu.grid(row=3, column=5, sticky="nw")
 
         # Octave number dropdown (2 to 7)
-        self.octave_number_menu = CTkOptionMenu(parent, values=[str(i) for i in range(2, 8)], variable=self.octave_number_var,width=50,
+        self.octave_number_menu = CTkOptionMenu(parent, values=[str(i) for i in range(2, 8)], variable=self.octave_number_var,
                                                 command=self.update_pitch)
-        self.octave_number_menu.grid(row=3, column=3, padx=(100, 0), pady=(20, 0))
+        self.octave_number_menu.grid(row=3, column=6, sticky="nw")
 
         # creates add button todo add function
-        self.save_button = CTkButton(parent, text="Save Sample", fg_color="gray25", state="disabled")
+        self.save_button = CTkButton(parent, text="Save Sample")
         self.save_button.configure(command=lambda: self.add_sample_to_list())
-        self.save_button.grid(row=3, column=4, sticky="s", pady=(0, 20))
+        self.save_button.grid(row=5, column=5, sticky="ew", columnspan=2)
+
+        # sets sizing
+        parent.rowconfigure(3, weight=5)
+        parent.rowconfigure(2, weight=3)
+        parent.columnconfigure(0, weight=2)
+        parent.columnconfigure(2, weight=1)
+        parent.columnconfigure(4, weight=1)
+        parent.columnconfigure(7, weight=2)
 
 
     def select_color(self):
@@ -207,18 +215,24 @@ class AISettings(CTkFrame):
 
     def play_sound(self, signal, sr):
 
-        left, right = self.audio_frame.get_crop_indices()
+        try:
 
-        self.shifted_signal = self.shifted_signal.astype(int16)
+            left, right = self.audio_frame.get_crop_indices()
 
-        if (self.shifted_signal is None):
-            write("./AUDIO/temp/temp.wav", sr, signal[left:right])
-        else:
-            write("./AUDIO/temp/temp.wav", sr, self.shifted_signal[left:right])
-            
+            self.shifted_signal = self.shifted_signal.astype(int16)
 
-        sound = Sound("./AUDIO/temp/temp.wav")
-        sound.play()
+            if (self.shifted_signal is None):
+                write("./AUDIO/temp/temp.wav", sr, signal[left:right])
+            else:
+                write("./AUDIO/temp/temp.wav", sr, self.shifted_signal[left:right])
+
+
+            sound = Sound("./AUDIO/temp/temp.wav")
+            sound.play()
+
+        # handles default no sound
+        except AttributeError:
+            pass
 
 
     def generate_library(self):
@@ -275,22 +289,22 @@ class AISettings(CTkFrame):
                     self.generate_button.configure(text="Generating...", fg_color="gray25", state="disabled")
                     audio = self.pipe(prompt, negative_prompt="Low quality, noisy, and with ambience.", num_inference_steps=100, audio_length_in_s=4.0).audios[0]
                     num_user_samples = len(listdir("./AUDIO/user_samples"))
-                    self.generate_button.configure(text = "Generate", state="normal", fg_color=self.select_button.cget("fg_color"))
+                    self.generate_button.configure(text = "Generate", state="normal", fg_color=self.save_button.cget("fg_color"))
 
                 self.sr = 16000
                 self.midi_note = self.find_nearest_midi(audio,self.sr)
                 self.signal = audio*32767 #Adjust float to int range
                 self.shifted_signal = audio*32767
 
-                self.generate_button.configure(text = "Generate", state="normal", fg_color=self.select_button.cget("fg_color"))
+                self.generate_button.configure(text = "Generate", state="normal", fg_color=self.save_button.cget("fg_color"))
                 #Change displayed pitch to closest midi
                 self.set_pitch_dropdown(note_str=midi_to_note(self.midi_note))
 
                 self.update_plot()
-                self.play_button.configure(state="normal", fg_color=self.select_button.cget("fg_color"))
+                self.play_button.configure(state="normal", fg_color=self.save_button.cget("fg_color"))
                 self.sample_name_input.delete('1.0', "end")
                 self.sample_name_input.insert(index="end",text =f"sample_{num_user_samples}")
-                self.save_button.configure(state="normal", fg_color=self.select_button.cget("fg_color"))
+                self.save_button.configure(state="normal", fg_color=self.save_button.cget("fg_color"))
 
             Thread(target=task).start()
 
