@@ -147,7 +147,7 @@ class MidiEditor(CTkFrame):
             sample_name = self.sample if self.sample != "Default (No Audio)" else None
 
             left_crop, right_crop = self.planet_manager.samples[self.sample]["crops"]
-            signal = self.planet_manager.samples[self.sample]["shifted_signal_array"][left_crop:right_crop]
+            signal = self.planet_manager.samples[self.sample]["raw_signal_array"][left_crop:right_crop]
             sr = self.planet_manager.samples[self.sample]["sample_rate"]
             
             # find sample path based on pitch and sample name
@@ -156,7 +156,7 @@ class MidiEditor(CTkFrame):
                     (self.planet_manager.samples[self.sample]["shifted_signal_array"] is not None):
 
                 # Make the pitch shifted file
-                steps_to_shift = pitch - self.planet_manager.samples[self.sample]["pitch"]
+                steps_to_shift = pitch - self.planet_manager.samples[self.sample]["raw_pitch"]
                 signal = pitch_shift(y=signal.astype(float),
                                                              sr=sr, 
                                                              n_steps=steps_to_shift)

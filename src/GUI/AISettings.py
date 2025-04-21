@@ -111,6 +111,7 @@ class AISettings(CTkFrame):
         self.signal = [None]
         self.shifted_signal = None
         self.midi_note = -1
+        self.raw_pitch = -1
 
         # # doesnt crash if dataset is not found
         # try:
@@ -191,7 +192,9 @@ class AISettings(CTkFrame):
         if x.ndim > 1:
             x = mean(x, axis=1)
 
-        self.midi_note = self.find_nearest_midi(x,fs)
+        nearest = self.find_nearest_midi(x,fs)
+        self.midi_note = nearest
+        self.raw_pitch = nearest
         self.sr=fs
         self.signal=x
         self.shifted_signal=x
@@ -273,6 +276,7 @@ class AISettings(CTkFrame):
             'sample_rate':self.sr,
             'prompt':prompt,
             'crops':self.audio_frame.get_crop_indices(),
+            'raw_pitch':self.raw_pitch,
             'pitch':self.midi_note,
             "volume": 1
         }
