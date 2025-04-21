@@ -1,7 +1,7 @@
 from os.path import exists
 from scipy.io.wavfile import write
 from Physics.Planet import Planet
-from customtkinter import CTkCanvas, CTkFrame, CTkButton, CTkLabel
+from customtkinter import CTkCanvas, CTkFrame, CTkButton, CTkLabel, ScalingTracker
 from tkinter.colorchooser import askcolor
 from numpy import full, append, delete, int16
 from random import randint
@@ -37,6 +37,7 @@ class MidiEditor(CTkFrame):
         # initializes superclass and canvas fields
         self.planet_manager = kwargs.pop("planet_manager")
         super().__init__(*args, **kwargs)
+        self.scale = ScalingTracker().get_widget_scaling(self)
         self.click_and_drag = 0  # 0 = off, 1 = mode-on, 2 = mode-off
         self.playback_col = 0
         self.sample = "Default (No Audio)"
@@ -199,7 +200,8 @@ class MidiEditor(CTkFrame):
         # draws pitch label
         for row_num, row in enumerate(sample):
             self.pitch_labels.append(CTkLabel(self, text=midi_to_note(pitch + row_num)))
-            self.pitch_labels[-1].place(x=10, y=((row_num + .5) * row_step) + self.canvas.winfo_y() - 10)
+            y = (((row_num + .5) * row_step) + self.canvas.winfo_y() - 10) / self.scale
+            self.pitch_labels[-1].place(x=10, y=y)
 
             # draws bars
             for col_num, bar in enumerate(row):
