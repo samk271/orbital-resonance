@@ -3,6 +3,31 @@ from tkinter.messagebox import askokcancel
 from contextlib import redirect_stderr
 from FileManagement.IORedirect import IORedirect
 from threading import Thread
+from os.path import splitext, dirname, exists
+from os import makedirs
+
+# List of required directories and files
+required_paths = [
+    './AUDIO/prebuilt_samples',
+    './AUDIO/temp/temp.wav',
+    './AUDIO/user_samples',
+    './AUDIO/temp_wav.wav',
+    './saves',
+]
+
+# ensures proper files are created
+for path in required_paths:
+    if splitext(path)[1]:
+        makedirs(dirname(path), exist_ok=True)
+        if not exists(path):
+
+            # creates files
+            with open(path, 'wb') as f:
+                pass
+
+    # creates directories
+    else:
+        makedirs(path, exist_ok=True)
 
 
 def load_ai():

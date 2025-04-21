@@ -276,7 +276,7 @@ class AISettings(CTkFrame):
             'pitch':self.midi_note,
             "volume": 1
         }
-        if self.shifted_signal:
+        if self.shifted_signal is not None:
             left, right = self.audio_frame.get_crop_indices()
             if not (isdir(f"./AUDIO/user_samples/{sample_name}")):
                 mkdir(f"./AUDIO/user_samples/{sample_name}")
