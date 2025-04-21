@@ -47,6 +47,7 @@ class Planet:
 
         # music generation fields
         self.pitch = pitch
+        print(pitch)
         self.sound_path = sound_path
         self.sound = Sound(sound_path) if sound_path else None
 
@@ -89,7 +90,8 @@ class Planet:
         from Physics.Moon import Moon
         self.moons.clear()
         self.__class__ = Moon
-        self.__init__(planet, period, self.radius * Planet.RADIUS_FACTOR, self.color, self.pitch, offset)
+        self.__init__(planet, period, self.radius * Planet.RADIUS_FACTOR, self.color, self.pitch, self.sound_path
+                      , offset)
 
     def set_value(self, value, attribute: str, add_state: bool = True):
         """

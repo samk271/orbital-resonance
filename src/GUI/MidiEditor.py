@@ -99,7 +99,7 @@ class MidiEditor(CTkFrame):
         # ensures remaining elements are moons
         for i, elem in enumerate(column[1:]):
             elem.convert(column[0], moon_period, (i * MidiEditor.PERIOD_FACTOR) / moon_period) if type(elem) == Planet \
-                else elem.__init__(column[0], elem.period, elem.radius, elem.color, elem.pitch, (
+                else elem.__init__(column[0], elem.period, elem.radius, elem.color, elem.pitch, elem.sound_path, (
                     i * MidiEditor.PERIOD_FACTOR) / moon_period)
             column[0].moons.append(elem) if elem not in column[0].moons else None
 
@@ -287,8 +287,6 @@ class MidiEditor(CTkFrame):
 
                 # modifies args when planet is a moon
                 if type(planet) != Planet:
-                    old_args.pop(4)
-                    new_args.pop(4)
                     old_args.insert(0, planet.planet)
                     new_args.insert(0, planet.planet)
                     period = len(self.planet_manager.samples[self.sample]["midi_array"]) - 1

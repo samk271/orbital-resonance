@@ -11,7 +11,7 @@ class Moon(Planet):
 
     RADIUS_FACTOR = 1 / Planet.RADIUS_FACTOR  # how much to adjust radius when converting to planet
 
-    def __init__(self, planet: Planet, period: float, radius: float, color: str, pitch: int, offset=0):
+    def __init__(self, planet: Planet, period: float, radius: float, color: str, pitch: int, sound_path: str, offset=0):
         """
         creates the planet with the given attributes
 
@@ -20,11 +20,12 @@ class Moon(Planet):
         :param radius: the radius of the planet
         :param color: the color of the planet
         :param pitch: the pitch of the sound
+        :param sound_path: the path to the audio file
         :param offset: the offset for which to place the moon
         """
 
         # fields that will need gui updated when modified (see property assignments at end of class)
-        super(Moon, self).__init__(period, radius, color, pitch, planet.sound_path, offset)
+        super(Moon, self).__init__(period, radius, color, pitch, sound_path, offset)
         self.planet = planet
 
         # physics fields
