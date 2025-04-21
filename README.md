@@ -44,7 +44,7 @@
   - 🐇 Speed up playback
   - ➕➖ Zoom in/out
   - ⬆⬇⬅➡ Move camera
-  - ⏺ Center on sun
+  - 🏠 Center on sun
 - **Menus**:
   - Toggle visibility with arrows
   - File operations: New, Open, Save, Save As, Undo, Redo
