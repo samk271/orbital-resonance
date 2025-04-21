@@ -1,5 +1,6 @@
 from os import listdir, mkdir
-from os.path import join, isdir
+from os.path import isdir
+from pathlib import Path
 from shutil import copy
 from threading import Thread
 from librosa import midi_to_note, yin, note_to_hz, hz_to_midi, note_to_midi
@@ -24,6 +25,16 @@ class AISettings(CTkFrame):
     The class that will handle the settings menu that controls the AI planet generation
     """
 
+    LOAD_OPTIONS = {
+        "initialdir": Path("./AUDIO/prebuilt_samples"),
+        "title": "Select a File",
+        "filetypes": [
+            (".wav files", "*.wav")
+        ],
+        "defaultextension": ".wav",
+        "parent": None,  # will be set when initial window is loaded
+    }
+
     def __init__(self, *args, **kwargs):
         """
         creates the settings window
@@ -36,8 +47,6 @@ class AISettings(CTkFrame):
         self.planet_manager: PlanetManager = kwargs.pop("planet_manager")
         self.planet_settings: PlanetSettings = kwargs.pop("planet_settings")
         self.pipe = kwargs.pop("pipe")
-        
-        self.DEFAULT_LOAD_PATH = "./AUDIO/prebuilt_samples"
 
         # initializes superclass and binds user actions
         super().__init__(*args, **kwargs)
@@ -82,14 +91,14 @@ class AISettings(CTkFrame):
 
         # creates user input text box
         self.ai_textbox = CTkTextbox(parent, height=200, width=400)
-        self.ai_textbox.grid(row=1, column=1, sticky="nsw", padx=(10, 0), rowspan=4)
+        self.ai_textbox.grid(row=1, column=1, sticky="nsw", padx=(10, 0), rowspan=5)
 
         self.generate_button = CTkButton(parent, text="Generate Sound")
         self.generate_button.configure(command=lambda: self.generate_audio())
-        self.generate_button.grid(row=5, column=1, padx=(10, 0), pady=10, sticky="ew")
+        self.generate_button.grid(row=6, column=1, padx=(10, 0), pady=10, sticky="ew")
 
         self.gen_pbar = CTkProgressBar(parent, width = 300, mode = 'determinate')
-        self.gen_pbar.grid(row=5,column=3, sticky="ew", padx=20)
+        self.gen_pbar.grid(row=6,column=3, sticky="ew", padx=20)
         self.gen_pbar.set(1)
 
         # self.listbox_label = CTkLabel(parent, text="Preset Samples:", font=("Arial", 18))
@@ -114,7 +123,7 @@ class AISettings(CTkFrame):
         generated_label = CTkLabel(parent, text="Generated Audio:", font=("Arial", 18))
         generated_label.grid(row=0, column=3, sticky="nw", pady=(10, 5), padx=20)
         self.audio_frame = AudioPlotFrame(parent, audio_signal=self.signal, sample_rate=self.sr, fg_color=parent.cget("fg_color"))
-        self.audio_frame.grid(row=1, column=3, rowspan=4, padx=20, sticky="ns")
+        self.audio_frame.grid(row=1, column=3, rowspan=5, padx=20, sticky="ns")
 
         # self.select_button = CTkButton(parent, text="Select Sound")
         # self.select_button.configure(command=lambda: self.select_sound(
@@ -134,12 +143,12 @@ class AISettings(CTkFrame):
 
         # Create pitch dropdowns
         self.pitch_label = CTkLabel(parent, text="Pitch:", font=("Arial", 18))
-        self.pitch_label.grid(row=2, column=5, sticky="sw", columnspan=2, pady=(0, 5))
+        self.pitch_label.grid(row=2, column=5, sticky="sw", columnspan=2, pady=(10, 5))
 
         # Note letter dropdown (A to G)
         self.note_letter_var = StringVar(value="C")
         self.octave_number_var = StringVar(value="4")
-        self.note_letter_menu = CTkOptionMenu(parent, values=["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"], 
+        self.note_letter_menu = CTkOptionMenu(parent, values=["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"],
                                               variable=self.note_letter_var,
                                               command=self.update_pitch)
         self.note_letter_menu.grid(row=3, column=5, sticky="nw")
@@ -152,11 +161,15 @@ class AISettings(CTkFrame):
         # creates add button todo add function
         self.save_button = CTkButton(parent, text="Save Sample")
         self.save_button.configure(command=lambda: self.add_sample_to_list())
-        self.save_button.grid(row=5, column=5, sticky="ew", columnspan=2)
+        self.save_button.grid(row=6, column=5, sticky="ew", columnspan=2)
+
+        # creates load file button
+        load = CTkButton(parent, text="Load Audio File", command=self.load_sound_from_file)
+        load.grid(row=5, column=5, sticky="ew", columnspan=2, pady=(1, 20))
 
         # sets sizing
-        parent.rowconfigure(3, weight=5)
-        parent.rowconfigure(2, weight=3)
+        parent.rowconfigure(3, weight=1)
+        # parent.rowconfigure(2, weight=3)
         parent.columnconfigure(0, weight=2)
         parent.columnconfigure(2, weight=1)
         parent.columnconfigure(4, weight=1)
@@ -172,7 +185,7 @@ class AISettings(CTkFrame):
             self.planet_canvas.tag_bind(new_tag, "<ButtonRelease-1>", lambda e: self.select_color())
 
     def load_sound_from_file(self):
-        wav_path = askopenfilename(self.DEFAULT_LOAD_PATH)
+        wav_path = askopenfilename(**AISettings.LOAD_OPTIONS)
         fs, x = read(wav_path)
 
         if x.ndim > 1:
@@ -182,16 +195,14 @@ class AISettings(CTkFrame):
         self.sr=fs
         self.signal=x
         self.shifted_signal=x
-        
+
         self.update_plot()
 
         # enable the buttons
         self.sample_name_input.delete('1.0', "end")
         num_user_samples = len(listdir("./AUDIO/user_samples"))
         self.sample_name_input.insert(index="end",text =f"sample_{num_user_samples}")
-        self.play_button.configure(state="normal", fg_color=self.select_button.cget("fg_color"))
-        self.save_button.configure(state="normal", fg_color=self.select_button.cget("fg_color"))
-        
+
 
     def update_plot(self):
 
@@ -210,7 +221,7 @@ class AISettings(CTkFrame):
 
         #Change displayed pitch to closest midi
         self.set_pitch_dropdown(note_str=midi_to_note(self.midi_note))
-        
+
 
 
     def play_sound(self, signal, sr):
@@ -248,7 +259,7 @@ class AISettings(CTkFrame):
         copy("./AUDIO/temp_wav.wav", f"./AUDIO/planets/{planet_name}/{planet_name}.wav")
         self.save_button.configure(state="normal", fg_color=self.select_button.cget("fg_color"))
 
-        
+
     #Save sample
     def add_sample_to_list(self):
 
@@ -330,11 +341,11 @@ class AISettings(CTkFrame):
     def find_nearest_midi(self, y, sr):
         """
         Given an audio signal and sample rate, returns the closest MIDI note of the signal.
-        
+
         Parameters:
         - y: np.ndarray, the input audio signal.
         - sr: int, the sample rate.
-        
+
         Returns:
         - midi_note: int, the closest MIDI note to the detected pitch.
         - y_tuned: np.ndarray, the pitch-shifted (autotuned) signal.
@@ -344,10 +355,10 @@ class AISettings(CTkFrame):
 
         # Remove unvoiced (nan) values
         f0_clean = f0[~isnan(f0)]
-        
+
         if len(f0_clean) == 0:
             raise ValueError("No fundamental frequency detected in the signal.")
-        
+
         # Step 2: Take the median frequency as the representative pitch
         median_f0 = median(f0_clean)
 
@@ -355,7 +366,7 @@ class AISettings(CTkFrame):
         midi_note = int(np_round(hz_to_midi(median_f0)))
 
         return midi_note
-    
+
     def update_pitch(self, _=None):
         """
         Pitch shifts the signal to the note in the pitch menu, saves to temp
@@ -391,7 +402,7 @@ class AISettings(CTkFrame):
         if sample_name == "Default (No Audio)":
             self.midi.load_sample(sample_name)
             return
-        
+
         sample = self.planet_manager.samples[sample_name]
         self.signal = sample["raw_signal_array"] if sample_name != "Default (No Audio)" else array([0, 0])
         self.shifted_signal = sample["shifted_signal_array"] if sample_name != "Default (No Audio)" else None
