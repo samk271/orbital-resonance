@@ -3,6 +3,9 @@ from matplotlib.pyplot import subplots, close
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 from matplotlib.patches import Rectangle
 from numpy import linspace, min as np_min, max as np_max, searchsorted
+from os.path import join
+from os import listdir, remove
+from shutil import rmtree
 
 
 class AudioPlotFrame(CTkFrame):
@@ -168,5 +171,9 @@ class AudioPlotFrame(CTkFrame):
             self.canvas = None
 
         close(self.figure)  # Close the matplotlib figure explicitly
+
+        #Delete all the samples from the folder
+        for dir in listdir("./AUDIO/user_samples"):
+            rmtree(join("./AUDIO/user_samples", dir))
 
         super().destroy()
