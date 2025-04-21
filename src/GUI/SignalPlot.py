@@ -132,6 +132,30 @@ class AudioPlotFrame(CTkFrame):
         right_index = searchsorted(self.time, self.right_crop, side='right')
         return left_index, right_index
     
+    def set_crop_positions(self, left_time, right_time):
+        """
+        Set the position of the crop bars manually.
+        
+        Parameters:
+        - left_time (float): Time in seconds for the left crop bar.
+        - right_time (float): Time in seconds for the right crop bar.
+        """
+        # Clamp and validate values
+        left_time = max(self.time[0], min(self.time[-1], left_time))
+        right_time = max(self.time[0], min(self.time[-1], right_time))
+
+        if left_time >= right_time:
+            raise ValueError("left_time must be less than right_time")
+
+        self.left_crop = left_time
+        self.right_crop = right_time
+
+        self.left_line.set_xdata([self.left_crop, self.left_crop])
+        self.right_line.set_xdata([self.right_crop, self.right_crop])
+
+        self.update_shading()
+        self.canvas.draw()
+    
     def destroy(self):
         # Properly destroy matplotlib canvas to cancel any pending .after calls
         if hasattr(self, 'canvas'):

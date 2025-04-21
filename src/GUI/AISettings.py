@@ -242,6 +242,7 @@ class AISettings(CTkFrame):
         prompt = self.ai_textbox.get("1.0", "end-1c")
 
         sample_data = {
+            'name':sample_name,
             'raw_signal_array':self.signal,
             'shifted_signal_array':self.shifted_signal,
             'sample_rate':self.sr,
@@ -278,8 +279,8 @@ class AISettings(CTkFrame):
 
                 self.sr = 16000
                 self.midi_note = self.find_nearest_midi(audio,self.sr)
-                self.signal = audio
-                self.shifted_signal = audio
+                self.signal = audio*32767 #Adjust float to int range
+                self.shifted_signal = audio*32767
 
                 self.generate_button.configure(text = "Generate", state="normal", fg_color=self.select_button.cget("fg_color"))
                 #Change displayed pitch to closest midi
@@ -357,3 +358,43 @@ class AISettings(CTkFrame):
 
         self.play_sound(signal=self.shifted_signal,sr=self.sr)
         self.midi_note = desired_midi
+
+    def load_sample(self, sample_name):
+        """
+        Takes a sample dictionary object and loads it to the UI
+
+        sample_data = {
+            'raw_signal_array':self.signal,
+            'shifted_signal_array':self.shifted_signal,
+            'sample_rate':self.sr,
+            'prompt':prompt,
+            'crops':self.audio_frame.get_crop_indices(),
+            'pitch':self.midi_note,
+            "volume": 1
+        }
+        """
+        sample = self.planet_manager.samples[sample_name]
+        self.signal = sample["raw_signal_array"]
+        self.shifted_signal = sample["shifted_signal_array"]
+        self.sr = sample["sample_rate"]
+
+        #Add prompt to textbox
+        self.ai_textbox.delete("0.0", "end")
+        self.ai_textbox.insert(index="end", text=sample["prompt"])
+
+        #Add pitch to pitch box
+        note_pitch = midi_to_note(sample["pitch"])
+        letter = note_pitch[1]
+        octave = note_pitch[-1]
+        if len(note_pitch) > 2: letter +=  + "#"
+
+        self.note_letter_var.set(letter)
+        self.octave_number_var.set(octave)
+
+        self.sample_name_input.delete('1.0', "end")
+        self.sample_name_input.insert(index="end",text =sample["name"])
+
+        self.audio_frame.set_crop_positions(sample["crops"][0],sample["crops"][1])
+        self.update_plot()
+
+        self.midi.load_sample(sample_name)

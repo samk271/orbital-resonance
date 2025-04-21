@@ -197,7 +197,7 @@ class PlanetManager:
 
         self.sample = sample
         self.canvas.menu_visibility["planet"]["menu"].sample.set(sample)
-        self.canvas.menu_visibility["AI"]["menu"].midi.load_sample(sample)
+        self.canvas.menu_visibility["AI"]["menu"].load_sample(sample)
 
     def get_added_buffer(self) -> list[Planet]:
         """
