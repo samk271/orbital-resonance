@@ -47,7 +47,6 @@ class Planet:
 
         # music generation fields
         self.pitch = pitch
-        print(pitch)
         self.sound_path = sound_path
         self.sound = Sound(sound_path) if sound_path else None
 

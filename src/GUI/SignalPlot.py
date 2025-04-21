@@ -52,9 +52,9 @@ class AudioPlotFrame(CTkFrame):
     def apply_theme(self):
         theme = get_appearance_mode()
         if theme == "Dark":
-            bg_color = "#2b2b2b"
+            bg_color = "#333333"
             text_color = "white"
-            grid_color = "#444444"
+            grid_color = "#555555"
             line_color = "deepskyblue"
         else:
             bg_color = "white"

@@ -414,6 +414,6 @@ class AISettings(CTkFrame):
         self.sample_name_input.delete('1.0', "end")
         self.sample_name_input.insert(index="end",text =sample["name"] if sample_name != "Default (No Audio)" else "Default (No Audio)")
         self.update_plot()
-        self.audio_frame.set_crop_positions(sample["crops"][0],sample["crops"][1]) if sample_name != "Default (No Audio)" else print("Check")
+        self.audio_frame.set_crop_positions(sample["crops"][0],sample["crops"][1]) if sample_name != "Default (No Audio)" else None
 
         self.midi.load_sample(sample_name)
