@@ -5,7 +5,7 @@ from threading import Thread
 from librosa import midi_to_note, yin, note_to_hz, hz_to_midi, note_to_midi
 from librosa.effects import pitch_shift
 from scipy.io.wavfile import read, write
-from numpy import round as np_round, average, isnan, median, mean, int16
+from numpy import round as np_round, average, isnan, median, mean, int16, array
 from pygame.mixer import Sound
 from contextlib import redirect_stderr
 from tkinter.colorchooser import askcolor
@@ -251,11 +251,11 @@ class AISettings(CTkFrame):
             'pitch':self.midi_note,
             "volume": 1
         }
-
-        left, right = self.audio_frame.get_crop_indices()
-        if not (isdir(f"./AUDIO/user_samples/{sample_name}")):
-            mkdir(f"./AUDIO/user_samples/{sample_name}")
-        write(f"./AUDIO/user_samples/{sample_name}/{sample_name}_{self.midi_note}.wav",self.sr, self.shifted_signal[left:right])
+        if sample_name != "Default (No Audio)":
+            left, right = self.audio_frame.get_crop_indices()
+            if not (isdir(f"./AUDIO/user_samples/{sample_name}")):
+                mkdir(f"./AUDIO/user_samples/{sample_name}")
+            write(f"./AUDIO/user_samples/{sample_name}/{sample_name}_{self.midi_note}.wav",self.sr, self.shifted_signal[left:right])
         self.planet_manager.add_sample(sample_name, sample_data)
 
     #add all the wav files from the directory to the listbox
@@ -374,27 +374,28 @@ class AISettings(CTkFrame):
         }
         """
         sample = self.planet_manager.samples[sample_name]
-        self.signal = sample["raw_signal_array"]
-        self.shifted_signal = sample["shifted_signal_array"]
-        self.sr = sample["sample_rate"]
+        self.signal = sample["raw_signal_array"] if sample_name != "Default (No Audio)" else array([0, 0])
+        self.shifted_signal = sample["shifted_signal_array"] if sample_name != "Default (No Audio)" else None
+        self.sr = sample["sample_rate"] if sample_name != "Default (No Audio)" else 16000
 
         #Add prompt to textbox
         self.ai_textbox.delete("0.0", "end")
-        self.ai_textbox.insert(index="end", text=sample["prompt"])
+        self.ai_textbox.insert(index="end", text=sample["prompt"]) if sample_name != "Default (No Audio)" else None
 
         #Add pitch to pitch box
         note_pitch = midi_to_note(sample["pitch"])
         letter = note_pitch[1]
         octave = note_pitch[-1]
-        if len(note_pitch) > 2: letter +=  + "#"
+        if len(note_pitch) > 2:
+            letter += "#"
 
         self.note_letter_var.set(letter)
         self.octave_number_var.set(octave)
 
         self.sample_name_input.delete('1.0', "end")
-        self.sample_name_input.insert(index="end",text =sample["name"])
+        self.sample_name_input.insert(index="end",text =sample["name"] if sample_name != "Default (No Audio)" else "Default (No Audio)")
 
-        self.audio_frame.set_crop_positions(sample["crops"][0],sample["crops"][1])
+        self.audio_frame.set_crop_positions(sample["crops"][0],sample["crops"][1]) if sample_name != "Default (No Audio)" else None
         self.update_plot()
 
         self.midi.load_sample(sample_name)

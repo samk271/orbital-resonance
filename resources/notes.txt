@@ -15,3 +15,7 @@ planet editor (change to sample editor):
 a list of all the samples
 option to clone/delete a sample and a volume slider
 default sample that all projects contain is Default (No Sound) cant be removed from project
+
+left todo:
+    --> set min max values for planet sizes
+    --> clean up sample editor gui

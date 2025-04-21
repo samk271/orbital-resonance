@@ -81,7 +81,8 @@ class PlanetSettings(CTkFrame):
         delete.configure(command=lambda: self.planet_manager.delete_sample(name))
         slider.bind("<ButtonRelease-1>", lambda e: self.set_volume(sample, slider))
         slider.configure(command=lambda e: [planet.sound.set_volume(e) if planet.sound else None for
-                                            planet in sample["midi_array"].flatten() if planet is not None])
+                                            planet in sample["midi_array"].flatten() if planet is not None] if
+        "midi_array" in sample else None)
 
         # ensures default sample has proper settings
         if name == "Default (No Audio)":
@@ -98,19 +99,22 @@ class PlanetSettings(CTkFrame):
         # sets state
         state = {"undo": [(sample.update, ({"volume": sample["volume"]}, )),
                           (lambda: [planet.sound.set_volume(sample["volume"]) if planet.sound else None for planet in
-                                    sample["midi_array"].flatten() if planet is not None], ()),
+                                    sample["midi_array"].flatten() if planet is not None] if "midi_array" in sample
+                          else None, ()),
                           (slider.set, (sample["volume"], ))],
                  "redo": [(sample.update, ({"volume": slider.get()}, )),
                           (lambda: [planet.sound.set_volume(sample["volume"]) if planet.sound else None for planet in
-                                    sample["midi_array"].flatten() if planet is not None], ()),
+                                    sample["midi_array"].flatten() if planet is not None] if "midi_array" in sample
+                          else None, ()),
                           (slider.set, (slider.get(), ))]}
         self.planet_manager.state_manager.add_state(state)
 
         # updates volume
         sample["volume"] = slider.get()
-        for planet in [planet for planet in sample["midi_array"].flatten() if planet is not None]:
-            if planet.sound:
-                planet.sound.set_volume(slider.get())
+        if "midi_array" in sample:
+            for planet in [planet for planet in sample["midi_array"].flatten() if planet is not None]:
+                if planet.sound:
+                    planet.sound.set_volume(slider.get())
 
     def copy_sample(self, name):
         """
