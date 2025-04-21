@@ -78,10 +78,15 @@ class Canvas(CTkCanvas):
 
         # initializes superclass and canvas fields
         super().__init__(*args, **kwargs)
+        self.running = True
         self.canvas_size = array([self.winfo_width(), self.winfo_height()])
         self.initialized = False
         self.after_click = self.after(0, lambda: None)
         self.after_tooltip = self.after(0, lambda: None)
+
+        # pauses fps updates when user is moving the window
+        self.after_config = self.after(0, lambda: None)
+        self.master.bind("<Configure>", lambda e: [self.after_cancel(self.after_config), setattr(self, "running", False), setattr(self, "after_config", self.after(500, lambda: setattr(self, "running", True)))])
 
         # sets event fields
         self.space_position = array([[0.0, 0.0], [0.0, 0.0]])  # planet pos, star pos
@@ -230,6 +235,10 @@ class Canvas(CTkCanvas):
             --> clears the planet manager added buffer and adds planets to the view
             --> updates the positioning of the remaining planets
         """
+
+        # handles when fps updates should be paused
+        if not self.running:
+            return self.after(Canvas.FPS, self.update_planets)
 
         # schedules the next frame and updates the midi editor
         self.after(Canvas.FPS, self.update_planets)
