@@ -200,7 +200,7 @@ class MidiEditor(CTkFrame):
         # draws pitch label
         for row_num, row in enumerate(sample):
             self.pitch_labels.append(CTkLabel(self, text=midi_to_note(pitch + row_num)))
-            y = (((row_num + .5) * row_step) + self.canvas.winfo_y() - 10) / self.scale
+            y = (((row_num + .25) * row_step) + self.canvas.winfo_y() - 10) / self.scale
             self.pitch_labels[-1].place(x=10, y=y)
 
             # draws bars
