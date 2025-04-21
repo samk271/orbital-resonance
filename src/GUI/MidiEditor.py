@@ -148,7 +148,8 @@ class MidiEditor(CTkFrame):
 
             # find sample path based on pitch and sample name
             sample_path = f"./AUDIO/user_samples/{sample_name}/{sample_name}_{pitch}.wav"
-            if not exists(sample_path) and "shifted_signal_array" in self.planet_manager.samples[self.sample]:
+            if (not exists(sample_path)) and ("shifted_signal_array" in self.planet_manager.samples[self.sample]) and \
+                    (self.planet_manager.samples[self.sample]["shifted_signal_array"] is not None):
 
                 # Make the pitch shifted file
                 steps_to_shift = pitch - self.planet_manager.samples[self.sample]["pitch"]
@@ -161,7 +162,7 @@ class MidiEditor(CTkFrame):
                 write(sample_path, sr, shifted_signal[left:right].astype(int16))
 
             # updates midi color, adds state and planet
-            sample_path = sample_path if "shifted_signal_array" in self.planet_manager.samples[self.sample] else None
+            sample_path = sample_path if ("shifted_signal_array" in self.planet_manager.samples[self.sample]) and (self.planet_manager.samples[self.sample]["shifted_signal_array"] is not None) else None
             sample[row, col] = planet if planet else Planet(len(sample[0]), r, color, pitch + row, sample_path, offset)
             volume = self.planet_manager.samples[self.sample]["volume"]
             sample[row, col].sound.set_volume(volume) if sample[row, col].sound else None
