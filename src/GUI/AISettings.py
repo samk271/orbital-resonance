@@ -398,10 +398,6 @@ class AISettings(CTkFrame):
             "volume": 1
         }
         """
-        #Skip loading in the ui
-        if sample_name == "Default (No Audio)":
-            self.midi.load_sample(sample_name)
-            return
 
         sample = self.planet_manager.samples[sample_name]
         self.signal = sample["raw_signal_array"] if "raw_signal_array" in sample else array([0, 0])
