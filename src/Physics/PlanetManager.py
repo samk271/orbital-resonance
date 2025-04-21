@@ -55,6 +55,9 @@ class PlanetManager:
             for name, sample in self.samples.items():
                 self.canvas.menu_visibility["planet"]["menu"].add_sample(name, sample)
 
+        # sets sample
+        self.set_sample(self.sample)
+
     def get_sun(self) -> Planet:
         """
         :return: the sun, the first element of the planet list
@@ -209,8 +212,9 @@ class PlanetManager:
         """
 
         self.sample = sample
-        self.canvas.menu_visibility["planet"]["menu"].sample.set(sample)
-        self.canvas.menu_visibility["AI"]["menu"].load_sample(sample)
+        if self.canvas:
+            self.canvas.menu_visibility["planet"]["menu"].sample.set(sample)
+            self.canvas.menu_visibility["AI"]["menu"].load_sample(sample)
 
     def get_added_buffer(self) -> list[Planet]:
         """
