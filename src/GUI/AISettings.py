@@ -14,6 +14,7 @@ from GUI.PlanetSettings import PlanetSettings
 from Physics.PlanetManager import PlanetManager
 from GUI.MidiEditor import MidiEditor
 from FileManagement.IORedirect import IORedirect
+from tkinter.filedialog import askopenfilename
 from customtkinter import CTkFrame, CTkLabel, CTkTextbox, CTkButton, CTkOptionMenu, CTkTabview, CTkProgressBar, \
     StringVar
 
@@ -36,7 +37,7 @@ class AISettings(CTkFrame):
         self.planet_settings: PlanetSettings = kwargs.pop("planet_settings")
         self.pipe = kwargs.pop("pipe")
         
-        
+        self.DEFAULT_LOAD_PATH = "./AUDIO/prebuilt_samples"
 
         # initializes superclass and binds user actions
         super().__init__(*args, **kwargs)
@@ -170,9 +171,9 @@ class AISettings(CTkFrame):
             new_tag = self.planet_canvas.create_oval(0, 0, 60, 60, fill=self.planet_color)
             self.planet_canvas.tag_bind(new_tag, "<ButtonRelease-1>", lambda e: self.select_color())
 
-    def select_sound(self, wav_dir):
-        wav_file = self.listbox.get()
-        fs, x = read(join(wav_dir,wav_file))
+    def load_sound_from_file(self):
+        wav_path = askopenfilename(self.DEFAULT_LOAD_PATH)
+        fs, x = read(wav_path)
 
         if x.ndim > 1:
             x = mean(x, axis=1)
