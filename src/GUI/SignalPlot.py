@@ -132,20 +132,24 @@ class AudioPlotFrame(CTkFrame):
         right_index = searchsorted(self.time, self.right_crop, side='right')
         return left_index, right_index
     
-    def set_crop_positions(self, left_time, right_time):
+    def set_crop_positions(self, left_index, right_index):
         """
-        Set the position of the crop bars manually.
-        
+        Set the position of the crop bars manually using array indices.
+
         Parameters:
-        - left_time (float): Time in seconds for the left crop bar.
-        - right_time (float): Time in seconds for the right crop bar.
+        - left_index (int): Index for the left crop bar.
+        - right_index (int): Index for the right crop bar.
         """
-        # Clamp and validate values
-        left_time = max(self.time[0], min(self.time[-1], left_time))
-        right_time = max(self.time[0], min(self.time[-1], right_time))
+        # Clamp indices to valid range
+        left_index = max(0, min(len(self.time) - 1, left_index))
+        right_index = max(0, min(len(self.time) - 1, right_index))
+
+        # Convert indices to time
+        left_time = self.time[left_index]
+        right_time = self.time[right_index]
 
         if left_time >= right_time:
-            raise ValueError("left_time must be less than right_time")
+            raise ValueError("left_index must be less than right_index")
 
         self.left_crop = left_time
         self.right_crop = right_time

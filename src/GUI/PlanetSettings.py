@@ -1,4 +1,6 @@
 from tkinter.colorchooser import askcolor
+from os.path import isdir
+from os import mkdir
 from copy import deepcopy
 from customtkinter import CTkFrame, CTkLabel, CTkSlider, CTkButton, CTkTabview, CTkComboBox, CTkScrollableFrame, \
     CTkRadioButton, StringVar
@@ -128,9 +130,14 @@ class PlanetSettings(CTkFrame):
         while f"{name} ({i})" in self.planet_manager.samples.keys():
             i += 1
 
+        #add sample folder to AUDIO
+        if not (isdir(f"./AUDIO/user_samples/{name}_({i})")):
+                mkdir(f"./AUDIO/user_samples/{name}_({i})")
+
         # creates a copy of the sample
         sample = deepcopy(self.planet_manager.samples[name])
-        self.planet_manager.add_sample(f"{name} ({i})", sample)
+        sample["name"] = f"{name} ({i})"
+        self.planet_manager.add_sample(f"{name}_({i})", sample)
 
     def sun_settings(self, parent):
         "UI for sun settings"

@@ -366,7 +366,7 @@ class AISettings(CTkFrame):
 
         desired_note = self.note_letter_var.get() + self.octave_number_var.get()
         desired_midi = note_to_midi(desired_note)
-        steps_to_shift = desired_midi - self.midi_note
+        steps_to_shift = desired_midi - self.find_nearest_midi(self.signal, self.sr)
 
         self.shifted_signal = pitch_shift(self.signal.astype(float), sr=self.sr, n_steps=steps_to_shift)
 
@@ -387,6 +387,11 @@ class AISettings(CTkFrame):
             "volume": 1
         }
         """
+        #Skip loading in the ui
+        if sample_name == "Default (No Audio)":
+            self.midi.load_sample(sample_name)
+            return
+        
         sample = self.planet_manager.samples[sample_name]
         self.signal = sample["raw_signal_array"] if sample_name != "Default (No Audio)" else array([0, 0])
         self.shifted_signal = sample["shifted_signal_array"] if sample_name != "Default (No Audio)" else None
@@ -408,8 +413,7 @@ class AISettings(CTkFrame):
 
         self.sample_name_input.delete('1.0', "end")
         self.sample_name_input.insert(index="end",text =sample["name"] if sample_name != "Default (No Audio)" else "Default (No Audio)")
-
-        self.audio_frame.set_crop_positions(sample["crops"][0],sample["crops"][1]) if sample_name != "Default (No Audio)" else None
         self.update_plot()
+        self.audio_frame.set_crop_positions(sample["crops"][0],sample["crops"][1]) if sample_name != "Default (No Audio)" else print("Check")
 
         self.midi.load_sample(sample_name)
