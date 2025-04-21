@@ -237,7 +237,7 @@ class Canvas(CTkCanvas):
         """
 
         # handles when fps updates should be paused
-        if not self.running:
+        if (not self.running) and (not any(planet.update for planet in self.planet_manager.planets)):
             return self.after(Canvas.FPS, self.update_planets)
 
         # schedules the next frame and updates the midi editor

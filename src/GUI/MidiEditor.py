@@ -157,15 +157,18 @@ class MidiEditor(CTkFrame):
 
                 # Make the pitch shifted file
                 steps_to_shift = pitch - self.planet_manager.samples[self.sample]["raw_pitch"]
-                signal = pitch_shift(y=signal.astype(float),
-                                                             sr=sr, 
+                signal = pitch_shift(y=signal.astype(float), sr=sr, steps_to_shift = pitch - self.planet_manager.samples[self.sample]["pitch"])
+                signal = self.planet_manager.samples[self.sample]["shifted_signal_array"]
+                sr = self.planet_manager.samples[self.sample]["sample_rate"]
+                left, right = self.planet_manager.samples[self.sample]["crops"]
+                shifted_signal = pitch_shift(y=signal.astype(float),
+                                                             sr=sr,
                                                              n_steps=steps_to_shift)
-                write(sample_path, sr, signal.astype(int16))
+                write(sample_path, sr, shifted_signal[left:right].astype(int16))
 
             # updates midi color, adds state and planet
             sample_path = sample_path if ("shifted_signal_array" in self.planet_manager.samples[self.sample]) and (self.planet_manager.samples[self.sample]["shifted_signal_array"] is not None) else None
-            sample[row, col] = planet if planet else Planet(len(sample[0]), r, color, pitch + row, sample_path, offset, 
-                                                            signal_array=signal, sample_rate=sr)
+            sample[row, col] = planet if planet else Planet(len(sample[0]), r, color, pitch + row, sample_path, offset)
             volume = self.planet_manager.samples[self.sample]["volume"]
             sample[row, col].sound.set_volume(volume) if sample[row, col].sound else None
             self.canvas.itemconfig(tag, fill=sample[row, col].color)

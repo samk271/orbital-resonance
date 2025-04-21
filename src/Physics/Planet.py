@@ -1,11 +1,10 @@
-from numpy import array, copy, int16
+from numpy import array, copy
 from functools import partial
-from scipy.io.wavfile import write
 from pygame.mixer import Sound
 from math import cos, sin, pi, atan2
 from uuid import uuid1
-from os.path import dirname, isdir
-from os import mkdir
+from os.path import dirname
+from os import makedirs
 
 
 class Planet:
@@ -17,7 +16,7 @@ class Planet:
 
     RADIUS_FACTOR = .5  # how much to adjust radius when converting to moon
 
-    def __init__(self, period: float, radius: float, color: str, pitch: int, sound_path=None, offset=0, signal_array=None, sample_rate=None):
+    def __init__(self, period: float, radius: float, color: str, pitch: int, sound_path=None, offset=0):
         """
         creates the planet with the given attributes
 
@@ -51,8 +50,6 @@ class Planet:
         # music generation fields
         self.pitch = pitch
         self.sound_path = sound_path
-        self.signal_array = signal_array if sample_rate else None
-        self.sample_rate = sample_rate if sample_rate else None
         self.sound = Sound(sound_path) if sound_path else None
 
     def update_physics(self, dt: float):
@@ -130,7 +127,9 @@ class Planet:
         """
 
         state = self.__dict__.copy()
-        del state["sound"]
+        if self.sound_path:
+            with open(self.sound_path, "rb") as f:
+                state["sound"] = f.read()
         del state["state_manager"]
         return state
 
@@ -142,16 +141,10 @@ class Planet:
         """
 
         self.__dict__.update(state)
-
-        #write sample wav file while loading
-        sample_folder = dirname(self.sound_path) if self.sound_path else None
-
-        if sample_folder and not isdir(sample_folder):
-            mkdir(sample_folder)
-
-        if (self.sample_rate):
-            write(self.sound_path, self.sample_rate, self.signal_array.astype(int16))
-
+        if self.sound_path:
+            makedirs(dirname(self.sound_path), exist_ok=True)
+            with open(self.sound_path, "wb") as f:
+                state["sound"] = f.write(state["sound"])
         self.sound = Sound(self.sound_path) if self.sound_path else None
         self.update = True
 

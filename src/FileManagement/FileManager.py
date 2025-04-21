@@ -116,5 +116,5 @@ class FileManager:
             canvas.delete("paths")
             canvas.delete("triggers")
             canvas.set_focus(canvas.planet_manager.get_sun(), True, False)
-            canvas.menu_visibility["AI"]["menu"].midi.load_sample("Default (No Audio)")
+            canvas.planet_manager.set_sample("Default (No Audio)")
         return data
