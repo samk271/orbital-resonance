@@ -6,6 +6,7 @@ import random
 import numpy as np
 from scipy import signal
 from scipy.io import wavfile
+from scipy.signal import resample
 from torch.utils.data import Dataset
 from sentence_transformers import SentenceTransformer
 
@@ -63,16 +64,22 @@ class CustomDataset(Dataset):
         caption_list = self.captions[file_name[:-4]]
         caption = torch.tensor(caption_list[random.randint(0,4)])
 
+        # print(file_name)
+
         wav_path = os.path.join(self.data_dir, file_name)
         _, samples = wavfile.read(wav_path)
-        f, t, Zxx = signal.stft(samples) #Generate spectrogram
-        num_columns = Zxx.shape[1]
-        start_index = random.randint(0, num_columns - 1722) #Find random starting index
-        cropped_spectrogram = Zxx[:,start_index:start_index+1722] #Crop spectrogram to 5 second interval
 
-        two_channel_tensor = self.preprocess_complex_image(cropped_spectrogram)
+        num_samples = int(len(samples) * 24000 / 44100)
+        resampled_audio = resample(samples, num_samples)[:24000*5]
+        return resampled_audio / np.max(resampled_audio)
+        # f, t, Zxx = signal.stft(samples) #Generate spectrogram
+        # num_columns = Zxx.shape[1]
+        # start_index = random.randint(0, num_columns - 1722) #Find random starting index
+        # cropped_spectrogram = Zxx[:,start_index:start_index+1722] #Crop spectrogram to 5 second interval
 
-        return {"spectrogram": two_channel_tensor, "text_embedding": caption}
+        # two_channel_tensor = self.preprocess_complex_image(cropped_spectrogram)
+
+        # return {"spectrogram": two_channel_tensor, "text_embedding": caption}
 
 """
 Maximum wav file length was 30 seconds, full spectrograms are 129x10337

@@ -35,10 +35,10 @@ class SpectrogramVAETrainer:
         #     self.model, self.dataloader, self.optimizer
         # )
 
-    def train(self, num_epochs=10, save_path=None):
+    def train(self, start_epoch = 0, num_epochs=10, save_path=None):
         self.model.train()
 
-        for epoch in range(num_epochs):
+        for epoch in range(start_epoch, num_epochs):
             total_loss = 0.0
             pbar = tqdm(self.dataloader, desc=f"Epoch {epoch+1}/{num_epochs}")
             for batch in pbar:
