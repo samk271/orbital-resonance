@@ -29,6 +29,7 @@ class PlanetManager:
         self.samples = samples if samples else {"Default (No Audio)": {"pitch": 0, "volume": 0}}
         self.sample = "Default (No Audio)"
         self.time_elapsed = 0
+        self.mass = 1
         self.removed_buffer = []
         self.added_buffer = self.planets.copy()
         self.state_manager = StateManger()
@@ -60,6 +61,18 @@ class PlanetManager:
         """
 
         return self.planets[0]
+    
+    def set_sun_mass(self, new_mass: float):
+        # gets the factor to multiply each orbital_radius by
+        ratio = new_mass / self.mass
+        factor = ratio**(1/3)
+
+        # sets new orbital radius for each planet
+        for planet in self.planets[1:]:
+            # ensure it's a planet
+            if type(planet) == Planet:
+                planet.orbital_radius *= factor
+
 
     def add_planet(self, planet: Planet, add_state: bool = True, modify_state: bool = False):
         """
