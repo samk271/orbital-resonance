@@ -1,8 +1,11 @@
-from numpy import array, copy
+from numpy import array, copy, int16
 from functools import partial
+from scipy.io.wavfile import write
 from pygame.mixer import Sound
 from math import cos, sin, pi, atan2
 from uuid import uuid1
+from os.path import dirname, isdir
+from os import mkdir
 
 
 class Planet:
@@ -14,7 +17,7 @@ class Planet:
 
     RADIUS_FACTOR = .5  # how much to adjust radius when converting to moon
 
-    def __init__(self, period: float, radius: float, color: str, pitch: int, sound_path=None, offset=0):
+    def __init__(self, period: float, radius: float, color: str, pitch: int, sound_path=None, offset=0, signal_array=None, sample_rate=None):
         """
         creates the planet with the given attributes
 
@@ -48,6 +51,8 @@ class Planet:
         # music generation fields
         self.pitch = pitch
         self.sound_path = sound_path
+        self.signal_array = signal_array if sample_rate else None
+        self.sample_rate = sample_rate if sample_rate else None
         self.sound = Sound(sound_path) if sound_path else None
 
     def update_physics(self, dt: float):
@@ -137,6 +142,16 @@ class Planet:
         """
 
         self.__dict__.update(state)
+
+        #write sample wav file while loading
+        sample_folder = dirname(self.sound_path) if self.sound_path else None
+
+        if sample_folder and not isdir(sample_folder):
+            mkdir(sample_folder)
+
+        if (self.sample_rate):
+            write(self.sound_path, self.sample_rate, self.signal_array.astype(int16))
+
         self.sound = Sound(self.sound_path) if self.sound_path else None
         self.update = True
 
