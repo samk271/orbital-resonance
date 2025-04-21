@@ -131,13 +131,13 @@ class PlanetSettings(CTkFrame):
             i += 1
 
         #add sample folder to AUDIO
-        if not (isdir(f"./AUDIO/user_samples/{name}_({i})")):
-                mkdir(f"./AUDIO/user_samples/{name}_({i})")
+        if not (isdir(f"./AUDIO/user_samples/{name} ({i})")):
+                mkdir(f"./AUDIO/user_samples/{name} ({i})")
 
         # creates a copy of the sample
         sample = deepcopy(self.planet_manager.samples[name])
         sample["name"] = f"{name} ({i})"
-        self.planet_manager.add_sample(f"{name}_({i})", sample)
+        self.planet_manager.add_sample(f"{name} ({i})", sample)
 
     def sun_settings(self, parent):
         "UI for sun settings"

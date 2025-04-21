@@ -148,7 +148,8 @@ class MidiEditor(CTkFrame):
 
             # find sample path based on pitch and sample name
             sample_path = f"./AUDIO/user_samples/{sample_name}/{sample_name}_{pitch}.wav"
-            if not exists(sample_path) and "shifted_signal_array" in self.planet_manager.samples[self.sample]:
+            if not exists(sample_path) and "shifted_signal_array" in self.planet_manager.samples[self.sample] and \
+                    self.planet_manager.samples[self.sample]["shifted_signal_array"]:
 
                 # Make the pitch shifted file
                 steps_to_shift = pitch - self.planet_manager.samples[self.sample]["pitch"]

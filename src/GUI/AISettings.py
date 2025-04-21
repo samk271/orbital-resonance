@@ -276,7 +276,7 @@ class AISettings(CTkFrame):
             'pitch':self.midi_note,
             "volume": 1
         }
-        if sample_name != "Default (No Audio)":
+        if self.shifted_signal:
             left, right = self.audio_frame.get_crop_indices()
             if not (isdir(f"./AUDIO/user_samples/{sample_name}")):
                 mkdir(f"./AUDIO/user_samples/{sample_name}")
@@ -404,13 +404,13 @@ class AISettings(CTkFrame):
             return
 
         sample = self.planet_manager.samples[sample_name]
-        self.signal = sample["raw_signal_array"] if sample_name != "Default (No Audio)" else array([0, 0])
-        self.shifted_signal = sample["shifted_signal_array"] if sample_name != "Default (No Audio)" else None
-        self.sr = sample["sample_rate"] if sample_name != "Default (No Audio)" else 16000
+        self.signal = sample["raw_signal_array"] if "raw_signal_array" in sample else array([0, 0])
+        self.shifted_signal = sample["shifted_signal_array"] if "raw_signal_array" in sample else None
+        self.sr = sample["sample_rate"] if "raw_signal_array" in sample else 16000
 
         #Add prompt to textbox
         self.ai_textbox.delete("0.0", "end")
-        self.ai_textbox.insert(index="end", text=sample["prompt"]) if sample_name != "Default (No Audio)" else None
+        self.ai_textbox.insert(index="end", text=sample["prompt"]) if "raw_signal_array" in sample else None
 
         #Add pitch to pitch box
         note_pitch = midi_to_note(sample["pitch"])
@@ -423,8 +423,8 @@ class AISettings(CTkFrame):
         self.octave_number_var.set(octave)
 
         self.sample_name_input.delete('1.0', "end")
-        self.sample_name_input.insert(index="end",text =sample["name"] if sample_name != "Default (No Audio)" else "Default (No Audio)")
+        self.sample_name_input.insert(index="end",text =sample_name)
         self.update_plot()
-        self.audio_frame.set_crop_positions(sample["crops"][0],sample["crops"][1]) if sample_name != "Default (No Audio)" else None
+        self.audio_frame.set_crop_positions(sample["crops"][0],sample["crops"][1]) if "raw_signal_array" in sample else None
 
         self.midi.load_sample(sample_name)

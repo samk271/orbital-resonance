@@ -1,9 +1,0 @@
-development:
-Sample rate mean: 44100.0
-Sample lengths max: 10337
-frequence ranges: 129.0
-
-eval:
-Sample rate mean: 44100.0
-Sample lengths max: 10337
-frequence ranges: 129.0
