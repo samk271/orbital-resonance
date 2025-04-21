@@ -17,7 +17,7 @@ class AudioPlotFrame(CTkFrame):
         self.left_crop = self.time[0]
         self.right_crop = self.time[-1]
         self.dragging_bar = None
-        self.drag_threshold = 0.01  # seconds
+        self.drag_threshold = 0.05  # seconds
 
         # Set up plot
         self.figure, self.ax = subplots(figsize=(6, 3), dpi=100)
