@@ -9,7 +9,6 @@ from numpy import round as np_round, average, isnan, median, mean, int16, array
 from pygame.mixer import Sound
 from contextlib import redirect_stderr
 from tkinter.colorchooser import askcolor
-from CTkListbox import *
 from GUI.SignalPlot import AudioPlotFrame
 from GUI.PlanetSettings import PlanetSettings
 from Physics.PlanetManager import PlanetManager
