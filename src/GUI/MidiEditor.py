@@ -24,7 +24,7 @@ class MidiEditor(CTkFrame):
     """
 
     DEFAULT_EDITOR = property(lambda self: full((3, 5), None))
-    PERIOD_FACTOR = .25
+    PERIOD_FACTOR = .1
 
     def __init__(self, *args, **kwargs):
         """
@@ -284,7 +284,7 @@ class MidiEditor(CTkFrame):
 
                 # gets args
                 old_args = [planet.period, planet.radius, planet.color, planet.pitch, planet.sound_path, planet.offset]
-                new_args = [len(self.planet_manager.samples[self.sample]["midi_array"][0]), 50,
+                new_args = [len(self.planet_manager.samples[self.sample]["midi_array"][0]), planet.radius,
                             planet.color, planet.pitch, planet.sound_path,
                             (col_num / len(self.planet_manager.samples[self.sample]["midi_array"][0]))]
 
