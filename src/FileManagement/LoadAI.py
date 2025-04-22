@@ -4,9 +4,12 @@ from contextlib import redirect_stderr
 from FileManagement.IORedirect import IORedirect
 from threading import Thread
 from os.path import splitext, dirname, exists
-from os import makedirs
+from os import makedirs, chdir
+from sys import executable
+import sys
 
 # List of required directories and files
+chdir(dirname(executable)) if getattr(sys, "frozen", False) else None
 required_paths = [
     './AUDIO/prebuilt_samples',
     './AUDIO/temp/temp.wav',

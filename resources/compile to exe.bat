@@ -1,6 +1,6 @@
 cd ..
 cd src
-pyinstaller --onefile -w main.py
+pyinstaller --onefile --strip --upx-dir ..\resources\upx-5.0.0-win64 main.py
 move main.spec build
 move dist\main.exe ..
 rmdir /s /q build
