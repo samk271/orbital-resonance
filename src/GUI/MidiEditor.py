@@ -146,18 +146,13 @@ class MidiEditor(CTkFrame):
             r, color, offset = 50, "#{:06x}".format(randint(0, 0xFFFFFF)), col / len(sample[0])
             sample_name = self.sample if self.sample != "Default (No Audio)" else None
 
-            left_crop, right_crop = self.planet_manager.samples[self.sample]["crops"]
-            signal = self.planet_manager.samples[self.sample]["raw_signal_array"][left_crop:right_crop]
-            sr = self.planet_manager.samples[self.sample]["sample_rate"]
-            
             # find sample path based on pitch and sample name
             sample_path = f"./AUDIO/user_samples/{sample_name}/{sample_name}_{pitch}.wav"
             if (not exists(sample_path)) and ("shifted_signal_array" in self.planet_manager.samples[self.sample]) and \
                     (self.planet_manager.samples[self.sample]["shifted_signal_array"] is not None):
 
                 # Make the pitch shifted file
-                steps_to_shift = pitch - self.planet_manager.samples[self.sample]["raw_pitch"]
-                signal = pitch_shift(y=signal.astype(float), sr=sr, steps_to_shift = pitch - self.planet_manager.samples[self.sample]["pitch"])
+                steps_to_shift = pitch - self.planet_manager.samples[self.sample]["pitch"]
                 signal = self.planet_manager.samples[self.sample]["shifted_signal_array"]
                 sr = self.planet_manager.samples[self.sample]["sample_rate"]
                 left, right = self.planet_manager.samples[self.sample]["crops"]
