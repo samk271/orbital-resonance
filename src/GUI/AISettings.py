@@ -236,7 +236,7 @@ class AISettings(CTkFrame):
             self.shifted_signal = self.shifted_signal.astype(int16)
 
             if (self.shifted_signal is None):
-                write("./AUDIO/temp/temp.wav", sr, signal[left:right])
+                write("./AUDIO/temp/temp.wav", sr, signal[left:right].astype(int16))
             else:
                 write("./AUDIO/temp/temp.wav", sr, self.shifted_signal[left:right])
 
@@ -284,7 +284,7 @@ class AISettings(CTkFrame):
             left, right = self.audio_frame.get_crop_indices()
             if not (isdir(f"./AUDIO/user_samples/{sample_name}")):
                 mkdir(f"./AUDIO/user_samples/{sample_name}")
-            write(f"./AUDIO/user_samples/{sample_name}/{sample_name}_{self.midi_note}.wav",self.sr, self.shifted_signal[left:right])
+            write(f"./AUDIO/user_samples/{sample_name}/{sample_name}_{self.midi_note}.wav",self.sr, self.shifted_signal[left:right].astype(int16))
         self.planet_manager.add_sample(sample_name, sample_data)
 
     #add all the wav files from the directory to the listbox
