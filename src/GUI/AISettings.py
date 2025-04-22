@@ -155,7 +155,7 @@ class AISettings(CTkFrame):
         self.note_letter_menu.grid(row=3, column=5, sticky="nw")
 
         # Octave number dropdown (2 to 7)
-        self.octave_number_menu = CTkOptionMenu(parent, values=[str(i) for i in range(2, 8)], variable=self.octave_number_var,
+        self.octave_number_menu = CTkOptionMenu(parent, values=[str(i) for i in range(1, 8)], variable=self.octave_number_var,
                                                 command=self.update_pitch)
         self.octave_number_menu.grid(row=3, column=6, sticky="nw")
 
@@ -355,7 +355,7 @@ class AISettings(CTkFrame):
         - y_tuned: np.ndarray, the pitch-shifted (autotuned) signal.
         """
         # Step 1: Estimate the fundamental frequency (f0) using YIN
-        f0 = yin(y.astype(float), fmin=note_to_hz('C2'), fmax=note_to_hz('C7'), sr=sr)
+        f0 = yin(y.astype(float), fmin=note_to_hz('C1'), fmax=note_to_hz('C7'), sr=sr)
 
         # Remove unvoiced (nan) values
         f0_clean = f0[~isnan(f0)]
