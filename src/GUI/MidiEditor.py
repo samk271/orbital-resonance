@@ -2,12 +2,12 @@ from os.path import exists
 from scipy.io.wavfile import write
 from Physics.Planet import Planet
 from customtkinter import CTkCanvas, CTkFrame, CTkButton, CTkLabel, ScalingTracker
-from tkinter.colorchooser import askcolor
 from numpy import full, append, delete, int16
 from random import randint
 from math import floor
 from librosa import midi_to_note
 from librosa.effects import pitch_shift
+from GUI.PlanetEditor import PlanetEditor
 
 
 # noinspection PyPropertyDefinition
@@ -131,15 +131,9 @@ class MidiEditor(CTkFrame):
             sample[row, col] = None
             self.update_column(col)
 
-        # updates planet color when a selected bar is right clicked
-        elif sample[row, col] and (color := askcolor()[1]):
-            undo = [(self.canvas.itemconfig, (tag, ), {"fill": sample[row, col].color})]
-            sample[row, col].color = color
-            redo = [(self.canvas.itemconfig, (tag,), {"fill": sample[row, col].color})]
-
-            # adds state update and updates color of midi editor
-            self.planet_manager.state_manager.add_state({"undo": undo, "redo": redo}, True)
-            self.canvas.itemconfig(tag, fill=sample[row, col].color)
+        # opens planet settings if planet is right clicked
+        elif sample[row, col]:
+            PlanetEditor(self, planet=sample[row, col], midi=self, tag=tag)
 
         # creates planet when non selected bar is clicked
         elif (not sample[row, col]) and (not right):

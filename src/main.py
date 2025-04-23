@@ -32,7 +32,7 @@ root.bind_all("<Button-1>", lambda e: e.widget.focus_set() if type(e.widget) != 
 root.bind_all("<Control-n>", lambda e: canvas.file_buttons("🆕", e))
 root.bind_all("<Control-o>", lambda e: canvas.file_buttons("📂", e))
 root.bind_all("<Control-Shift-S>", lambda e: canvas.file_buttons("📑", e))
-root.bind_all("<Control-s>", lambda e: file_manager.save(canvas.planet_manager))
+root.bind_all("<Control-s>", lambda e: file_manager.save(canvas))
 root.bind_all("<Control-z>", lambda e: canvas.planet_manager.state_manager.undo())
 root.bind_all("<Control-y>", lambda e: canvas.planet_manager.state_manager.redo())
 

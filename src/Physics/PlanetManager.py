@@ -1,6 +1,7 @@
 from Physics.Planet import Planet
 from FileManagement.StateManager import StateManger
 from tkinter.messagebox import askokcancel, showerror
+from GUI.PlanetEditor import PlanetEditor
 
 
 # noinspection PyPropertyDefinition
@@ -54,6 +55,16 @@ class PlanetManager:
             [frame.destroy() for frame in self.canvas.menu_visibility["planet"]["menu"].sample_frames.values()]
             for name, sample in self.samples.items():
                 self.canvas.menu_visibility["planet"]["menu"].add_sample(name, sample)
+
+            # sets sun settings
+            self.canvas.menu_visibility["planet"]["menu"].old_sun_r = planets[0].radius
+            self.canvas.menu_visibility["planet"]["menu"].size_slider.set(planets[0].radius)
+            self.canvas.menu_visibility["planet"]["menu"].shape_options.set(planets[0].shape)
+
+        # removed old planet editors
+        for editor in PlanetEditor.planets.values():
+            editor.destroy()
+        PlanetEditor.planets.clear()
 
         # sets sample
         self.set_sample(self.sample)

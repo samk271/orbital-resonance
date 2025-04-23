@@ -149,7 +149,7 @@ class PlanetSettings(CTkFrame):
         #slider for the size
         self.size_label = CTkLabel(parent, text="Size:")
         self.size_label.pack(pady=(10,2))
-        self.size_slider = CTkSlider(parent, from_=30, to=200, command=self.display_sun_size)
+        self.size_slider = CTkSlider(parent, from_=25, to=200, command=self.display_sun_size)
         self.old_sun_r = self.planet_manager.get_sun().radius
         self.size_slider.set(self.old_sun_r)
         self.size_slider.bind("<ButtonRelease-1>", lambda e: self.change_sun_size())
