@@ -83,6 +83,7 @@ class Moon(Planet):
         :return: the copied object
         """
 
-        moon_copy = Moon(deepcopy(self.planet, memo), self.period, self.radius, self.color, self.pitch, self.offset)
+        moon_copy = Moon(deepcopy(self.planet, memo), self.period, self.radius, self.color, self.pitch, self.sound_path,
+                         self.offset)
         memo[id(self)] = moon_copy
         return moon_copy
