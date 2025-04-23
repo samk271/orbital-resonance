@@ -55,6 +55,8 @@
   - Scroll: Zoom to mouse pointer
   - Focused zoom follows planet orbit
 
+---
+
 ### ⌨️ Keybinds
 
 | Action              | Key Combination         |
@@ -72,15 +74,70 @@
 
 ---
 
-## 🛠 Installation
+## 🎤 Using the AI Sample Generator
 
-1. Clone the repository.
-2. Navigate to the `resources` folder.
-3. Run:
+**Orbital Resonance** leverages the power of [`cvssp/audioldm2`](https://huggingface.co/cvssp/audioldm2) to generate audio samples directly from text prompts. This lets you create custom sounds without recording or downloading samples.
 
-```bash
-requirements.bat
-```
+### ⚙️ How It Works
+
+The AI model (`cvssp/audioldm2`) converts your written descriptions into `.wav` files using a powerful diffusion-based audio generation process. These samples can then be edited and sequenced within the app.
+
+### 📝 How to Use
+
+1. Open the **Sample Editor**.
+2. Enter a descriptive **text prompt** in the AI Input field (e.g., _"deep synth bass with a rising tone"_).
+3. Click **Generate**.
+4. The AI will return a sample which you can:
+   - Preview
+   - Crop
+   - Name
+   - Adjust pitch and volume
+   - Save to your sample library
+
+> 💡 You can generate multiple variations by editing your prompt slightly or clicking Generate again with the same prompt.
+
+### ✍️ Prompt Tips
+
+To get the best results from the AI, try the following:
+
+| Prompt Type         | Examples                                                                 |
+|---------------------|--------------------------------------------------------------------------|
+| Instruments         | `"solo violin"`, `"electric guitar strumming"`, `"ambient piano chords"` |
+| Style + Instrument  | `"lo-fi hip-hop drum beat"`, `"orchestral brass hits"`                   |
+| Ambience/Effects    | `"windy forest with bird chirps"`, `"sci-fi alert signal"`               |
+| Actions/Changes     | `"rising synth arpeggio"`, `"descending bass line with distortion"`      |
+| Emotions/Textures   | `"eerie ambient drone"`, `"bright shimmering bell tones"`                |
+
+> 🎯 Be as specific as possible. Including **instrument, tone, effect, and motion** (e.g., rising, fading, pulsing) helps guide the model.
+
+### 📌 Notes
+
+- Generation may take a few seconds depending on your system specs.
+- Internet access or a pre-downloaded model may be required.
+- Generated files are stored temporarily until saved to your library.
+
+---
+
+## 💾 File Format
+
+All projects in **Orbital Resonance** are saved as `.orbres` files.
+
+### 📦 What’s Inside a `.orbres` File
+
+Each `.orbres` file contains:
+
+- 🎵 All generated or imported audio samples for that save
+- 🪐 Sequence editor layout, including:
+  - Moons and planets
+  - Pitch, period and orbital offset data
+- ⚙️ Sample metadata such as:
+  - Volume
+  - Pitch
+  - Sample name
+
+### 📂 Opening `.orbres` Files
+
+If file association is enabled, you can simply **double-click** a `.orbres` file in your file explorer and the app will launch automatically with the file loaded and ready to go.
 
 ---
 
@@ -122,23 +179,12 @@ C:\Project
 
 ---
 
-## 💾 File Format
+## 🛠 Installation
 
-All projects in **Orbital Resonance** are saved as `.orbres` files.
+1. Clone the repository.
+2. Navigate to the `resources` folder.
+3. Run:
 
-### 📦 What’s Inside a `.orbres` File
-
-Each `.orbres` file contains:
-
-- 🎵 All generated or imported audio samples for that save
-- 🪐 Sequence editor layout, including:
-  - Moons and planets
-  - Pitch, period and orbital offset data
-- ⚙️ Sample metadata such as:
-  - Volume
-  - Pitch
-  - Sample name
-
-### 📂 Opening `.orbres` Files
-
-If file association is enabled, you can simply **double-click** a `.orbres` file in your file explorer and the app will launch automatically with the file loaded and ready to go.
+```bash
+requirements.bat
+```
