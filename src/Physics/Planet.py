@@ -32,7 +32,7 @@ class Planet:
         self._period = period
         self._radius = radius
         self._color = color
-        self._shape = "Circle"
+        self._shape = self._shape if hasattr(self, "_shape") else "Circle"
 
         # physics fields
         self.moons = self.moons if hasattr(self, "moons") else []
@@ -163,6 +163,7 @@ class Planet:
 
         # copies the planet
         planet_copy = Planet(self.period, self.radius, self.color, self.pitch, self.sound_path, self.offset)
+        planet_copy._shape = self._shape
         memo[id(self)] = planet_copy
         return planet_copy
 

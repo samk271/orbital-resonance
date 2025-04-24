@@ -241,7 +241,10 @@ class PlanetSettings(CTkFrame):
         """
         # if hasattr(self, "planet_manager") and self.planet_manager: todo redundant
         sun = self.planet_manager.get_sun()
+        state = {"undo": [(self.shape_options.set, (sun.shape, ))],
+                 "redo": [(self.shape_options.set, (shape, ))]}
         sun.shape = shape  # Store the shape in the sun object
+        self.planet_manager.state_manager.add_state(state, True)
         # sun.update = True  # Mark the sun for UI update todo already handled by planet class
 
     # def save_settings(self): todo redundant

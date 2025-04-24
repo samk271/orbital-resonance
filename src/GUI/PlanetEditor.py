@@ -84,7 +84,10 @@ class PlanetEditor(CTkToplevel):
         :param shape: The selected shape for the sun.
         """
 
+        state = {"undo": [(self.shape_options.set, (self.planet.shape, ))],
+                 "redo": [(self.shape_options.set, (shape, ))]}
         self.planet.shape = shape
+        self.planet.state_manager.add_state(state, True)
 
     def open_color_dialog(self):
         """

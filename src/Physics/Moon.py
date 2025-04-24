@@ -85,5 +85,6 @@ class Moon(Planet):
 
         moon_copy = Moon(deepcopy(self.planet, memo), self.period, self.radius, self.color, self.pitch, self.sound_path,
                          self.offset)
+        moon_copy._shape = self._shape
         memo[id(self)] = moon_copy
         return moon_copy
