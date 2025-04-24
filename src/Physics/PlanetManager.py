@@ -57,9 +57,9 @@ class PlanetManager:
                 self.canvas.menu_visibility["planet"]["menu"].add_sample(name, sample)
 
             # sets sun settings
-            self.canvas.menu_visibility["planet"]["menu"].old_sun_r = planets[0].radius
-            self.canvas.menu_visibility["planet"]["menu"].size_slider.set(planets[0].radius)
-            self.canvas.menu_visibility["planet"]["menu"].shape_options.set(planets[0].shape)
+            self.canvas.menu_visibility["planet"]["menu"].old_sun_r = self.planets[0].radius
+            self.canvas.menu_visibility["planet"]["menu"].size_slider.set(self.planets[0].radius)
+            self.canvas.menu_visibility["planet"]["menu"].shape_options.set(self.planets[0].shape)
 
         # removed old planet editors
         for editor in PlanetEditor.planets.values():
