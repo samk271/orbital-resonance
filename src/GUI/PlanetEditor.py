@@ -1,6 +1,5 @@
 from customtkinter import CTkButton, CTkLabel, CTkSlider, CTkComboBox, CTkToplevel
 from tkinter.colorchooser import askcolor
-from Physics.Planet import Planet
 
 
 class PlanetEditor(CTkToplevel):
