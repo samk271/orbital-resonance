@@ -4,7 +4,7 @@ from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 from matplotlib.patches import Rectangle
 from numpy import linspace, min as np_min, max as np_max, searchsorted
 from os.path import join
-from os import listdir, remove
+from os import listdir
 from shutil import rmtree
 
 

@@ -8,12 +8,13 @@
 
 ## 🛠 Installation
 
-1. Clone the repository.
-2. Navigate to the `resources` folder.
-3. Run:
+1. Ensure [Python](https://www.python.org/) is installed
+2. Clone the repository.
+3. Navigate to the `resources` folder.
+4. Run:
 
 ```bash
-requirements.bat
+install requirements.bat
 ```
 
 ---
@@ -37,7 +38,7 @@ requirements.bat
   - Topmost selection = planet
   - Other selections = moons (up to `n - 1`)
 - **Interactions**:
-  - Right-click to change planet color
+  - Right-click to modify planet attributes
   - Click/drag to add/remove bars
   - Click to toggle bar on/off
   - Ctrl+Click: Focus with zoom
@@ -187,4 +188,26 @@ Each `.orbres` file contains:
 
 ---
 
-## Credit
+## 🙌 Credits
+
+### 👨‍💻 Developers
+- UI Development: [Ty Barron](https://github.com/TB543)
+- AI/Audio processing: [Sam Klemic](https://github.com/samk271)
+- Physics: [David Muniz](https://github.com/dmgm818)
+- UI Development: [Rakan Abu Awwad](https://github.com/arakan1)
+
+### 🧰 Libraries and Tools
+- Built with: [Python](https://www.python.org/) and various builtin modules
+- User interface: [CustomTkinter](https://github.com/TomSchimansky/CustomTkinter)
+- AI library: [Pytorch](https://pytorch.org/)
+- AI model access: [diffusers](https://github.com/huggingface/diffusers)
+- Scientific computing and performance: [NumPy](https://numpy.org/)
+- WAV file reading/writing: [SciPy](https://scipy.org/)
+- Audio visualization and plotting: [Matplotlib](https://matplotlib.org/)
+- Audio playback: [Pygame](https://www.pygame.org/)
+- Audio processing: [Librosa](https://librosa.org/)
+
+### 🎧 Audio
+- Pre-Trained AI model: [cvssp/audioldm2](https://huggingface.co/cvssp/audioldm2)
+- Prebuilt samples: [Free Wave Samples](https://freewavesamples.com/)
+- Prebuilt samples: [Sample Focus](https://samplefocus.com/)
