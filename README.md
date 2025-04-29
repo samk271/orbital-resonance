@@ -189,7 +189,8 @@ Each `.orbres` file contains:
 
 ## Credit
 
-A special thanks to the following royaly-free sample websites for providing the prebuilt samples included in this repo:
+A special thanks to the following royalty-free sample websites for providing the prebuilt samples included in this repo:
 
 https://freewavesamples.com/
+
 https://samplefocus.com/
