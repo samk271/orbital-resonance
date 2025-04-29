@@ -2,6 +2,8 @@
 
 **Orbital Resonance** is an audio sample generation and visualization tool that turns your sound library into a dynamic solar system. Generate AI-based audio samples, edit sequences like a MIDI editor, and watch your orchestra orbit the sun.
 
+> ⚠️ **Note**: This program currently only has support for  **Windows**.
+
 ---
 
 ## 🛠 Installation
@@ -13,53 +15,6 @@
 ```bash
 requirements.bat
 ```
-
----
-
-### 🛠 Setup Instructions
-
-1. Right-click any `.orbres` file.
-2. Select **Open with...** → **More apps** → **Look for another app on this PC**.
-3. Check the box for **Always use this app to open .orbres files**.
-4. Navigate to the file:
-   ```
-   orbital-resonance/resources/file association/orbital resonance.bat
-   ```
-5. Select the `.bat` file.
-
-> ✅ From now on, opening a `.orbres` file will automatically launch **Orbital Resonance** with the file loaded.
-
-> ⚠️ **Note**: This setup only works on **Windows**.
-
----
-
-### 📂 Opening `.orbres` Files
-
-If file association is enabled, you can simply **double-click** a `.orbres` file in your file explorer and the app will launch automatically with the file loaded and ready to go.
-
----
-
-## 📁 File Association (Windows Only)
-
-You can associate `.orbres` files with **Orbital Resonance** so that double-clicking them launches the app with the selected file.
-
-### 📂 Required Folder Structure
-
-```
-C:\Project
-│
-├── orbital-resonance
-│   ├── resources
-│   │   └── file association
-│   │       └── orbital resonance.bat
-│   ├── src
-│   │   └── main.py
-│
-├── venv
-│   └── Scripts
-│       └── activate.bat
-```
-
 
 ---
 
@@ -175,6 +130,42 @@ To get the best results from the AI, try the following:
 - Internet access or a pre-downloaded model may be required.
 - Generated files are stored temporarily until saved to your library.
 
+> ⚠️ **Note**: The AI does not work for all GPUs in which case "blank" audio will be generated. If this occurs the user will need to use the CPU which is significantly slower.
+
+---
+
+## 📁 File Association
+
+You can associate `.orbres` files with **Orbital Resonance** so that double-clicking them launches the app with the selected file.
+
+### 📂 Required Folder Structure
+
+```
+C:\Project
+│
+├── orbital-resonance
+│   ├── resources
+│   │   └── file association
+│   │       └── orbital resonance.bat
+│   ├── src
+│   │   └── main.py
+│
+├── venv
+│   └── Scripts
+│       └── activate.bat
+```
+
+1. Right-click any `.orbres` file.
+2. Select **Open with...** → **More apps** → **Look for another app on this PC**.
+3. Check the box for **Always use this app to open .orbres files**.
+4. Navigate to the file:
+```
+orbital-resonance/resources/file association/orbital resonance.bat
+```
+5. Select the `.bat` file.
+
+> ✅ From now on, opening a `.orbres` file will automatically launch **Orbital Resonance** with the file loaded.
+
 ---
 
 ## 💾 File Format
@@ -194,5 +185,6 @@ Each `.orbres` file contains:
   - Pitch
   - Sample name
 
+---
 
-
+## Credit
