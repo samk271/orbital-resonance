@@ -17,6 +17,8 @@
 install requirements.bat
 ```
 
+5. Start the program by running `src/main.py`.
+
 ---
 
 ## 🚀 Features
@@ -167,6 +169,7 @@ orbital-resonance/resources/file association/orbital resonance.bat
 
 > ✅ From now on, opening a `.orbres` file will automatically launch **Orbital Resonance** with the file loaded.
 
+> 📝 **Note:** If the `venv` folder is missing, the `.bat` file will attempt to use your globally installed Python interpreter instead.
 ---
 
 ## 💾 File Format
