@@ -71,6 +71,8 @@ install requirements.bat
   - Click+Drag or Arrow keys: Move view
   - Scroll: Zoom to mouse pointer
   - Focused zoom follows planet orbit
+ 
+> 📝 **Note:** Demo of these features can be found [here](https://www.youtube.com/watch?v=miu5NrudE3U)
 
 ---
 
