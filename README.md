@@ -9,7 +9,7 @@
 ## 🛠 Installation
 
 1. Ensure [Python](https://www.python.org/) is installed
-2. Clone the repository.
+2. Clone or download the repository.
 3. Navigate to the `resources` folder.
 4. Run:
 
