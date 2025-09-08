@@ -5,6 +5,8 @@
 > ⚠️ **Note**: This program currently only has support for  **Windows**.
 
 ---
+## Video Showcase
+[![VIDEO](https://img.youtube.com/vi/miu5NrudE3U/0.jpg)](https://www.youtube.com/watch?v=miu5NrudE3U)
 
 ## 🛠 Installation
 
